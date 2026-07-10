@@ -109,7 +109,8 @@
   </table>
   <table class="legend" id="accLegend"></table>
 
-  <div style="margin-top:10px">
+  <div style="margin-top:10px; display:flex; gap:6px">
+    <button class="small" id="shareBtn">Copy share link</button>
     <button class="small" id="reportBtn" style="display:none">View validation report</button>
   </div>
 </div>
@@ -198,6 +199,43 @@ maplibregl.addProtocol('pmtiles', protocol.tile);
 const $ = id => document.getElementById(id);
 const manifests = {};
 let map, cols = new Set(), slug = null, hasReport = false;
+
+// ---- shareable URL state (#city=…&d=…&v=…&t=…&n=…&l=…&b=…&m=zoom/lat/lng) ----
+const LAYER_CHECKS = ['ltsChk', 'gridChk', 'destChk'];
+const initialState = location.hash.length > 1
+  ? new URLSearchParams(location.hash.slice(1)) : null;
+let initialCameraPending = !!(initialState && initialState.get('m'));
+
+function updateHash() {
+  if (!map || !slug) return;
+  const p = new URLSearchParams();
+  p.set('city', slug);
+  p.set('d', $('concept').value);
+  p.set('v', $('variation').value);
+  p.set('t', $('threshold').value);
+  p.set('n', $('network').value);
+  p.set('l', LAYER_CHECKS.filter(id => $(id).checked).join('.'));
+  p.set('b', $('basemap').value);
+  const c = map.getCenter();
+  p.set('m', `${map.getZoom().toFixed(2)}/${c.lat.toFixed(5)}/${c.lng.toFixed(5)}`);
+  history.replaceState(null, '', '#' + p.toString());
+}
+
+function applyInitialControls() {
+  if (!initialState) return;
+  const setIf = (id, val, ok) => { if (val !== null && ok(val)) $(id).value = val; };
+  setIf('concept', initialState.get('d'), v => v in CONCEPTS);
+  setIf('variation', initialState.get('v'), v => ['strict', 'lenient'].includes(v));
+  setIf('threshold', initialState.get('t'), v => v in THRESHOLDS);
+  const n = initialState.get('n');
+  if (n !== null && n in NETWORKS) $('network').value = n;
+  const l = initialState.get('l');
+  if (l !== null) {
+    const on = l.split('.');
+    for (const id of LAYER_CHECKS) $(id).checked = on.includes(id);
+  }
+  setIf('basemap', initialState.get('b'), v => ['sat', 'positron'].includes(v));
+}
 
 function colName(net, ind, thr) {
   return thr === 'avg' ? `avg_cycle_dist_${net}${ind}`
@@ -419,6 +457,7 @@ async function loadCity(s) {
   } else {
     map = new maplibregl.Map({ container: 'map', style, bounds: [[b[0], b[1]], [b[2], b[3]]] });
     map.addControl(new maplibregl.NavigationControl());
+    map.on('moveend', updateHash);
     map.on('click', e => {
       const f = map.queryRenderedFeatures(e.point, { layers: ['lts', 'grid'] })[0];
       if (!f) return;
@@ -430,7 +469,12 @@ async function loadCity(s) {
   // out dense layers to stay within size budgets, which reads as gaps.
   // Floor of 9 because grid tiles below z9 are thinned even for large regions.
   map.setMinZoom(Math.max(9, map.getZoom() - 0.1));
-  const apply = () => updateIndicator();
+  if (initialCameraPending) {
+    initialCameraPending = false;
+    const [z, lat, lng] = (initialState.get('m') || '').split('/').map(Number);
+    if ([z, lat, lng].every(Number.isFinite)) map.jumpTo({ center: [lng, lat], zoom: z });
+  }
+  const apply = () => { updateIndicator(); updateHash(); };
   map.isStyleLoaded() ? apply() : map.once('styledata', apply);
 }
 
@@ -442,14 +486,27 @@ $('concept').value = 'all'; $('variation').value = 'strict';
 $('threshold').value = '2000m'; $('network').value = 'safe_';
 
 for (const id of ['concept', 'variation', 'threshold', 'network'])
-  $(id).onchange = updateIndicator;
+  $(id).onchange = () => { updateIndicator(); updateHash(); };
 $('city').onchange = () => loadCity($('city').value);
-$('ltsChk').onchange = e => map.setLayoutProperty('lts', 'visibility', e.target.checked ? 'visible' : 'none');
-$('gridChk').onchange = e => map.setLayoutProperty('grid', 'visibility', e.target.checked ? 'visible' : 'none');
-$('destChk').onchange = updateOverlays;
+$('ltsChk').onchange = e => { map.setLayoutProperty('lts', 'visibility', e.target.checked ? 'visible' : 'none'); updateHash(); };
+$('gridChk').onchange = e => { map.setLayoutProperty('grid', 'visibility', e.target.checked ? 'visible' : 'none'); updateHash(); };
+$('destChk').onchange = () => { updateOverlays(); updateHash(); };
 $('basemap').onchange = e => {
   map.setLayoutProperty('sat', 'visibility', e.target.value === 'sat' ? 'visible' : 'none');
   map.setLayoutProperty('positron', 'visibility', e.target.value === 'positron' ? 'visible' : 'none');
+  updateHash();
+};
+$('shareBtn').onclick = async () => {
+  updateHash();
+  const url = location.href;
+  try { await navigator.clipboard.writeText(url); }
+  catch {
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  $('shareBtn').textContent = 'Link copied ✓';
+  setTimeout(() => { $('shareBtn').textContent = 'Copy share link'; }, 1500);
 };
 const infoModal = $('infoModal');
 $('infoBtn').onclick = () => { $('infoBody').innerHTML = infoHTML(); infoModal.style.display = 'flex'; };
@@ -466,7 +523,11 @@ $('reportClose').onclick = () => { $('reportView').style.display = 'none'; $('re
     manifests[s] = await (await fetch(`./tiles/${s}/manifest.json`)).json();
   }));
   fillSelect($('city'), CITY_SLUGS.map(s => [s, manifests[s].name]));
-  loadCity(CITY_SLUGS[0]);
+  applyInitialControls();
+  const c = initialState && initialState.get('city');
+  const startSlug = CITY_SLUGS.includes(c) ? c : CITY_SLUGS[0];
+  $('city').value = startSlug;
+  loadCity(startSlug);
 })();
 </script>
 </body>
