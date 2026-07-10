@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Cycling accessibility validation — interactive maps</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+<style>
+  body { margin:0; font-family: system-ui, sans-serif; }
+  #map { position:absolute; inset:0; }
+  #panel { position:absolute; top:10px; left:10px; z-index:2; background:#fff;
+           padding:12px 14px; border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,.3);
+           font-size:13px; width:300px; max-height:calc(100vh - 40px); overflow-y:auto; }
+  #panel h1 { font-size:14px; margin:0 0 8px; }
+  #panel label.row { display:block; margin:5px 0 1px; color:#444; font-size:12px; }
+  #panel select { width:100%; margin:0 0 2px; padding:2px; }
+  #panel .checks label { display:block; margin:4px 0; }
+  #showing { margin:8px 0; padding:7px 8px; background:#f2f6fa; border-radius:6px;
+             font-size:12px; line-height:1.35; }
+  #showing b { font-size:12.5px; }
+  #notice { color:#b00; font-size:12px; margin:4px 0; display:none; }
+  button.small { font-size:12px; padding:2px 8px; border:1px solid #bbb; background:#fafafa;
+                 border-radius:5px; cursor:pointer; }
+  button.small:hover { background:#eee; }
+  #infoBtn { border-radius:50%; width:22px; height:22px; padding:0; font-weight:bold;
+             font-family:serif; font-style:italic; }
+  .selrow { display:flex; gap:6px; align-items:flex-end; }
+  .selrow > div { flex:1; }
+  table.legend { width:100%; border-collapse:collapse; margin-top:6px; table-layout:fixed; }
+  table.legend td { padding:0; font-size:11px; text-align:center; height:14px; }
+  table.legend td.lab { width:64px; text-align:left; font-size:12px; color:#444;
+                        vertical-align:middle; }
+  .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:10; display:none;
+              align-items:center; justify-content:center; }
+  .modal { background:#fff; border-radius:10px; padding:18px 20px; max-width:560px;
+           max-height:80vh; overflow-y:auto; font-size:13.5px; line-height:1.5; }
+  .modal h2 { font-size:15px; margin:0 0 8px; }
+  .modal h3 { font-size:13px; margin:12px 0 4px; }
+  #reportView { position:fixed; inset:0; z-index:9; background:#fff; display:none;
+                flex-direction:column; }
+  #reportView iframe { flex:1; border:0; width:100%; }
+  #reportBar { padding:6px 12px; background:#20303f; color:#fff; display:flex;
+               justify-content:space-between; align-items:center; font-size:13px; }
+  #reportBar button { background:#fff; }
+  .maplibregl-popup-content { font-size:12px; max-width:320px; padding:10px 12px 8px; }
+  .popup h4 { margin:0 0 2px; font-size:12.5px; }
+  .popup .sub { color:#555; margin:0 0 6px; font-size:11.5px; }
+  .popup h5 { margin:8px 0 2px; font-size:11.5px; color:#333; }
+  .popup table { width:100%; border-collapse:collapse; }
+  .popup td { padding:1px 0; font-size:11.5px; }
+  .popup td.v { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;
+                padding-left:10px; }
+  .popup tr.sel td { font-weight:700; }
+  .swatch { display:inline-block; width:11px; height:11px; border-radius:2px;
+            vertical-align:-1px; margin-right:4px; }
+</style>
+</head>
+<body>
+<div id="panel">
+  <h1>Cycling access validation</h1>
+  <label class="row">City</label>
+  <select id="city"></select>
+
+  <label class="row">Destination</label>
+  <select id="concept"></select>
+  <div class="selrow">
+    <div>
+      <label class="row">Variation</label>
+      <select id="variation">
+        <option value="strict">Strict</option>
+        <option value="lenient">Lenient</option>
+      </select>
+    </div>
+    <div>
+      <label class="row">Threshold</label>
+      <select id="threshold"></select>
+    </div>
+  </div>
+  <div class="selrow">
+    <div>
+      <label class="row">Network</label>
+      <select id="network"></select>
+    </div>
+    <div style="flex:0">
+      <button class="small" id="infoBtn" title="How to interpret this indicator">i</button>
+    </div>
+  </div>
+  <div id="notice"></div>
+  <div id="showing"></div>
+
+  <div class="checks">
+    <label><input type="checkbox" id="ltsChk" checked> LTS network</label>
+    <label><input type="checkbox" id="gridChk" checked> Grid access choropleth</label>
+    <label><input type="checkbox" id="destChk"> Show indicator destinations</label>
+  </div>
+  <label class="row">Basemap</label>
+  <select id="basemap">
+    <option value="sat">Satellite (grayscale)</option>
+    <option value="positron">Positron</option>
+  </select>
+
+  <table class="legend" id="ltsLegend">
+    <tr><td class="lab" rowspan="2">LTS</td>
+        <td style="background:#1a9850"></td><td style="background:#a6d96a"></td>
+        <td style="background:#fdae61"></td><td style="background:#d73027"></td></tr>
+    <tr><td>1</td><td>2</td><td>3</td><td>4</td></tr>
+  </table>
+  <table class="legend" id="accLegend"></table>
+
+  <div style="margin-top:10px">
+    <button class="small" id="reportBtn" style="display:none">View validation report</button>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<div class="modal-bg" id="infoModal"><div class="modal" id="infoBody"></div></div>
+<div id="reportView">
+  <div id="reportBar">
+    <span id="reportTitle"></span>
+    <button class="small" id="reportClose">Back to map</button>
+  </div>
+  <iframe id="reportFrame"></iframe>
+</div>
+
+<script>
+const CITY_SLUGS = ['wurzburg', 'dar_es_salaam', 'melbourne'];
+
+const CONCEPTS = {
+  food: { label: 'Fresh food / market', strict: 'fresh_food_market', lenient: 'fresh_food_pooled' },
+  pt:   { label: 'Public transport', strict: 'pt_frequent', lenient: 'pt_any' },
+  pos:  { label: 'Public open space entry points', strict: 'public_open_space_large', lenient: 'public_open_space_any' },
+  ac:   { label: 'Activity centres', strict: 'activity_centre_complete', lenient: 'activity_centre_local' },
+  all:  { label: 'All destinations (combined)', strict: 'all_strict', lenient: 'all_lenient' },
+};
+const IND_LABELS = {
+  fresh_food_market: 'Fresh food / market',
+  fresh_food_pooled: 'Fresh food (incl. convenience)',
+  pt_frequent: 'Public transport (frequent)',
+  pt_any: 'Public transport (any)',
+  public_open_space_large: 'Public open space entries (large)',
+  public_open_space_any: 'Public open space entries (any)',
+  activity_centre_complete: 'Activity centres (complete)',
+  activity_centre_local: 'Activity centres (local)',
+  all_strict: 'All destinations (strict)',
+  all_lenient: 'All destinations (lenient)',
+};
+const IND_ORDER = Object.keys(IND_LABELS);
+const NETWORKS = {
+  lts1_: { label: 'LTS 1 only',
+           desc: 'routes restricted to the lowest-stress streets only (LTS 1) for their full length' },
+  safe_: { label: 'LTS 1–2 (low stress)',
+           desc: 'routes restricted to low-stress streets (LTS 1–2) for their full length' },
+  '':    { label: 'Danger-weighted (full network)',
+           desc: 'routes over the full cycleable network, with length along higher-stress (LTS 3–4) streets penalised by a factor of 1.25 — a benefit-of-the-doubt measure' },
+};
+const THRESHOLDS = {
+  '500m': '500 m', '1000m': '1000 m', '2000m': '2000 m', '5000m': '5000 m',
+  avg: 'Average distance to nearest',
+};
+const IND_DESCS = {
+  fresh_food_market: 'a fresh food market or supermarket',
+  fresh_food_pooled: 'any fresh food source — markets and supermarkets pooled with convenience stores (lenient definition)',
+  pt_frequent: 'a public transport stop with a scheduled service at least every 20 minutes (strict definition)',
+  pt_any: 'any public transport stop',
+  public_open_space_large: 'an entry point to a large (>1.5 ha) public open space (strict definition)',
+  public_open_space_any: 'an entry point to any public open space',
+  activity_centre_complete: 'a “complete” activity centre — a network location whose 400 m walking catchment contains a strict-definition destination of every category (fresh food, public open space, frequent public transport)',
+  activity_centre_local: 'a “local” activity centre — a network location whose 400 m walking catchment contains a lenient-definition destination of every category (fresh food incl. convenience, any public open space, any public transport)',
+  all_strict: 'at least one destination of every category (fresh food, public open space, public transport), each at its strict definition',
+  all_lenient: 'at least one destination of every category (fresh food, public open space, public transport), each at its lenient definition',
+};
+
+// which overlay layers + destination-point filters each indicator maps to
+const DEST_OVERLAYS = {
+  fresh_food_market: { dest: ['fresh_food_market'] },
+  fresh_food_pooled: { dest: ['fresh_food_market', 'convenience'] },
+  pt_any: { dest: ['pt_any'] },
+  pt_frequent: { ptfreq: true },
+  public_open_space_large: { pos_large: true },
+  public_open_space_any: { pos_any: true },
+  activity_centre_complete: { ac_complete: true },
+  activity_centre_local: { ac_local: true },
+  all_strict: { dest: ['fresh_food_market'], ptfreq: true, pos_large: true },
+  all_lenient: { dest: ['fresh_food_market', 'convenience', 'pt_any'], pos_any: true },
+};
+
+const BATLOW = ['#011959', '#10505f', '#3c7156', '#a8963c', '#f9a380', '#fdb4c7'];
+const LTS_COLOURS = { 1: '#1a9850', 2: '#a6d96a', 3: '#fdae61', 4: '#d73027' };
+const LTS_LABELS = { 1: 'lowest stress, suitable for all', 2: 'low stress',
+                     3: 'moderate stress', 4: 'high stress' };
+
+const protocol = new pmtiles.Protocol();
+maplibregl.addProtocol('pmtiles', protocol.tile);
+
+const $ = id => document.getElementById(id);
+const manifests = {};
+let map, cols = new Set(), slug = null, hasReport = false;
+
+function colName(net, ind, thr) {
+  return thr === 'avg' ? `avg_cycle_dist_${net}${ind}`
+                       : `pct_access_cycle_${net}${ind}_${thr}`;
+}
+function currentIndicator() {
+  const c = CONCEPTS[$('concept').value];
+  return c[$('variation').value];
+}
+function currentColumn() {
+  return colName($('network').value, currentIndicator(), $('threshold').value);
+}
+
+function fillSelect(sel, entries) {
+  sel.innerHTML = '';
+  for (const [v, label] of entries) sel.add(new Option(label, v));
+}
+
+// grey out options that have no data for this city given the other current picks
+function refreshAvailability() {
+  const net = $('network').value, vari = $('variation').value, con = $('concept').value;
+  for (const o of $('network').options)
+    o.disabled = !Object.keys(THRESHOLDS).some(t => cols.has(colName(o.value, CONCEPTS[con][vari], t)));
+  for (const o of $('threshold').options)
+    o.disabled = !cols.has(colName(net, CONCEPTS[con][vari], o.value));
+  for (const o of $('variation').options)
+    o.disabled = !Object.keys(THRESHOLDS).some(t => cols.has(colName(net, CONCEPTS[con][o.value], t)));
+  for (const o of $('concept').options)
+    o.disabled = !['strict', 'lenient'].some(v =>
+      Object.keys(THRESHOLDS).some(t => cols.has(colName(net, CONCEPTS[o.value][v], t))));
+}
+
+// if the current combination has no column, walk to the nearest valid one
+function autofix() {
+  if (cols.has(currentColumn())) return true;
+  const con = $('concept').value;
+  for (const vari of [$('variation').value, 'strict', 'lenient'])
+    for (const thr of [$('threshold').value, '2000m', '5000m', '1000m', '500m', 'avg'])
+      for (const net of [$('network').value, 'safe_', '', 'lts1_'])
+        if (cols.has(colName(net, CONCEPTS[con][vari], thr))) {
+          $('variation').value = vari; $('threshold').value = thr; $('network').value = net;
+          return true;
+        }
+  return false;
+}
+
+function showingText() {
+  const ind = currentIndicator(), thr = $('threshold').value, net = $('network').value;
+  if (thr === 'avg')
+    return `<b>${IND_LABELS[ind]}</b><br>Average network distance (m) from each grid cell’s sample points to the nearest destination — ${NETWORKS[net].label} routing.`;
+  return `<b>${IND_LABELS[ind]}</b><br>Percent of each grid cell’s sample points with access within ${thr.replace('m', ' m')} — ${NETWORKS[net].label} routing.`;
+}
+
+function paintExpression(col, isAvg) {
+  const ramp = isAvg ? [...BATLOW].reverse() : BATLOW;
+  const stops = isAvg ? [0, 1000, 2000, 3000, 4000, 5000] : [0, 20, 40, 60, 80, 100];
+  const expr = ['interpolate', ['linear'], ['coalesce', ['get', col], -9999], -9999, 'rgba(0,0,0,0)'];
+  stops.forEach((s, i) => expr.push(s, ramp[i]));
+  return expr;
+}
+
+function accessLegend(isAvg) {
+  const ramp = isAvg ? [...BATLOW].reverse() : BATLOW;
+  const labels = isAvg ? ['0', '1k', '2k', '3k', '4k', '5k'] : ['0', '20', '40', '60', '80', '100'];
+  $('accLegend').innerHTML =
+    `<tr><td class="lab" rowspan="2">${isAvg ? 'Dist. (m)' : 'Access %'}</td>` +
+    ramp.map(c => `<td style="background:${c}"></td>`).join('') + '</tr><tr>' +
+    labels.map(l => `<td>${l}</td>`).join('') + '</tr>';
+}
+
+function updateIndicator() {
+  refreshAvailability();
+  const ok = autofix();
+  refreshAvailability();
+  $('notice').style.display = ok ? 'none' : 'block';
+  $('notice').textContent = ok ? '' : 'This indicator is not available for this city.';
+  const isAvg = $('threshold').value === 'avg';
+  if (ok && map.getLayer('grid'))
+    map.setPaintProperty('grid', 'fill-color', paintExpression(currentColumn(), isAvg));
+  $('showing').innerHTML = showingText();
+  accessLegend(isAvg);
+  updateOverlays();
+}
+
+const OVERLAY_LAYERS = ['dest_pts', 'ptfreq_pts', 'pos_any_pts', 'pos_large_pts',
+                        'ac_local_pts', 'ac_complete_pts'];
+function updateOverlays() {
+  if (!map || !map.getLayer('dest_pts')) return;
+  const on = $('destChk').checked;
+  const spec = DEST_OVERLAYS[currentIndicator()] || {};
+  const vis = {
+    dest_pts: !!spec.dest, ptfreq_pts: !!spec.ptfreq,
+    pos_any_pts: !!spec.pos_any, pos_large_pts: !!spec.pos_large,
+    ac_local_pts: !!spec.ac_local, ac_complete_pts: !!spec.ac_complete,
+  };
+  for (const l of OVERLAY_LAYERS) {
+    if (!map.getLayer(l)) continue;
+    map.setLayoutProperty(l, 'visibility', on && vis[l] ? 'visible' : 'none');
+  }
+  if (spec.dest)
+    map.setFilter('dest_pts', ['match', ['get', 'dest_name'], spec.dest, true, false]);
+}
+
+function fmtPct(v) { return (v === null || v === undefined) ? '–' : `${Math.round(v)}%`; }
+function fmtDist(v) { return (v === null || v === undefined) ? '–' : `${Math.round(v).toLocaleString()} m`; }
+
+function gridPopupHTML(p) {
+  const net = $('network').value, thr = $('threshold').value;
+  const pctThr = thr === 'avg' ? '2000m' : thr;
+  const sel = currentIndicator();
+  const rows = (fmt, colFn) => IND_ORDER.map(ind => {
+    const c = colFn(ind);
+    if (!cols.has(c)) return '';
+    return `<tr class="${ind === sel ? 'sel' : ''}"><td>${IND_LABELS[ind]}</td>` +
+           `<td class="v">${fmt(p[c])}</td></tr>`;
+  }).join('');
+  const pctRows = rows(fmtPct, ind => colName(net, ind, pctThr));
+  const avgRows = rows(fmtDist, ind => colName(net, ind, 'avg'));
+  let html = `<div class="popup"><h4>${IND_LABELS[sel]}</h4>` +
+             `<p class="sub">${NETWORKS[net].label} routing</p>`;
+  if (pctRows) html += `<h5>Percent of sample points with access within ${pctThr.replace('m', ' m')} to…</h5><table>${pctRows}</table>`;
+  if (avgRows) html += `<h5>Average distance to nearest…</h5><table>${avgRows}</table>`;
+  return html + '</div>';
+}
+
+function ltsPopupHTML(p) {
+  const lts = p.lvl_traf_stress;
+  const row = (k, v) => (v === null || v === undefined || v === '') ? ''
+    : `<tr><td>${k}</td><td class="v">${v}</td></tr>`;
+  return `<div class="popup"><h4>${p.name || 'Unnamed way'}</h4>` +
+    `<p class="sub"><span class="swatch" style="background:${LTS_COLOURS[lts] || '#888'}"></span>` +
+    `LTS ${lts} — ${LTS_LABELS[lts] || ''}</p><table>` +
+    row('Highway type', p.highway) +
+    row('Speed limit', p.maxspeed_kmh ? `${p.maxspeed_kmh} km/h` : null) +
+    row('Traffic (assumed ADT)', p.adt ? Math.round(p.adt).toLocaleString() : null) +
+    row('Cycling facility', p.bike_facility) +
+    row('Dismount required', p.foot_dismount ? 'yes' : null) +
+    row('Segment length', p.length_m ? `${p.length_m} m` : null) +
+    '</table></div>';
+}
+
+function infoHTML() {
+  const ind = currentIndicator(), net = $('network').value, thr = $('threshold').value;
+  const what = thr === 'avg'
+    ? `the <b>average network distance</b> (metres) from the cell’s sample points to the nearest such destination, averaged only over sample points that can reach one at all — so sparse areas can show few reachable points <i>and</i> long distances`
+    : `the <b>percentage of sample points</b> in the cell that can reach at least one such destination within <b>${thr.replace('m', ' m')}</b> along the network`;
+  return `<h2>How to read this indicator</h2>
+    <p><b>${IND_LABELS[ind]}</b> — for each 100 m population grid cell, the map shows ${what}.</p>
+    <h3>Destination</h3><p>Access is counted to ${IND_DESCS[ind]}.</p>
+    <h3>Routing (${NETWORKS[net].label})</h3>
+    <p>Routes are computed over ${NETWORKS[net].desc}. Level of Traffic Stress (LTS) grades each
+    street segment from 1 (lowest stress, suitable for all riders) to 4 (high stress), based on
+    cycling infrastructure, street class, speed limit and assumed traffic volumes derived from
+    OpenStreetMap.</p>
+    <h3>Strict vs lenient</h3>
+    <p>Each destination category has a <b>strict</b> definition (fresh food markets only;
+    frequent public transport; large open spaces; “complete” activity centres) and a
+    <b>lenient</b> one (pooled fresh food sources; any stop; any open space; “local”
+    activity centres). Comparing the two brackets the plausible range for access.</p>
+    <p style="text-align:right"><button class="small" onclick="infoModal.style.display='none'">Close</button></p>`;
+}
+
+async function loadCity(s) {
+  slug = s;
+  const manifest = manifests[s];
+  cols = new Set(manifest.grid_columns || []);
+  const b = manifest.bbox;
+  hasReport = (await fetch(`./reports/${s}.html`, { method: 'HEAD' }).catch(() => ({ ok: false }))).ok;
+  $('reportBtn').style.display = hasReport ? 'inline-block' : 'none';
+
+  const circle = (colour, r) => ({
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, r * 0.6, 14, r],
+    'circle-color': colour, 'circle-stroke-color': '#fff', 'circle-stroke-width': 1,
+  });
+  const style = {
+    version: 8,
+    sources: {
+      sat: { type: 'raster',
+        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+        tileSize: 256, attribution: 'Esri' },
+      positron: { type: 'raster',
+        tiles: ['https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
+        tileSize: 256, attribution: 'CARTO / OSM' },
+      city: { type: 'vector', url: `pmtiles://${new URL(`tiles/${s}.pmtiles`, location.href).href}` },
+    },
+    layers: [
+      { id: 'sat', type: 'raster', source: 'sat', paint: { 'raster-saturation': -1 },
+        layout: { visibility: $('basemap').value === 'sat' ? 'visible' : 'none' } },
+      { id: 'positron', type: 'raster', source: 'positron',
+        layout: { visibility: $('basemap').value === 'positron' ? 'visible' : 'none' } },
+      { id: 'grid', type: 'fill', source: 'city', 'source-layer': 'grid',
+        layout: { visibility: $('gridChk').checked ? 'visible' : 'none' },
+        paint: { 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 0.65 } },
+      { id: 'boundary', type: 'line', source: 'city', 'source-layer': 'boundary',
+        paint: { 'line-color': '#000', 'line-width': 2, 'line-dasharray': [3, 2] } },
+      { id: 'lts', type: 'line', source: 'city', 'source-layer': 'lts',
+        layout: { visibility: $('ltsChk').checked ? 'visible' : 'none' },
+        paint: { 'line-color': ['match', ['get', 'lvl_traf_stress'],
+                   1, LTS_COLOURS[1], 2, LTS_COLOURS[2], 3, LTS_COLOURS[3], 4, LTS_COLOURS[4], '#888'],
+                 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.4, 13, 1.6, 16, 3.5] } },
+      { id: 'pos_any_pts', type: 'circle', source: 'city', 'source-layer': 'pos_any',
+        layout: { visibility: 'none' }, paint: circle('#f032e6', 3.5) },
+      { id: 'pos_large_pts', type: 'circle', source: 'city', 'source-layer': 'pos_large',
+        layout: { visibility: 'none' }, paint: circle('#f032e6', 3.5) },
+      { id: 'ac_local_pts', type: 'circle', source: 'city', 'source-layer': 'ac_local',
+        layout: { visibility: 'none' }, paint: circle('#f032e6', 3.5) },
+      { id: 'ac_complete_pts', type: 'circle', source: 'city', 'source-layer': 'ac_complete',
+        layout: { visibility: 'none' }, paint: circle('#f032e6', 3.5) },
+      { id: 'dest_pts', type: 'circle', source: 'city', 'source-layer': 'destinations',
+        layout: { visibility: 'none' }, paint: circle('#e6194b', 4.5) },
+      { id: 'ptfreq_pts', type: 'circle', source: 'city', 'source-layer': 'pt_frequent',
+        layout: { visibility: 'none' }, paint: circle('#e6194b', 4.5) },
+    ],
+  };
+  if (map) { map.setStyle(style); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { duration: 0 }); }
+  else {
+    map = new maplibregl.Map({ container: 'map', style, bounds: [[b[0], b[1]], [b[2], b[3]]] });
+    map.addControl(new maplibregl.NavigationControl());
+    map.on('click', e => {
+      const f = map.queryRenderedFeatures(e.point, { layers: ['lts', 'grid'] })[0];
+      if (!f) return;
+      const html = f.layer.id === 'lts' ? ltsPopupHTML(f.properties) : gridPopupHTML(f.properties);
+      new maplibregl.Popup({ maxWidth: '340px' }).setLngLat(e.lngLat).setHTML(html).addTo(map);
+    });
+  }
+  const apply = () => updateIndicator();
+  map.isStyleLoaded() ? apply() : map.once('styledata', apply);
+}
+
+// ---- wire up controls ----
+fillSelect($('concept'), Object.entries(CONCEPTS).map(([k, v]) => [k, v.label]));
+fillSelect($('threshold'), Object.entries(THRESHOLDS));
+fillSelect($('network'), Object.entries(NETWORKS).map(([k, v]) => [k, v.label]));
+$('concept').value = 'all'; $('variation').value = 'strict';
+$('threshold').value = '2000m'; $('network').value = 'safe_';
+
+for (const id of ['concept', 'variation', 'threshold', 'network'])
+  $(id).onchange = updateIndicator;
+$('city').onchange = () => loadCity($('city').value);
+$('ltsChk').onchange = e => map.setLayoutProperty('lts', 'visibility', e.target.checked ? 'visible' : 'none');
+$('gridChk').onchange = e => map.setLayoutProperty('grid', 'visibility', e.target.checked ? 'visible' : 'none');
+$('destChk').onchange = updateOverlays;
+$('basemap').onchange = e => {
+  map.setLayoutProperty('sat', 'visibility', e.target.value === 'sat' ? 'visible' : 'none');
+  map.setLayoutProperty('positron', 'visibility', e.target.value === 'positron' ? 'visible' : 'none');
+};
+const infoModal = $('infoModal');
+$('infoBtn').onclick = () => { $('infoBody').innerHTML = infoHTML(); infoModal.style.display = 'flex'; };
+infoModal.onclick = e => { if (e.target === infoModal) infoModal.style.display = 'none'; };
+$('reportBtn').onclick = () => {
+  $('reportTitle').textContent = `${manifests[slug].name} — cycling validation report`;
+  $('reportFrame').src = `./reports/${slug}.html`;
+  $('reportView').style.display = 'flex';
+};
+$('reportClose').onclick = () => { $('reportView').style.display = 'none'; $('reportFrame').src = ''; };
+
+(async () => {
+  await Promise.all(CITY_SLUGS.map(async s => {
+    manifests[s] = await (await fetch(`./tiles/${s}/manifest.json`)).json();
+  }));
+  fillSelect($('city'), CITY_SLUGS.map(s => [s, manifests[s].name]));
+  loadCity(CITY_SLUGS[0]);
+})();
+</script>
+</body>
+</html>
