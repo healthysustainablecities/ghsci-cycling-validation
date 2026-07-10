@@ -14,9 +14,8 @@ layer_args() {
   case "$1" in
     lts)          echo "-Z8 --drop-densest-as-needed --extend-zooms-if-still-dropping" ;;
     grid)         echo "-Z8 --coalesce-smallest-as-needed --drop-smallest-as-needed --maximum-tile-bytes=3000000" ;;
-    destinations) echo "-Z8 --drop-densest-as-needed" ;;
-    pos_any|pos_large) echo "-Z10 --drop-densest-as-needed" ;;
-    ac_local|ac_complete) echo "-Z9 --drop-densest-as-needed" ;;
+    destinations|pt_frequent) echo "-Z8 --drop-densest-as-needed" ;;
+    pos_any|pos_large|ac_local|ac_complete) echo "-Z11 --drop-densest-as-needed" ;;
     boundary)     echo "-Z4" ;;
   esac
 }
@@ -30,7 +29,7 @@ for slug in "$@"; do
     args=$(layer_args "$layer")
     echo "-- $layer ($args)"
     tc tippecanoe -q --force -o "/data/$slug/$layer.pmtiles" -l "$layer" \
-      -z13 $args "/data/$slug/$layer.geojsonl"
+      -z12 $args "/data/$slug/$layer.geojsonl"
     parts+=("/data/$slug/$layer.pmtiles")
   done
   tc tile-join -q --force -pk -o "/data/$slug.pmtiles" "${parts[@]}"

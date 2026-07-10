@@ -412,8 +412,11 @@ async function loadCity(s) {
         layout: { visibility: 'none' }, paint: circle('#e6194b', 4.5) },
     ],
   };
-  if (map) { map.setStyle(style); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { duration: 0 }); }
-  else {
+  if (map) {
+    map.setMinZoom(0);
+    map.setStyle(style);
+    map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { duration: 0 });
+  } else {
     map = new maplibregl.Map({ container: 'map', style, bounds: [[b[0], b[1]], [b[2], b[3]]] });
     map.addControl(new maplibregl.NavigationControl());
     map.on('click', e => {
@@ -423,6 +426,10 @@ async function loadCity(s) {
       new maplibregl.Popup({ maxWidth: '340px' }).setLngLat(e.lngLat).setHTML(html).addTo(map);
     });
   }
+  // don't allow zooming out beyond the whole-city view: low-zoom tiles thin
+  // out dense layers to stay within size budgets, which reads as gaps.
+  // Floor of 9 because grid tiles below z9 are thinned even for large regions.
+  map.setMinZoom(Math.max(9, map.getZoom() - 0.1));
   const apply = () => updateIndicator();
   map.isStyleLoaded() ? apply() : map.once('styledata', apply);
 }
