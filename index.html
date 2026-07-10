@@ -282,11 +282,21 @@ function autofix() {
   return false;
 }
 
+function regionStatText() {
+  const rv = (manifests[slug] || {}).region_values || {};
+  const v = rv[currentColumn()];
+  if (v === null || v === undefined) return '';
+  const isAvg = $('threshold').value === 'avg';
+  const val = isAvg ? `${Math.round(v).toLocaleString()} m` : `${v}%`;
+  return `<br><b>Region overall: ${val}</b> (population-weighted)`;
+}
+
 function showingText() {
   const ind = currentIndicator(), thr = $('threshold').value, net = $('network').value;
-  if (thr === 'avg')
-    return `<b>${IND_LABELS[ind]}</b><br>Average network distance (m) from each grid cell’s sample points to the nearest destination — ${NETWORKS[net].label} routing.`;
-  return `<b>${IND_LABELS[ind]}</b><br>Percent of each grid cell’s sample points with access within ${thr.replace('m', ' m')} — ${NETWORKS[net].label} routing.`;
+  const body = thr === 'avg'
+    ? `Average network distance (m) from each grid cell’s sample points to the nearest destination — ${NETWORKS[net].label} routing.`
+    : `Percent of each grid cell’s sample points with access within ${thr.replace('m', ' m')} — ${NETWORKS[net].label} routing.`;
+  return `<b>${IND_LABELS[ind]}</b><br>${body}${regionStatText()}`;
 }
 
 function paintExpression(col, isAvg) {
@@ -390,6 +400,13 @@ function infoHTML() {
     street segment from 1 (lowest stress, suitable for all riders) to 4 (high stress), based on
     cycling infrastructure, street class, speed limit and assumed traffic volumes derived from
     OpenStreetMap.</p>
+    <h3>Walking the bike (dismount links)</h3>
+    <p>Footways, paths and pedestrian areas where riding is not permitted are still part of
+    the routable network: a rider may dismount and walk the bike along them, and they are
+    graded LTS 1 since they are traffic-free. Each metre walked counts as <b>3 m</b> of the
+    distance threshold, reflecting walking pace (~5 km/h) against cycling (~15 km/h).
+    Stairs and indoor corridors are excluded as impractical with a bike. On the map, such
+    segments show “Dismount required: yes” when clicked.</p>
     <h3>Strict vs lenient</h3>
     <p>Each destination category has a <b>strict</b> definition (fresh food markets only;
     frequent public transport; large open spaces; “complete” activity centres) and a
@@ -420,18 +437,20 @@ async function loadCity(s) {
         tiles: ['https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
         tileSize: 256, attribution: 'CARTO / OSM' },
       city: { type: 'vector', url: `pmtiles://${new URL(`tiles/${s}.pmtiles`, location.href).href}` },
+      city_lts: { type: 'vector', url: `pmtiles://${new URL(`tiles/${s}_lts.pmtiles`, location.href).href}` },
+      city_grid: { type: 'vector', url: `pmtiles://${new URL(`tiles/${s}_grid.pmtiles`, location.href).href}` },
     },
     layers: [
       { id: 'sat', type: 'raster', source: 'sat', paint: { 'raster-saturation': -1 },
         layout: { visibility: $('basemap').value === 'sat' ? 'visible' : 'none' } },
       { id: 'positron', type: 'raster', source: 'positron',
         layout: { visibility: $('basemap').value === 'positron' ? 'visible' : 'none' } },
-      { id: 'grid', type: 'fill', source: 'city', 'source-layer': 'grid',
+      { id: 'grid', type: 'fill', source: 'city_grid', 'source-layer': 'grid',
         layout: { visibility: $('gridChk').checked ? 'visible' : 'none' },
         paint: { 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 0.65 } },
       { id: 'boundary', type: 'line', source: 'city', 'source-layer': 'boundary',
         paint: { 'line-color': '#000', 'line-width': 2, 'line-dasharray': [3, 2] } },
-      { id: 'lts', type: 'line', source: 'city', 'source-layer': 'lts',
+      { id: 'lts', type: 'line', source: 'city_lts', 'source-layer': 'lts',
         layout: { visibility: $('ltsChk').checked ? 'visible' : 'none' },
         paint: { 'line-color': ['match', ['get', 'lvl_traf_stress'],
                    1, LTS_COLOURS[1], 2, LTS_COLOURS[2], 3, LTS_COLOURS[3], 4, LTS_COLOURS[4], '#888'],
@@ -483,7 +502,7 @@ fillSelect($('concept'), Object.entries(CONCEPTS).map(([k, v]) => [k, v.label]))
 fillSelect($('threshold'), Object.entries(THRESHOLDS));
 fillSelect($('network'), Object.entries(NETWORKS).map(([k, v]) => [k, v.label]));
 $('concept').value = 'all'; $('variation').value = 'strict';
-$('threshold').value = '2000m'; $('network').value = 'safe_';
+$('threshold').value = '2000m'; $('network').value = 'lts1_';
 
 for (const id of ['concept', 'variation', 'threshold', 'network'])
   $(id).onchange = () => { updateIndicator(); updateHash(); };
