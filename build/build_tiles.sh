@@ -1,19 +1,26 @@
 #!/bin/bash
 # Build three PMTiles archives per city from the GeoJSONSeq layers exported by
-# _export_validation_tiles.py (copied out of the ghsci container):
+# _export_validation_tiles.py (run first, inside the ghsci container):
 #   <slug>_lts.pmtiles   dense street network (own archive -> full tile budget)
 #   <slug>_grid.pmtiles  100m indicator grid  (own archive -> full tile budget)
 #   <slug>.pmtiles       everything else (destinations, PT, POS, ACs, boundary)
 # All archives end at z12 (MapLibre overzooms beyond that). IMPORTANT: never use
 # --extend-zooms-if-still-dropping here — one layer extending past the others
 # makes the joined/advertised maxzoom lie, and layers vanish at high zoom.
+#
+# Usage (from anywhere): bash build/build_tiles.sh <slug> [<slug> ...]
+# Requires: docker image tippecanoe:local (see build/Dockerfile) and the
+# "ghsci" container running with /tmp/validation_tiles/<slug> already exported.
 set -e
-SCRATCH="/c/Users/E33390/AppData/Local/Temp/claude/C--Users-E33390-OneDrive---RMIT-University-GOHSC-cycling-indicators---General/289836d9-34cf-416f-bf2b-561a5d10ce3c/scratchpad"
-DATA="$SCRATCH/data"
-WIN_DATA="C:/Users/E33390/AppData/Local/Temp/claude/C--Users-E33390-OneDrive---RMIT-University-GOHSC-cycling-indicators---General/289836d9-34cf-416f-bf2b-561a5d10ce3c/scratchpad/data"
-mkdir -p "$DATA"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK="$SCRIPT_DIR/_work"
+mkdir -p "$WORK"
 
-tc() { MSYS_NO_PATHCONV=1 docker run --rm -v "$WIN_DATA:/data" tippecanoe:local "$@"; }
+# Docker Desktop on Windows needs a Windows-style path for -v; pwd -W (Git Bash)
+# gives that directly, spaces and all. Falls back to the plain path (WSL2 / Linux).
+if MOUNT="$(cd "$WORK" && pwd -W 2>/dev/null)"; then :; else MOUNT="$WORK"; fi
+
+tc() { MSYS_NO_PATHCONV=1 docker run --rm -v "$MOUNT:/data" tippecanoe:local "$@"; }
 
 # below z11, keep only arterial roads and cycleways so overview zooms thin
 # cartographically instead of dropping random segments
@@ -29,7 +36,7 @@ layer_args() {
 
 for slug in "$@"; do
   echo "== $slug"
-  [ -d "$DATA/$slug" ] || docker cp "ghsci:/tmp/validation_tiles/$slug" "$DATA/"
+  [ -d "$WORK/$slug" ] || docker cp "ghsci:/tmp/validation_tiles/$slug" "$WORK/"
 
   echo "-- lts (own archive)"
   tc tippecanoe -q --force -o "/data/${slug}_lts.pmtiles" -l lts -Z8 -z12 \
@@ -42,7 +49,7 @@ for slug in "$@"; do
     --drop-smallest-as-needed "/data/$slug/grid.geojsonl"
 
   parts=()
-  for f in "$DATA/$slug"/*.geojsonl; do
+  for f in "$WORK/$slug"/*.geojsonl; do
     layer=$(basename "$f" .geojsonl)
     if [ "$layer" = "lts" ] || [ "$layer" = "grid" ]; then continue; fi
     args=$(layer_args "$layer")
@@ -52,5 +59,7 @@ for slug in "$@"; do
     parts+=("/data/$slug/$layer.pmtiles")
   done
   tc tile-join -q --force -pk -o "/data/$slug.pmtiles" "${parts[@]}"
-  ls -lh "$DATA/$slug.pmtiles" "$DATA/${slug}_lts.pmtiles" "$DATA/${slug}_grid.pmtiles"
+  echo "-- built:"
+  ls -lh "$WORK/$slug.pmtiles" "$WORK/${slug}_lts.pmtiles" "$WORK/${slug}_grid.pmtiles"
+  echo "   (copy these + $WORK/$slug/manifest.json into ../tiles/ when ready)"
 done
