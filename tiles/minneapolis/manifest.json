@@ -1,6 +1,6 @@
 {
  "name": "Minneapolis",
- "codename": "data/Cycling/Minneapolis/Minneapolis",
+ "codename": "data/Cycling/Minneapolis/Minneapolis.yml",
  "slug": "minneapolis",
  "layers": {
   "lts": {
@@ -13,19 +13,11 @@
   },
   "destinations": {
    "file": "destinations.geojsonl",
-   "features": 189581
+   "features": 27661
   },
   "pt_frequent": {
    "file": "pt_frequent.geojsonl",
    "features": 1967
-  },
-  "pos_any": {
-   "file": "pos_any.geojsonl",
-   "features": 407724
-  },
-  "pos_large": {
-   "file": "pos_large.geojsonl",
-   "features": 341505
   },
   "ac_local": {
    "file": "ac_local.geojsonl",
@@ -35,8 +27,20 @@
    "file": "ac_complete.geojsonl",
    "features": 20941
   },
+  "pos_any": {
+   "file": "pos_any.geojsonl",
+   "features": 407724
+  },
+  "pos_large": {
+   "file": "pos_large.geojsonl",
+   "features": 341480
+  },
   "boundary": {
    "file": "boundary.geojsonl",
+   "features": 1
+  },
+  "buffer": {
+   "file": "buffer.geojsonl",
    "features": 1
   }
  },

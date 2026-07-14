@@ -8,11 +8,12 @@ Layers exported (EPSG:4326):
     lts          edges with an LTS rating + popup attributes
     grid         100m indicators grid, headline cycling access + distance columns
     destinations point destinations (dest_name / dest_name_full)
-    pos_any      public open space entry lines (any)
-    pos_large    public open space entry lines (large)
+    pos_any      public open space entry lines (any), + aos_ha (open space size)
+    pos_large    public open space entry lines (large), + aos_ha
     ac_local     local activity centre clusters
     ac_complete  complete activity centre clusters
     boundary     urban study region
+    buffer       buffered urban study region (the ~5000m analysis buffer)
 
 Usage (inside the ghsci container):
     /env/bin/python _export_validation_tiles.py "data/Cycling/Würzburg/Würzburg.yml" [outdir]
@@ -154,18 +155,34 @@ def export(codename, outdir=None):
             ),
         )
     for layer, table in [
-        ('pos_any', 'aos_public_any_nodes_30m_line'),
-        ('pos_large', 'aos_public_large_nodes_30m_line'),
         ('ac_local', 'activity_centre_local'),
         ('ac_complete', 'activity_centre_complete'),
     ]:
         if table in r.tables:
             record(layer, r.get_gdf(f'SELECT geom FROM {table}'))
 
+    for layer, table in [
+        ('pos_any', 'aos_public_any_nodes_30m_line'),
+        ('pos_large', 'aos_public_large_nodes_30m_line'),
+    ]:
+        if table in r.tables:
+            has_aos = 'aos_public' in r.tables
+            sql = (
+                f"""SELECT n.geom,
+                           {'ROUND(a.aos_ha_public::numeric, 2) AS aos_ha' if has_aos else 'NULL AS aos_ha'}
+                    FROM {table} n
+                    {"LEFT JOIN aos_public a ON a.aos_id = n.aos_id" if has_aos else ''}"""
+            )
+            record(layer, r.get_gdf(sql))
+
     boundary = r.get_gdf(
         'SELECT study_region, area_sqkm, pop_est, geom FROM urban_study_region',
     )
     record('boundary', boundary)
+
+    buffer_table = r.config.get('buffered_urban_study_region')
+    if buffer_table and buffer_table in r.tables:
+        record('buffer', r.get_gdf(f'SELECT geom FROM {buffer_table}'))
     manifest['bbox'] = [
         round(float(v), 5) for v in boundary.to_crs(4326).total_bounds
     ]

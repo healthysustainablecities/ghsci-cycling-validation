@@ -19,14 +19,6 @@
    "file": "pt_frequent.geojsonl",
    "features": 8160
   },
-  "pos_any": {
-   "file": "pos_any.geojsonl",
-   "features": 363675
-  },
-  "pos_large": {
-   "file": "pos_large.geojsonl",
-   "features": 249634
-  },
   "ac_local": {
    "file": "ac_local.geojsonl",
    "features": 163790
@@ -35,8 +27,20 @@
    "file": "ac_complete.geojsonl",
    "features": 46624
   },
+  "pos_any": {
+   "file": "pos_any.geojsonl",
+   "features": 363675
+  },
+  "pos_large": {
+   "file": "pos_large.geojsonl",
+   "features": 249634
+  },
   "boundary": {
    "file": "boundary.geojsonl",
+   "features": 1
+  },
+  "buffer": {
+   "file": "buffer.geojsonl",
    "features": 1
   }
  },

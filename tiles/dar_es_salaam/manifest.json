@@ -15,14 +15,6 @@
    "file": "destinations.geojsonl",
    "features": 14712
   },
-  "pos_any": {
-   "file": "pos_any.geojsonl",
-   "features": 4430
-  },
-  "pos_large": {
-   "file": "pos_large.geojsonl",
-   "features": 1608
-  },
   "ac_local": {
    "file": "ac_local.geojsonl",
    "features": 3562
@@ -31,8 +23,20 @@
    "file": "ac_complete.geojsonl",
    "features": 435
   },
+  "pos_any": {
+   "file": "pos_any.geojsonl",
+   "features": 4430
+  },
+  "pos_large": {
+   "file": "pos_large.geojsonl",
+   "features": 1608
+  },
   "boundary": {
    "file": "boundary.geojsonl",
+   "features": 1
+  },
+  "buffer": {
+   "file": "buffer.geojsonl",
    "features": 1
   }
  },

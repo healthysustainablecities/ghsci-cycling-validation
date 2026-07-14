@@ -30,7 +30,7 @@ layer_args() {
   case "$1" in
     destinations|pt_frequent) echo "-Z8 --drop-densest-as-needed" ;;
     pos_any|pos_large|ac_local|ac_complete) echo "-Z11 --drop-densest-as-needed" ;;
-    boundary)     echo "-Z4" ;;
+    boundary|buffer) echo "-Z4" ;;
   esac
 }
 

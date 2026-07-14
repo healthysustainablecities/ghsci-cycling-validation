@@ -7,16 +7,21 @@
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
 <style>
   body { margin:0; font-family: system-ui, sans-serif; }
   #map { position:absolute; inset:0; }
   #panel { position:absolute; top:10px; left:10px; z-index:2; background:#fff;
            padding:12px 14px; border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,.3);
            font-size:13px; width:300px; max-height:calc(100vh - 40px); overflow-y:auto; }
+  #panel select#variation {width: 70%;}
   #panel h1 { font-size:14px; margin:0 0 8px; }
   #panel label.row { display:block; margin:5px 0 1px; color:#444; font-size:12px; }
   #panel select { width:100%; margin:0 0 2px; padding:2px; }
   #panel .checks label { display:block; margin:4px 0; }
+  #panel .subhead { display:block; margin:8px 0 1px; color:#777; font-size:10.5px;
+                     text-transform:uppercase; letter-spacing:.04em; }
   #showing { margin:8px 0; padding:7px 8px; background:#f2f6fa; border-radius:6px;
              font-size:12px; line-height:1.35; }
   #showing b { font-size:12.5px; }
@@ -28,10 +33,51 @@
              font-family:serif; font-style:italic; }
   .selrow { display:flex; gap:6px; align-items:flex-end; }
   .selrow > div { flex:1; }
-  table.legend { width:100%; border-collapse:collapse; margin-top:6px; table-layout:fixed; }
-  table.legend td { padding:0; font-size:11px; text-align:center; height:14px; }
-  table.legend td.lab { width:64px; text-align:left; font-size:12px; color:#444;
-                        vertical-align:middle; }
+  /* wrapper around Destination */
+  .selrow > div:first-child {
+    flex: 0 0 70%;
+  }
+  /* wrapper around Variation */
+  .selrow > div:last-child {
+    flex: 1 0 30%;
+  }
+  .selrow > div.info-wrap {
+    flex: 0 0 30%;
+  }
+  /* centre contents of the second div */
+  .info-wrap {
+    display: flex;
+    align-items: center;      /* vertical alignment */
+    justify-content: center;  /* horizontal centre */
+    gap: 4px;                 /* space between select and "i" */
+  }
+  .info-wrap select {
+    width: auto;   /* or a % if you want the button closer/further */
+  }
+  .leg { margin-top:8px; }
+  .leg-title { display:block; font-size:11.5px; color:#444; margin-bottom:2px; }
+  .leg-row { display:flex; gap:2px; }
+  .leg-item { flex:1; text-align:center; font-size:11px; cursor:pointer;
+              border-radius:3px; padding:1px 0 0; }
+  .leg-item .patch { display:block; height:12px; border-radius:2px; margin-bottom:1px; }
+  .leg-item.static { cursor:default; }
+  .leg-item.selected { outline:2px solid #222; outline-offset:1px; }
+  .leg-item:not(.static):hover .patch { filter:brightness(0.92); }
+  
+  .dist-label, .time-label {
+    display: block;        /* each label on its own line */
+    white-space: nowrap;   /* don't wrap within the label itself */
+    line-height: 1.1;
+  }
+
+  .dist-label {
+    /* optional tweaks */
+  }
+
+  .time-label {
+    font-size: 10px;
+    color: #555;
+  }
   .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:10; display:none;
               align-items:center; justify-content:center; }
   .modal { background:#fff; border-radius:10px; padding:18px 20px; max-width:560px;
@@ -44,6 +90,9 @@
   #reportBar { padding:6px 12px; background:#20303f; color:#fff; display:flex;
                justify-content:space-between; align-items:center; font-size:13px; }
   #reportBar button { background:#fff; }
+  #hoverTip { position:fixed; pointer-events:none; background:rgba(20,20,20,.92);
+              color:#fff; padding:5px 9px; border-radius:6px; font-size:11.5px;
+              max-width:240px; z-index:6; display:none; line-height:1.4; }
   .maplibregl-popup-content { font-size:12px; max-width:320px; padding:10px 12px 8px; }
   .popup h4 { margin:0 0 2px; font-size:12.5px; }
   .popup .sub { color:#555; margin:0 0 6px; font-size:11.5px; }
@@ -63,9 +112,14 @@
   <label class="row">City</label>
   <select id="city"></select>
 
-  <label class="row">Destination</label>
-  <select id="concept"></select>
+  <label class="row">Indicator</label>
+  <select id="threshold"></select>
+
   <div class="selrow">
+    <div>
+      <label class="row">Destination</label>
+      <select id="concept"></select>
+    </div>
     <div>
       <label class="row">Variation</label>
       <select id="variation">
@@ -73,17 +127,13 @@
         <option value="lenient">Lenient</option>
       </select>
     </div>
-    <div>
-      <label class="row">Threshold</label>
-      <select id="threshold"></select>
-    </div>
   </div>
   <div class="selrow">
     <div>
       <label class="row">Network</label>
       <select id="network"></select>
     </div>
-    <div style="flex:0">
+    <div style="flex:0" id="info-wrap">
       <button class="small" id="infoBtn" title="How to interpret this indicator">i</button>
     </div>
   </div>
@@ -94,6 +144,9 @@
     <label><input type="checkbox" id="ltsChk" checked> LTS network</label>
     <label><input type="checkbox" id="gridChk" checked> Grid access choropleth</label>
     <label><input type="checkbox" id="destChk"> Show indicator destinations</label>
+    <span class="subhead">Region context</span>
+    <label><input type="checkbox" id="boundaryChk" checked> Study region boundary</label>
+    <label><input type="checkbox" id="bufferChk"> 5 km analysis buffer</label>
   </div>
   <label class="row">Basemap</label>
   <select id="basemap">
@@ -101,13 +154,16 @@
     <option value="positron">Positron</option>
   </select>
 
-  <table class="legend" id="ltsLegend">
-    <tr><td class="lab" rowspan="2">LTS</td>
-        <td style="background:#1a9850"></td><td style="background:#a6d96a"></td>
-        <td style="background:#fdae61"></td><td style="background:#d73027"></td></tr>
-    <tr><td>1</td><td>2</td><td>3</td><td>4</td></tr>
-  </table>
-  <table class="legend" id="accLegend"></table>
+  <div class="leg">
+    <span class="leg-title">Level of Traffic Stress (LTS)</span>
+    <div id="ltsLegend" class="leg-row"></div>
+  </div>
+
+  <div class="leg">
+    <span class="leg-title" title="50% of population access to destination by distance band (m) using selected network">Access within distance (m)</span>
+    <div id="accLegend" class="leg-row"></div>
+    <div id="accLegendTimes" class="leg-row leg-row-secondary"></div>
+  </div>
 
   <div style="margin-top:10px; display:flex; gap:6px">
     <button class="small" id="shareBtn">Copy share link</button>
@@ -116,6 +172,7 @@
 </div>
 
 <div id="map"></div>
+<div id="hoverTip"></div>
 
 <div class="modal-bg" id="infoModal"><div class="modal" id="infoBody"></div></div>
 <div id="reportView">
@@ -157,10 +214,18 @@ const NETWORKS = {
   '':    { label: 'Danger-weighted (full network)',
            desc: 'routes over the full cycleable network, with length along higher-stress (LTS 3–4) streets penalised by a factor of 1.25 — a benefit-of-the-doubt measure' },
 };
+// Threshold now selects the *display mode*: isochrone bands (all four distances
+// at once, matching the static report) or a continuous average-distance map.
 const THRESHOLDS = {
-  '500m': '500 m', '1000m': '1000 m', '2000m': '2000 m', '5000m': '5000 m',
+  iso: 'Access within distance/time',
   avg: 'Average distance to nearest',
 };
+const ISO_DISTANCES = ['500m', '1000m', '2000m', '5000m'];
+// Exact Crameri batlow samples at t=1.0/0.667/0.333/0.0, matching
+// _validation_report.py's _plot_isochrone_ax so the dashboard and static
+// report read as the same colour language.
+const ISO_COLORS = ['#faccfa', '#d29343', '#3c6d56', '#011959'];
+const ISO_NO_ACCESS = '#888888';
 const IND_DESCS = {
   fresh_food_market: 'a fresh food market or supermarket',
   fresh_food_pooled: 'any fresh food source — markets and supermarkets pooled with convenience stores (lenient definition)',
@@ -187,11 +252,17 @@ const DEST_OVERLAYS = {
   all_strict: { dest: ['fresh_food_market'], ptfreq: true, pos_large: true },
   all_lenient: { dest: ['fresh_food_market', 'convenience', 'pt_any'], pos_any: true },
 };
+const OVERLAY_COLORS = {
+  dest_pts: '#e6194b', ptfreq_pts: '#e6194b',
+  pos_any_pts: '#f032e6', pos_large_pts: '#f032e6',
+  ac_local_pts: '#f032e6', ac_complete_pts: '#f032e6',
+};
 
 const BATLOW = ['#011959', '#10505f', '#3c7156', '#a8963c', '#f9a380', '#fdb4c7'];
 const LTS_COLOURS = { 1: '#1a9850', 2: '#a6d96a', 3: '#fdae61', 4: '#d73027' };
 const LTS_LABELS = { 1: 'lowest stress, suitable for all', 2: 'low stress',
                      3: 'moderate stress', 4: 'high stress' };
+const DIM_COLOR = '#999999';
 
 const protocol = new pmtiles.Protocol();
 maplibregl.addProtocol('pmtiles', protocol.tile);
@@ -199,9 +270,12 @@ maplibregl.addProtocol('pmtiles', protocol.tile);
 const $ = id => document.getElementById(id);
 const manifests = {};
 let map, cols = new Set(), slug = null, hasReport = false;
+// legend-click "isolate" state: null, or { kind: 'lts', value: 1..4 }
+// or { kind: 'iso', value: 0..3 (distance band) | 4 (no access) }
+let isolated = null;
 
 // ---- shareable URL state (#city=…&d=…&v=…&t=…&n=…&l=…&b=…&m=zoom/lat/lng) ----
-const LAYER_CHECKS = ['ltsChk', 'gridChk', 'destChk'];
+const LAYER_CHECKS = ['ltsChk', 'gridChk', 'destChk', 'boundaryChk', 'bufferChk'];
 const initialState = location.hash.length > 1
   ? new URLSearchParams(location.hash.slice(1)) : null;
 let initialCameraPending = !!(initialState && initialState.get('m'));
@@ -226,7 +300,10 @@ function applyInitialControls() {
   const setIf = (id, val, ok) => { if (val !== null && ok(val)) $(id).value = val; };
   setIf('concept', initialState.get('d'), v => v in CONCEPTS);
   setIf('variation', initialState.get('v'), v => ['strict', 'lenient'].includes(v));
-  setIf('threshold', initialState.get('t'), v => v in THRESHOLDS);
+  const rawT = initialState.get('t');
+  setIf('threshold', rawT, v => v in THRESHOLDS);
+  // back-compat with pre-isochrone share links that stored a distance (e.g. "2000m")
+  if (rawT && /^\d+m$/.test(rawT)) $('threshold').value = 'iso';
   const n = initialState.get('n');
   if (n !== null && n in NETWORKS) $('network').value = n;
   const l = initialState.get('l');
@@ -237,16 +314,17 @@ function applyInitialControls() {
   setIf('basemap', initialState.get('b'), v => ['sat', 'positron'].includes(v));
 }
 
-function colName(net, ind, thr) {
-  return thr === 'avg' ? `avg_cycle_dist_${net}${ind}`
-                       : `pct_access_cycle_${net}${ind}_${thr}`;
-}
+function pctCol(net, ind, distm) { return `pct_access_cycle_${net}${ind}_${distm}`; }
+function avgCol(net, ind) { return `avg_cycle_dist_${net}${ind}`; }
 function currentIndicator() {
   const c = CONCEPTS[$('concept').value];
   return c[$('variation').value];
 }
+// "reference" column for region-overall stat / fallback lookups: the 2 km band
+// in isochrone mode (a stable single number), or the avg-distance column.
 function currentColumn() {
-  return colName($('network').value, currentIndicator(), $('threshold').value);
+  const net = $('network').value, ind = currentIndicator();
+  return $('threshold').value === 'avg' ? avgCol(net, ind) : pctCol(net, ind, '2000m');
 }
 
 function fillSelect(sel, entries) {
@@ -254,29 +332,39 @@ function fillSelect(sel, entries) {
   for (const [v, label] of entries) sel.add(new Option(label, v));
 }
 
-// grey out options that have no data for this city given the other current picks
-function refreshAvailability() {
-  const net = $('network').value, vari = $('variation').value, con = $('concept').value;
-  for (const o of $('network').options)
-    o.disabled = !Object.keys(THRESHOLDS).some(t => cols.has(colName(o.value, CONCEPTS[con][vari], t)));
-  for (const o of $('threshold').options)
-    o.disabled = !cols.has(colName(net, CONCEPTS[con][vari], o.value));
-  for (const o of $('variation').options)
-    o.disabled = !Object.keys(THRESHOLDS).some(t => cols.has(colName(net, CONCEPTS[con][o.value], t)));
-  for (const o of $('concept').options)
-    o.disabled = !['strict', 'lenient'].some(v =>
-      Object.keys(THRESHOLDS).some(t => cols.has(colName(net, CONCEPTS[o.value][v], t))));
+function hasIsoData(net, con, vari) {
+  return cols.has(pctCol(net, CONCEPTS[con][vari], '2000m'));
+}
+function hasAvgData(net, con, vari) {
+  return cols.has(avgCol(net, CONCEPTS[con][vari]));
+}
+function hasModeData(mode, net, con, vari) {
+  return mode === 'avg' ? hasAvgData(net, con, vari) : hasIsoData(net, con, vari);
 }
 
-// if the current combination has no column, walk to the nearest valid one
+// grey out options that have no data for this city given the other current picks
+function refreshAvailability() {
+  const net = $('network').value, vari = $('variation').value,
+        con = $('concept').value, mode = $('threshold').value;
+  for (const o of $('network').options)
+    o.disabled = !hasModeData(mode, o.value, con, vari);
+  for (const o of $('threshold').options)
+    o.disabled = !hasModeData(o.value, net, con, vari);
+  for (const o of $('variation').options)
+    o.disabled = !hasModeData(mode, net, con, o.value);
+  for (const o of $('concept').options)
+    o.disabled = !['strict', 'lenient'].some(v => hasModeData(mode, net, o.value, v));
+}
+
+// if the current combination has no data, walk to the nearest valid one
 function autofix() {
-  if (cols.has(currentColumn())) return true;
   const con = $('concept').value;
-  for (const vari of [$('variation').value, 'strict', 'lenient'])
-    for (const thr of [$('threshold').value, '2000m', '5000m', '1000m', '500m', 'avg'])
+  if (hasModeData($('threshold').value, $('network').value, con, $('variation').value)) return true;
+  for (const mode of [$('threshold').value, 'iso', 'avg'])
+    for (const vari of [$('variation').value, 'strict', 'lenient'])
       for (const net of [$('network').value, 'safe_', '', 'lts1_'])
-        if (cols.has(colName(net, CONCEPTS[con][vari], thr))) {
-          $('variation').value = vari; $('threshold').value = thr; $('network').value = net;
+        if (hasModeData(mode, net, con, vari)) {
+          $('threshold').value = mode; $('variation').value = vari; $('network').value = net;
           return true;
         }
   return false;
@@ -287,46 +375,168 @@ function regionStatText() {
   const v = rv[currentColumn()];
   if (v === null || v === undefined) return '';
   const isAvg = $('threshold').value === 'avg';
+  const label = isAvg ? 'Region overall' : 'Region overall (2 km)';
   const val = isAvg ? `${Math.round(v).toLocaleString()} m` : `${v}%`;
-  return `<br><b>Region overall: ${val}</b> (population-weighted)`;
+  return `<br><b>${label}: ${val}</b> (population-weighted)`;
 }
 
 function showingText() {
-  const ind = currentIndicator(), thr = $('threshold').value, net = $('network').value;
-  const body = thr === 'avg'
+  const ind = currentIndicator(), mode = $('threshold').value, net = $('network').value;
+  const body = mode === 'avg'
     ? `Average network distance (m) from each grid cell’s sample points to the nearest destination — ${NETWORKS[net].label} routing.`
-    : `Percent of each grid cell’s sample points with access within ${thr.replace('m', ' m')} — ${NETWORKS[net].label} routing.`;
+    : `Each grid cell is coloured by the closest distance band (500 m / 1000 m / 2000 m / 5000 m) at which at least half its sample points have access — ${NETWORKS[net].label} routing.`;
   return `<b>${IND_LABELS[ind]}</b><br>${body}${regionStatText()}`;
 }
 
-function paintExpression(col, isAvg) {
-  const ramp = isAvg ? [...BATLOW].reverse() : BATLOW;
-  const stops = isAvg ? [0, 1000, 2000, 3000, 4000, 5000] : [0, 20, 40, 60, 80, 100];
-  const expr = ['interpolate', ['linear'], ['coalesce', ['get', col], -9999], -9999, 'rgba(0,0,0,0)'];
-  stops.forEach((s, i) => expr.push(s, ramp[i]));
-  return expr;
+function isoExpression(net, ind) {
+  const c = ISO_DISTANCES.map(d => pctCol(net, ind, d));
+  return ['case',
+    ['>=', ['coalesce', ['get', c[0]], -1], 50], ISO_COLORS[0],
+    ['>=', ['coalesce', ['get', c[1]], -1], 50], ISO_COLORS[1],
+    ['>=', ['coalesce', ['get', c[2]], -1], 50], ISO_COLORS[2],
+    ['>=', ['coalesce', ['get', c[3]], -1], 50], ISO_COLORS[3],
+    ISO_NO_ACCESS,
+  ];
 }
 
-function accessLegend(isAvg) {
-  const ramp = isAvg ? [...BATLOW].reverse() : BATLOW;
-  const labels = isAvg ? ['0', '1k', '2k', '3k', '4k', '5k'] : ['0', '20', '40', '60', '80', '100'];
-  $('accLegend').innerHTML =
-    `<tr><td class="lab" rowspan="2">${isAvg ? 'Dist. (m)' : 'Access %'}</td>` +
-    ramp.map(c => `<td style="background:${c}"></td>`).join('') + '</tr><tr>' +
-    labels.map(l => `<td>${l}</td>`).join('') + '</tr>';
+function gridFillExpression() {
+  const net = $('network').value, ind = currentIndicator();
+  if ($('threshold').value === 'avg') {
+    const col = avgCol(net, ind);
+    const ramp = [...BATLOW].reverse();
+    const stops = [0, 1000, 2000, 3000, 4000, 5000];
+    const expr = ['interpolate', ['linear'], ['coalesce', ['get', col], -9999], -9999, 'rgba(0,0,0,0)'];
+    stops.forEach((s, i) => expr.push(s, ramp[i]));
+    return expr;
+  }
+  return isoExpression(net, ind);
+}
+
+function renderLegends() {
+  const isAvg = $('threshold').value === 'avg';
+
+  // ---- LTS ----
+  const ltsValues = [1, 2, 3, 4];
+  $('ltsLegend').innerHTML = ltsValues.map(k => `
+    <div
+      class="leg-item ${isolated && isolated.kind === 'lts' && isolated.value === k ? 'selected' : ''}"
+      data-kind="lts"
+      data-value="${k}"
+      onclick="toggleIsolate('lts', ${k})"
+    >
+      <span class="patch" style="background:${LTS_COLOURS[k]}"></span>
+      <span>${k}</span>
+    </div>
+  `).join('');
+
+  // ---- Access / Dist. ----
+  if (isAvg) {
+    // no interactive isolation in avg mode, so mark as static
+    const ramp   = [...BATLOW].reverse();
+    const labels = ['0', '1000', '2000', '3000', '4000', '5000'];
+
+    $('accLegend').innerHTML = ramp.map((c, i) => `
+      <div class="leg-item static">
+        <span class="patch" style="background:${c}"></span>
+        <span>${labels[i]}</span>
+      </div>
+    `).join('');
+  } else if (!isAvg) {
+    const swatchColors = [...ISO_COLORS, ISO_NO_ACCESS];
+    const distLabels   = ['500 m', '1000 m', '2000 m', '5000 m', 'None'];
+    const timeLabels   = ['~3 min', '~5 min', '~10 min', '~20 min', ''];
+
+    $('accLegend').innerHTML = swatchColors.map((c, i) => `
+      <div
+        class="leg-item ${isolated && isolated.kind === 'iso' && isolated.value === i ? 'selected' : ''}"
+        data-kind="iso"
+        data-value="${i}"
+        onclick="toggleIsolate('iso', ${i})"
+      >
+        <span class="patch" style="background:${c}"></span>
+        <span class="dist-label">${distLabels[i]}</span>
+        <span class="time-label">${timeLabels[i]}</span>
+      </div>
+    `).join('');
+    } else {
+    const swatchColors = [...ISO_COLORS, ISO_NO_ACCESS];
+    const labels = ['500', '1000', '2000', '5000', 'None'];
+
+    $('accLegend').innerHTML = swatchColors.map((c, i) => `
+      <div
+        class="leg-item ${isolated && isolated.kind === 'iso' && isolated.value === i ? 'selected' : ''}"
+        data-kind="iso"
+        data-value="${i}"
+        onclick="toggleIsolate('iso', ${i})"
+      >
+        <span class="patch" style="background:${c}"></span>
+        <span>${labels[i]}</span>
+      </div>
+    `).join('');
+  }
+}
+
+function toggleIsolate(kind, value) {
+  isolated = (isolated && isolated.kind === kind && isolated.value === value)
+    ? null : { kind, value };
+  renderLegends();
+  applyIsolation();
+}
+
+// Recompute paint properties for lts / grid / destination-overlay layers given
+// the current `isolated` legend selection: the chosen category keeps its
+// normal colour/opacity, everything else (the other categories in the same
+// legend, and the *other* layer type) is recoloured flat grey at low opacity.
+function applyIsolation() {
+  if (!map) return;
+  const isAvg = $('threshold').value === 'avg';
+
+  if (map.getLayer('lts')) {
+    if (isolated && isolated.kind === 'lts') {
+      map.setPaintProperty('lts', 'line-color',
+        ['match', ['get', 'lvl_traf_stress'], isolated.value, LTS_COLOURS[isolated.value], DIM_COLOR]);
+      map.setPaintProperty('lts', 'line-opacity',
+        ['match', ['get', 'lvl_traf_stress'], isolated.value, 0.95, 0.2]);
+    } else {
+      map.setPaintProperty('lts', 'line-color', ['match', ['get', 'lvl_traf_stress'],
+        1, LTS_COLOURS[1], 2, LTS_COLOURS[2], 3, LTS_COLOURS[3], 4, LTS_COLOURS[4], '#888']);
+      map.setPaintProperty('lts', 'line-opacity', isolated ? 0.2 : 0.85);
+    }
+  }
+
+  if (map.getLayer('grid')) {
+    if (!isAvg && isolated && isolated.kind === 'iso') {
+      const net = $('network').value, ind = currentIndicator();
+      const c = ISO_DISTANCES.map(d => pctCol(net, ind, d));
+      const matchExpr = isolated.value < 4
+        ? ['>=', ['coalesce', ['get', c[isolated.value]], -1], 50]
+        : ['all', ...c.map(col => ['<', ['coalesce', ['get', col], -1], 50])];
+      const selColor = isolated.value < 4 ? ISO_COLORS[isolated.value] : ISO_NO_ACCESS;
+      map.setPaintProperty('grid', 'fill-color', ['case', matchExpr, selColor, DIM_COLOR]);
+      map.setPaintProperty('grid', 'fill-opacity', ['case', matchExpr, 0.8, 0.15]);
+    } else {
+      map.setPaintProperty('grid', 'fill-color', gridFillExpression());
+      map.setPaintProperty('grid', 'fill-opacity', isolated ? 0.15 : 0.65);
+    }
+  }
+
+  for (const l of Object.keys(OVERLAY_COLORS)) {
+    if (!map.getLayer(l)) continue;
+    map.setPaintProperty(l, 'circle-color', isolated ? DIM_COLOR : OVERLAY_COLORS[l]);
+    map.setPaintProperty(l, 'circle-opacity', isolated ? 0.25 : 1);
+  }
 }
 
 function updateIndicator() {
+  isolated = null;
   refreshAvailability();
   const ok = autofix();
   refreshAvailability();
   $('notice').style.display = ok ? 'none' : 'block';
   $('notice').textContent = ok ? '' : 'This indicator is not available for this city.';
-  const isAvg = $('threshold').value === 'avg';
-  if (ok && map.getLayer('grid'))
-    map.setPaintProperty('grid', 'fill-color', paintExpression(currentColumn(), isAvg));
   $('showing').innerHTML = showingText();
-  accessLegend(isAvg);
+  renderLegends();
+  applyIsolation();
   updateOverlays();
 }
 
@@ -349,24 +559,32 @@ function updateOverlays() {
     map.setFilter('dest_pts', ['match', ['get', 'dest_name'], spec.dest, true, false]);
 }
 
-function fmtPct(v) { return (v === null || v === undefined) ? '–' : `${Math.round(v)}%`; }
 function fmtDist(v) { return (v === null || v === undefined) ? '–' : `${Math.round(v).toLocaleString()} m`; }
 
 function gridPopupHTML(p) {
-  const net = $('network').value, thr = $('threshold').value;
-  const pctThr = thr === 'avg' ? '2000m' : thr;
+  const net = $('network').value;
   const sel = currentIndicator();
-  const rows = (fmt, colFn) => IND_ORDER.map(ind => {
-    const c = colFn(ind);
-    if (!cols.has(c)) return '';
-    return `<tr class="${ind === sel ? 'sel' : ''}"><td>${IND_LABELS[ind]}</td>` +
-           `<td class="v">${fmt(p[c])}</td></tr>`;
+  const bandRows = IND_ORDER.map(ind => {
+    const c = ISO_DISTANCES.map(d => pctCol(net, ind, d));
+    if (!c.some(col => cols.has(col))) return '';
+    let band = 4;
+    for (let i = 0; i < 4; i++) {
+      const v = p[c[i]];
+      if (v !== undefined && v !== null && v >= 50) { band = i; break; }
+    }
+    const color = band < 4 ? ISO_COLORS[band] : ISO_NO_ACCESS;
+    const label = band < 4 ? `Within ${ISO_DISTANCES[band].replace('m', ' m')}` : 'No access within 5000 m';
+    return `<tr class="${ind === sel ? 'sel' : ''}"><td><span class="swatch" style="background:${color}"></span>${IND_LABELS[ind]}</td>` +
+           `<td class="v">${label}</td></tr>`;
   }).join('');
-  const pctRows = rows(fmtPct, ind => colName(net, ind, pctThr));
-  const avgRows = rows(fmtDist, ind => colName(net, ind, 'avg'));
+  const avgRows = IND_ORDER.map(ind => {
+    const c = avgCol(net, ind);
+    if (!cols.has(c)) return '';
+    return `<tr class="${ind === sel ? 'sel' : ''}"><td>${IND_LABELS[ind]}</td><td class="v">${fmtDist(p[c])}</td></tr>`;
+  }).join('');
   let html = `<div class="popup"><h4>${IND_LABELS[sel]}</h4>` +
              `<p class="sub">${NETWORKS[net].label} routing</p>`;
-  if (pctRows) html += `<h5>Percent of sample points with access within ${pctThr.replace('m', ' m')} to…</h5><table>${pctRows}</table>`;
+  if (bandRows) html += `<h5>Access band (closest distance with ≥50% of sample points reached)…</h5><table>${bandRows}</table>`;
   if (avgRows) html += `<h5>Average distance to nearest…</h5><table>${avgRows}</table>`;
   return html + '</div>';
 }
@@ -387,14 +605,65 @@ function ltsPopupHTML(p) {
     '</table></div>';
 }
 
+// ---- hover tooltips on destination-type point layers ----
+const HOVER_LAYERS = ['dest_pts', 'ptfreq_pts', 'pos_any_pts', 'pos_large_pts', 'ac_local_pts', 'ac_complete_pts'];
+function hoverHTML(layerId, p) {
+  switch (layerId) {
+    case 'dest_pts':
+      return `<b>${p.dest_name_full || p.dest_name || 'Destination'}</b>`;
+    case 'ptfreq_pts': {
+      const bits = [p.stop_name, p.mode, p.headway ? `every ${Math.round(p.headway)} min` : null]
+        .filter(Boolean).join(' · ');
+      return `<b>Public transport (frequent)</b>${bits ? `<br>${bits}` : ''}`;
+    }
+    case 'pos_any_pts':
+    case 'pos_large_pts': {
+      const tier = layerId === 'pos_large_pts' ? 'large' : 'any';
+      const ha = (p.aos_ha !== null && p.aos_ha !== undefined) ? `<br>${p.aos_ha} ha open space` : '';
+      return `<b>Public open space entry (${tier})</b>${ha}`;
+    }
+    case 'ac_local_pts':
+      return '<b>Local activity centre</b><br>lenient-definition destinations of every category within 400 m';
+    case 'ac_complete_pts':
+      return '<b>Complete activity centre</b><br>strict-definition destinations of every category within 400 m';
+    default:
+      return '';
+  }
+}
+function wireHover() {
+  const tip = $('hoverTip');
+  for (const l of HOVER_LAYERS) {
+    map.on('mousemove', l, e => {
+      if (!e.features.length) return;
+      map.getCanvas().style.cursor = 'pointer';
+      tip.innerHTML = hoverHTML(l, e.features[0].properties);
+      tip.style.left = (e.originalEvent.clientX + 14) + 'px';
+      tip.style.top = (e.originalEvent.clientY + 10) + 'px';
+      tip.style.display = 'block';
+    });
+    map.on('mouseleave', l, () => {
+      map.getCanvas().style.cursor = '';
+      tip.style.display = 'none';
+    });
+  }
+}
+
 function infoHTML() {
-  const ind = currentIndicator(), net = $('network').value, thr = $('threshold').value;
-  const what = thr === 'avg'
+  const ind = currentIndicator(), net = $('network').value, mode = $('threshold').value;
+  const what = mode === 'avg'
     ? `the <b>average network distance</b> (metres) from the cell’s sample points to the nearest such destination, averaged only over sample points that can reach one at all — so sparse areas can show few reachable points <i>and</i> long distances`
-    : `the <b>percentage of sample points</b> in the cell that can reach at least one such destination within <b>${thr.replace('m', ' m')}</b> along the network`;
+    : `an <b>isochrone-style distance band</b>: the closest of 500 m, 1000 m, 2000 m or 5000 m at which at least half the cell’s sample points can reach such a destination (neutral grey = no band within 5000 m has majority access)`;
+  const isoSection = mode === 'avg' ? '' : `
+    <h3>Reading the colour bands</h3>
+    <p>Each grid cell is coloured by the <b>closest</b> distance at which the majority
+    (≥ 50%) of its sample points have access — pale pink/yellow = very close (500 m),
+    shading through to dark blue = only reachable at 5000 m, grey = not reachable within
+    any configured distance. This mirrors the isochrone maps in the full validation
+    report. Click a swatch in the legend to isolate that band on the map.</p>`;
   return `<h2>How to read this indicator</h2>
     <p><b>${IND_LABELS[ind]}</b> — for each 100 m population grid cell, the map shows ${what}.</p>
     <h3>Destination</h3><p>Access is counted to ${IND_DESCS[ind]}.</p>
+    ${isoSection}
     <h3>Routing (${NETWORKS[net].label})</h3>
     <p>Routes are computed over ${NETWORKS[net].desc}. Level of Traffic Stress (LTS) grades each
     street segment from 1 (lowest stress, suitable for all riders) to 4 (high stress), based on
@@ -417,6 +686,7 @@ function infoHTML() {
 
 async function loadCity(s) {
   slug = s;
+  isolated = null;
   const manifest = manifests[s];
   cols = new Set(manifest.grid_columns || []);
   const b = manifest.bbox;
@@ -448,7 +718,11 @@ async function loadCity(s) {
       { id: 'grid', type: 'fill', source: 'city_grid', 'source-layer': 'grid',
         layout: { visibility: $('gridChk').checked ? 'visible' : 'none' },
         paint: { 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 0.65 } },
+      { id: 'buffer', type: 'line', source: 'city', 'source-layer': 'buffer',
+        layout: { visibility: $('bufferChk').checked ? 'visible' : 'none' },
+        paint: { 'line-color': '#000', 'line-width': 1.4, 'line-dasharray': [1, 2] } },
       { id: 'boundary', type: 'line', source: 'city', 'source-layer': 'boundary',
+        layout: { visibility: $('boundaryChk').checked ? 'visible' : 'none' },
         paint: { 'line-color': '#000', 'line-width': 2, 'line-dasharray': [3, 2] } },
       { id: 'lts', type: 'line', source: 'city_lts', 'source-layer': 'lts',
         layout: { visibility: $('ltsChk').checked ? 'visible' : 'none' },
@@ -456,17 +730,17 @@ async function loadCity(s) {
                    1, LTS_COLOURS[1], 2, LTS_COLOURS[2], 3, LTS_COLOURS[3], 4, LTS_COLOURS[4], '#888'],
                  'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.4, 13, 1.6, 16, 3.5] } },
       { id: 'pos_any_pts', type: 'circle', source: 'city', 'source-layer': 'pos_any',
-        layout: { visibility: 'none' }, paint: circle('#f032e6', 3.5) },
+        layout: { visibility: 'none' }, paint: circle(OVERLAY_COLORS.pos_any_pts, 3.5) },
       { id: 'pos_large_pts', type: 'circle', source: 'city', 'source-layer': 'pos_large',
-        layout: { visibility: 'none' }, paint: circle('#f032e6', 3.5) },
+        layout: { visibility: 'none' }, paint: circle(OVERLAY_COLORS.pos_large_pts, 3.5) },
       { id: 'ac_local_pts', type: 'circle', source: 'city', 'source-layer': 'ac_local',
-        layout: { visibility: 'none' }, paint: circle('#f032e6', 3.5) },
+        layout: { visibility: 'none' }, paint: circle(OVERLAY_COLORS.ac_local_pts, 3.5) },
       { id: 'ac_complete_pts', type: 'circle', source: 'city', 'source-layer': 'ac_complete',
-        layout: { visibility: 'none' }, paint: circle('#f032e6', 3.5) },
+        layout: { visibility: 'none' }, paint: circle(OVERLAY_COLORS.ac_complete_pts, 3.5) },
       { id: 'dest_pts', type: 'circle', source: 'city', 'source-layer': 'destinations',
-        layout: { visibility: 'none' }, paint: circle('#e6194b', 4.5) },
+        layout: { visibility: 'none' }, paint: circle(OVERLAY_COLORS.dest_pts, 4.5) },
       { id: 'ptfreq_pts', type: 'circle', source: 'city', 'source-layer': 'pt_frequent',
-        layout: { visibility: 'none' }, paint: circle('#e6194b', 4.5) },
+        layout: { visibility: 'none' }, paint: circle(OVERLAY_COLORS.ptfreq_pts, 4.5) },
     ],
   };
   if (map) {
@@ -483,6 +757,7 @@ async function loadCity(s) {
       const html = f.layer.id === 'lts' ? ltsPopupHTML(f.properties) : gridPopupHTML(f.properties);
       new maplibregl.Popup({ maxWidth: '340px' }).setLngLat(e.lngLat).setHTML(html).addTo(map);
     });
+    wireHover();
   }
   // don't allow zooming out beyond the whole-city view: low-zoom tiles thin
   // out dense layers to stay within size budgets, which reads as gaps.
@@ -502,7 +777,7 @@ fillSelect($('concept'), Object.entries(CONCEPTS).map(([k, v]) => [k, v.label]))
 fillSelect($('threshold'), Object.entries(THRESHOLDS));
 fillSelect($('network'), Object.entries(NETWORKS).map(([k, v]) => [k, v.label]));
 $('concept').value = 'all'; $('variation').value = 'strict';
-$('threshold').value = '2000m'; $('network').value = 'lts1_';
+$('threshold').value = 'iso'; $('network').value = 'lts1_';
 
 for (const id of ['concept', 'variation', 'threshold', 'network'])
   $(id).onchange = () => { updateIndicator(); updateHash(); };
@@ -510,10 +785,22 @@ $('city').onchange = () => loadCity($('city').value);
 $('ltsChk').onchange = e => { map.setLayoutProperty('lts', 'visibility', e.target.checked ? 'visible' : 'none'); updateHash(); };
 $('gridChk').onchange = e => { map.setLayoutProperty('grid', 'visibility', e.target.checked ? 'visible' : 'none'); updateHash(); };
 $('destChk').onchange = () => { updateOverlays(); updateHash(); };
+$('boundaryChk').onchange = e => { map.setLayoutProperty('boundary', 'visibility', e.target.checked ? 'visible' : 'none'); updateHash(); };
+$('bufferChk').onchange = e => { map.setLayoutProperty('buffer', 'visibility', e.target.checked ? 'visible' : 'none'); updateHash(); };
 $('basemap').onchange = e => {
   map.setLayoutProperty('sat', 'visibility', e.target.value === 'sat' ? 'visible' : 'none');
   map.setLayoutProperty('positron', 'visibility', e.target.value === 'positron' ? 'visible' : 'none');
   updateHash();
+};
+$('ltsLegend').onclick = e => {
+  const td = e.target.closest('td.swatch');
+  if (!td) return;
+  toggleIsolate(td.dataset.kind, Number(td.dataset.value));
+};
+$('accLegend').onclick = e => {
+  const td = e.target.closest('td.swatch');
+  if (!td) return;
+  toggleIsolate(td.dataset.kind, Number(td.dataset.value));
 };
 $('shareBtn').onclick = async () => {
   updateHash();
