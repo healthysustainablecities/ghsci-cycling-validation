@@ -63,6 +63,14 @@
   .leg-item.static { cursor:default; }
   .leg-item.selected { outline:2px solid #222; outline-offset:1px; }
   .leg-item:not(.static):hover .patch { filter:brightness(0.92); }
+  .histo-bars { display:flex; align-items:flex-end; gap:2px; height:58px;
+                margin-top:14px; }
+  .histo-bar { flex:1; position:relative; border-radius:2px 2px 0 0; min-height:2px; }
+  .histo-val { position:absolute; top:-13px; left:0; right:0; text-align:center;
+               font-size:9.5px; color:#333; white-space:nowrap; }
+  .histo-x { display:flex; font-size:9.5px; color:#555; }
+  .histo-x span { flex:1; text-align:center; }
+  .histo-note { font-size:10.5px; color:#555; margin-top:2px; }
   
   .dist-label, .time-label {
     display: block;        /* each label on its own line */
@@ -165,6 +173,13 @@
     <div id="accLegendTimes" class="leg-row leg-row-secondary"></div>
   </div>
 
+  <div class="leg" id="histo" style="display:none">
+    <span class="leg-title" id="histoTitle"></span>
+    <div class="histo-bars" id="histoBars"></div>
+    <div class="histo-x" id="histoX"></div>
+    <div class="histo-note" id="histoNote"></div>
+  </div>
+
   <div style="margin-top:10px; display:flex; gap:6px" id="actionBtns">
     <button class="small" id="tourBtn">Tour</button>
     <button class="small" id="shareBtn">Copy share link</button>
@@ -185,7 +200,7 @@
 </div>
 
 <script>
-const CITY_SLUGS = ['wurzburg', 'dar_es_salaam', 'melbourne', 'minneapolis'];
+const CITY_SLUGS = ['wurzburg', 'dar_es_salaam', 'melbourne', 'minneapolis', 'mexico_city', 'mexico_city_proper'];
 
 const CONCEPTS = {
   food: { label: 'Fresh food / market', strict: 'fresh_food_market', lenient: 'fresh_food_pooled' },
@@ -371,22 +386,65 @@ function autofix() {
   return false;
 }
 
-function regionStatText() {
-  const rv = (manifests[slug] || {}).region_values || {};
-  const v = rv[currentColumn()];
-  if (v === null || v === undefined) return '';
-  const isAvg = $('threshold').value === 'avg';
-  const label = isAvg ? 'Region overall' : 'Region overall (2 km)';
-  const val = isAvg ? `${Math.round(v).toLocaleString()} m` : `${v}%`;
-  return `<br><b>${label}: ${val}</b> (population-weighted)`;
-}
-
 function showingText() {
   const ind = currentIndicator(), mode = $('threshold').value, net = $('network').value;
   const body = mode === 'avg'
     ? `Average network distance (m) from each grid cell’s sample points to the nearest destination — ${NETWORKS[net].label} routing.`
     : `Each grid cell is coloured by the closest distance band (500 m / 1000 m / 2000 m / 5000 m) at which at least half its sample points have access — ${NETWORKS[net].label} routing.`;
-  return `<b>${IND_LABELS[ind]}</b><br>${body}${regionStatText()}`;
+  return `<b>${IND_LABELS[ind]}</b><br>${body}`;
+}
+
+// ---- population-distribution histogram (replaces the "Region overall" line) ----
+function _lerpHex(a, b, t) {
+  const pa = [1, 3, 5].map(i => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map(i => parseInt(b.slice(i, i + 2), 16));
+  return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t)
+    .toString(16).padStart(2, '0')).join('');
+}
+function _batlowAt(t) { // t in [0,1] along the reversed (pale->dark) ramp
+  const ramp = [...BATLOW].reverse();
+  const x = Math.max(0, Math.min(1, t)) * (ramp.length - 1);
+  const i = Math.min(Math.floor(x), ramp.length - 2);
+  return _lerpHex(ramp[i], ramp[i + 1], x - i);
+}
+function renderHisto() {
+  const wrap = $('histo');
+  const dist = ((manifests[slug] || {}).distributions || {})[$('network').value + currentIndicator()];
+  const mode = $('threshold').value;
+  if (!dist || !$('gridChk').checked) { wrap.style.display = 'none'; return; }
+  const maxBar = 52; // px, tallest bar
+  if (mode === 'iso' && dist.iso) {
+    const colors = [...ISO_COLORS, ISO_NO_ACCESS];
+    const labels = ['500', '1000', '2000', '5000', 'None'];
+    const peak = Math.max(...dist.iso, 1);
+    $('histoTitle').textContent = 'Share of population by access band';
+    $('histoBars').innerHTML = dist.iso.map((v, i) =>
+      `<div class="histo-bar" style="height:${Math.max(2, v / peak * maxBar)}px;background:${colors[i]}">` +
+      `<span class="histo-val">${v}%</span></div>`).join('');
+    $('histoX').innerHTML = labels.map(l => `<span>${l}</span>`).join('');
+    $('histoNote').textContent = '';
+    wrap.style.display = 'block';
+  } else if (mode === 'avg' && dist.avg) {
+    const a = dist.avg;
+    const n = a.shares.length;
+    const peak = Math.max(...a.shares, 1);
+    $('histoTitle').textContent = 'Reachable population by distance to nearest (m)';
+    $('histoBars').innerHTML = a.shares.map((v, i) =>
+      `<div class="histo-bar" style="height:${Math.max(2, v / peak * maxBar)}px;` +
+      `background:${_batlowAt((i + 0.5) / n)}" title="${(i * a.bin_m).toLocaleString()}–${((i + 1) * a.bin_m).toLocaleString()} m: ${v}%"></div>`).join('');
+    // break labels: 0 at the lower end, then every second bin edge, 5000+ at the top
+    $('histoX').innerHTML = a.shares.map((_, i) => {
+      if (i === 0) return '<span style="text-align:left">0</span>';
+      if (i === n - 1) return `<span style="text-align:right">${a.max_m.toLocaleString()}+</span>`;
+      return `<span>${i % 2 === 0 ? (i * a.bin_m).toLocaleString() : ''}</span>`;
+    }).join('');
+    $('histoNote').textContent =
+      `Population-weighted percentiles: p25 ${a.p25.toLocaleString()} m · ` +
+      `median ${a.p50.toLocaleString()} m · p75 ${a.p75.toLocaleString()} m`;
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
 }
 
 function isoExpression(net, ind) {
@@ -539,6 +597,7 @@ function updateIndicator() {
   $('notice').textContent = ok ? '' : 'This indicator is not available for this city.';
   $('showing').innerHTML = showingText();
   renderLegends();
+  renderHisto();
   applyIsolation();
   updateOverlays();
 }
@@ -786,7 +845,7 @@ for (const id of ['concept', 'variation', 'threshold', 'network'])
   $(id).onchange = () => { updateIndicator(); updateHash(); };
 $('city').onchange = () => loadCity($('city').value);
 $('ltsChk').onchange = e => { map.setLayoutProperty('lts', 'visibility', e.target.checked ? 'visible' : 'none'); updateHash(); };
-$('gridChk').onchange = e => { map.setLayoutProperty('grid', 'visibility', e.target.checked ? 'visible' : 'none'); updateHash(); };
+$('gridChk').onchange = e => { map.setLayoutProperty('grid', 'visibility', e.target.checked ? 'visible' : 'none'); renderHisto(); updateHash(); };
 $('destChk').onchange = () => { updateOverlays(); updateHash(); };
 $('boundaryChk').onchange = e => { map.setLayoutProperty('boundary', 'visibility', e.target.checked ? 'visible' : 'none'); updateHash(); };
 $('bufferChk').onchange = e => { map.setLayoutProperty('buffer', 'visibility', e.target.checked ? 'visible' : 'none'); updateHash(); };
