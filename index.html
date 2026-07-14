@@ -22,7 +22,28 @@
   #panel .checks label { display:block; margin:4px 0; }
   #panel .subhead { display:block; margin:8px 0 1px; color:#777; font-size:10.5px;
                      text-transform:uppercase; letter-spacing:.04em; }
-  #showing { margin:8px 0; padding:7px 8px; background:#f2f6fa; border-radius:6px;
+  #panelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  #panelHeader h1 {
+    margin: 0;
+    font-size: 14px;
+  }
+
+  /* when collapsed, hide only the middle controls */
+  #panel.collapsed #panelBody {
+    display: none;
+  }
+
+  /* optionally tighten spacing when collapsed */
+  #panel.collapsed {
+    padding-bottom: 8px;
+  }
+ #showing { margin:8px 0; padding:7px 8px; background:#f2f6fa; border-radius:6px;
              font-size:12px; line-height:1.35; }
   #showing b { font-size:12.5px; }
   #notice { color:#b00; font-size:12px; margin:4px 0; display:none; }
@@ -39,10 +60,10 @@
   }
   /* wrapper around Variation */
   .selrow > div:last-child {
-    flex: 1 0 30%;
+    flex: 1 0 35%;
   }
   .selrow > div.info-wrap {
-    flex: 0 0 30%;
+    flex: 0 0 35%;
   }
   /* centre contents of the second div */
   .info-wrap {
@@ -70,7 +91,7 @@
                font-size:9.5px; color:#333; white-space:nowrap; }
   .histo-x { display:flex; font-size:9.5px; color:#555; }
   .histo-x span { flex:1; text-align:center; }
-  .histo-note { font-size:10.5px; color:#555; margin-top:2px; }
+  .histo-note { font-size:10.5px; color:#555; margin-top:2px; white-space: pre-line;}
   
   .dist-label, .time-label {
     display: block;        /* each label on its own line */
@@ -116,89 +137,87 @@
 </head>
 <body>
 <div id="panel">
-  <h1>Cycling access validation</h1>
-  <label class="row">City</label>
-  <select id="city"></select>
-
-  <label class="row">Indicator</label>
-  <select id="threshold"></select>
-
-  <div class="selrow">
-    <div>
-      <label class="row">Destination</label>
-      <select id="concept"></select>
-    </div>
-    <div>
-      <label class="row">Variation</label>
-      <select id="variation">
-        <option value="strict">Strict</option>
-        <option value="lenient">Lenient</option>
-      </select>
-    </div>
+  <div id="panelHeader">
+    <h1>Cycling access validation</h1>
+    <button id="infoBtn" class="small">i</button>
+    <button id="panelToggle" class="small" title="Toggle indicator selection details">⭫</button>
   </div>
-  <div class="selrow">
-    <div>
+  <div id="panelBody">
+    <label class="row">City</label>
+    <select id="city"></select>
+
+    <label class="row">Indicator</label>
+    <select id="threshold"></select>
+
+    <div class="selrow">
+      <div>
+        <label class="row">Destination</label>
+        <select id="concept"></select>
+      </div>
+      <div>
+        <label class="row">Variation</label>
+        <select id="variation">
+          <option value="strict" selected>Strict</option>
+          <option value="lenient">Lenient</option>
+        </select>
+      </div>
+    </div>
       <label class="row">Network</label>
       <select id="network"></select>
+    <div id="notice"></div>
+    <div id="showing"></div>
+
+    <div class="checks">
+      <label><input type="checkbox" id="ltsChk" checked> LTS network</label>
+      <label><input type="checkbox" id="gridChk" checked> Grid access choropleth</label>
+      <label><input type="checkbox" id="destChk"> Show indicator destinations</label>
+      <span class="subhead">Region context</span>
+      <label><input type="checkbox" id="boundaryChk" checked> Study region boundary</label>
+      <label><input type="checkbox" id="bufferChk"> 5 km analysis buffer</label>
     </div>
-    <div style="flex:0" id="info-wrap">
-      <button class="small" id="infoBtn" title="How to interpret this indicator">i</button>
+    <label class="row">Basemap</label>
+    <select id="basemap">
+      <option value="sat">Satellite (grayscale)</option>
+      <option value="positron" selected>Positron</option>
+    </select>
+  </div>
+  <div id="panelFooter">
+    <div class="leg">
+      <span class="leg-title">Level of Traffic Stress (LTS)</span>
+      <div id="ltsLegend" class="leg-row"></div>
+    </div>
+
+    <div class="leg">
+      <span class="leg-title" title="50% of population access to destination by distance band (m) using selected network">Access within distance (m)</span>
+      <div id="accLegend" class="leg-row"></div>
+      <div id="accLegendTimes" class="leg-row leg-row-secondary"></div>
+    </div>
+
+    <div class="leg" id="histo" style="display:none">
+      <span class="leg-title" id="histoTitle"></span>
+      <div class="histo-bars" id="histoBars"></div>
+      <div class="histo-x" id="histoX"></div>
+      <div class="histo-note" id="histoNote"></div>
+    </div>
+
+    <div style="margin-top:10px; display:flex; gap:6px" id="actionBtns">
+      <button class="small" id="tourBtn">Tour</button>
+      <button class="small" id="shareBtn">Copy share link</button>
+      <button class="small" id="reportBtn" style="display:none">View validation report</button>
     </div>
   </div>
-  <div id="notice"></div>
-  <div id="showing"></div>
-
-  <div class="checks">
-    <label><input type="checkbox" id="ltsChk" checked> LTS network</label>
-    <label><input type="checkbox" id="gridChk" checked> Grid access choropleth</label>
-    <label><input type="checkbox" id="destChk"> Show indicator destinations</label>
-    <span class="subhead">Region context</span>
-    <label><input type="checkbox" id="boundaryChk" checked> Study region boundary</label>
-    <label><input type="checkbox" id="bufferChk"> 5 km analysis buffer</label>
   </div>
-  <label class="row">Basemap</label>
-  <select id="basemap">
-    <option value="sat">Satellite (grayscale)</option>
-    <option value="positron">Positron</option>
-  </select>
+  <div id="map"></div>
+  <div id="hoverTip"></div>
 
-  <div class="leg">
-    <span class="leg-title">Level of Traffic Stress (LTS)</span>
-    <div id="ltsLegend" class="leg-row"></div>
-  </div>
-
-  <div class="leg">
-    <span class="leg-title" title="50% of population access to destination by distance band (m) using selected network">Access within distance (m)</span>
-    <div id="accLegend" class="leg-row"></div>
-    <div id="accLegendTimes" class="leg-row leg-row-secondary"></div>
-  </div>
-
-  <div class="leg" id="histo" style="display:none">
-    <span class="leg-title" id="histoTitle"></span>
-    <div class="histo-bars" id="histoBars"></div>
-    <div class="histo-x" id="histoX"></div>
-    <div class="histo-note" id="histoNote"></div>
-  </div>
-
-  <div style="margin-top:10px; display:flex; gap:6px" id="actionBtns">
-    <button class="small" id="tourBtn">Tour</button>
-    <button class="small" id="shareBtn">Copy share link</button>
-    <button class="small" id="reportBtn" style="display:none">View validation report</button>
-  </div>
+  <div class="modal-bg" id="infoModal"><div class="modal" id="infoBody"></div></div>
+  <div id="reportView">
+    <div id="reportBar">
+      <span id="reportTitle"></span>
+      <button class="small" id="reportClose">Back to map</button>
+    </div>
+    <iframe id="reportFrame"></iframe>
 </div>
-
-<div id="map"></div>
-<div id="hoverTip"></div>
-
-<div class="modal-bg" id="infoModal"><div class="modal" id="infoBody"></div></div>
-<div id="reportView">
-  <div id="reportBar">
-    <span id="reportTitle"></span>
-    <button class="small" id="reportClose">Back to map</button>
-  </div>
-  <iframe id="reportFrame"></iframe>
-</div>
-
 <script>
 const CITY_SLUGS = ['wurzburg', 'dar_es_salaam', 'melbourne', 'minneapolis', 'mexico_city', 'mexico_city_proper'];
 
@@ -415,14 +434,15 @@ function renderHisto() {
   const maxBar = 52; // px, tallest bar
   if (mode === 'iso' && dist.iso) {
     const colors = [...ISO_COLORS, ISO_NO_ACCESS];
-    const labels = ['500', '1000', '2000', '5000', 'None'];
+    const labels = ['500 m', '1000 m', '2000 m', '5000 m', 'None'];
     const peak = Math.max(...dist.iso, 1);
     $('histoTitle').textContent = 'Share of population by access band';
     $('histoBars').innerHTML = dist.iso.map((v, i) =>
       `<div class="histo-bar" style="height:${Math.max(2, v / peak * maxBar)}px;background:${colors[i]}">` +
       `<span class="histo-val">${v}%</span></div>`).join('');
     $('histoX').innerHTML = labels.map(l => `<span>${l}</span>`).join('');
-    $('histoNote').textContent = '';
+    $('histoNote').textContent = dist.iso.slice(0, 3).reduce((a, b) => a + b, 0) + '% of residents have access within 2000 m (~10m cycling)\n' +
+      dist.iso.slice(0, 4).reduce((a, b) => a + b, 0) + '% of residents have access within 5000 m (~25 mins cycling)';
     wrap.style.display = 'block';
   } else if (mode === 'avg' && dist.avg) {
     const a = dist.avg;
@@ -439,8 +459,9 @@ function renderHisto() {
       return `<span>${i % 2 === 0 ? (i * a.bin_m).toLocaleString() : ''}</span>`;
     }).join('');
     $('histoNote').textContent =
-      `Population-weighted percentiles: p25 ${a.p25.toLocaleString()} m · ` +
-      `median ${a.p50.toLocaleString()} m · p75 ${a.p75.toLocaleString()} m`;
+      `25% of the population have access within ${a.p25.toLocaleString()} m\n` +
+      `50% of the population have access within ${a.p50.toLocaleString()} m\n` +
+      `75% of the population have access within ${a.p75.toLocaleString()} m`;
     wrap.style.display = 'block';
   } else {
     wrap.style.display = 'none';
@@ -953,6 +974,18 @@ if (tour && !localStorage.getItem('cyclingValidationTourSeen')) {
   localStorage.setItem('cyclingValidationTourSeen', '1');
   setTimeout(() => tour.drive(), 1500);
 }
+
+(function initPanelCollapse() {
+  const panel  = document.getElementById('panel');
+  const toggle = document.getElementById('panelToggle');
+
+  if (!panel || !toggle) return;
+
+  toggle.addEventListener('click', () => {
+    const collapsed = panel.classList.toggle('collapsed');
+    toggle.textContent = collapsed ? '⤓' : '⭫';
+  });
+})();
 
 (async () => {
   await Promise.all(CITY_SLUGS.map(async s => {

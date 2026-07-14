@@ -32,6 +32,8 @@ import unicodedata
 os.chdir('/home/ghsci/process')
 sys.path.insert(0, '/home/ghsci/process/subprocesses')
 
+import numpy as np  # noqa: E402
+
 import ghsci  # noqa: E402
 
 # Grid measure families ('' = danger-weighted, 'safe_' = fully low-stress LTS 1-2
@@ -202,9 +204,83 @@ def export(codename, outdir=None):
             for c in region_cols
         }
 
+    manifest['distributions'] = grid_distributions(r, g_cols)
+
     with open(f'{outdir}/manifest.json', 'w') as f:
         json.dump(manifest, f, indent=1)
     print(f'  manifest.json written; bbox {manifest["bbox"]}', flush=True)
+
+
+AVG_BIN_M = 500      # histogram bin width for average-distance distributions
+AVG_MAX_M = 5000     # values beyond this clip into the last bin
+
+
+def _weighted_quantile(values, weights, q):
+    order = np.argsort(values)
+    v, w = values[order], weights[order]
+    cw = np.cumsum(w)
+    if cw[-1] <= 0:
+        return None
+    return float(np.interp(q * cw[-1], cw, v))
+
+
+def grid_distributions(r, g_cols):
+    """Population-weighted distributions per indicator permutation, for the
+    dashboard's summary histogram.
+
+    For each <family><category>:
+      'iso' -- % of population in each access band (500/1000/2000/5000 m /
+               no access), banding each cell by the smallest distance at which
+               >= 50% of its sample points have access (the dashboard/report
+               isochrone rule);
+      'avg' -- % of (reachable) population per AVG_BIN_M distance-to-nearest
+               bin from 0 to AVG_MAX_M (last bin includes beyond), plus
+               weighted p25/p50/p75.
+    """
+    df = r.get_df(
+        f'SELECT pop_est, {", ".join(g_cols)} FROM indicators_100m_2025',
+    )
+    pop = df['pop_est'].fillna(0).to_numpy(dtype=float)
+    total = pop.sum()
+    if total <= 0:
+        return {}
+    out = {}
+    for fam in GRID_FAMILIES:
+        for cat in GRID_CATEGORIES:
+            entry = {}
+            band_cols = [f'pct_access_cycle_{fam}{cat}_{d}' for d in GRID_DISTANCES]
+            if f'pct_access_cycle_{fam}{cat}_2000m' in df.columns:
+                band = np.full(len(df), len(GRID_DISTANCES))
+                for i, col in reversed(list(enumerate(band_cols))):
+                    if col in df.columns:
+                        band[df[col].fillna(-1).to_numpy() >= 50] = i
+                entry['iso'] = [
+                    round(float(pop[band == i].sum() / total * 100), 1)
+                    for i in range(len(GRID_DISTANCES) + 1)
+                ]
+            acol = f'avg_cycle_dist_{fam}{cat}'
+            if acol in df.columns:
+                v = df[acol].to_numpy(dtype=float)
+                mask = ~np.isnan(v)
+                w = pop[mask]
+                if w.sum() > 0:
+                    vv = np.clip(v[mask], 0, AVG_MAX_M)
+                    idx = np.minimum(
+                        (vv // AVG_BIN_M).astype(int), AVG_MAX_M // AVG_BIN_M - 1,
+                    )
+                    shares = [
+                        round(float(w[idx == i].sum() / w.sum() * 100), 1)
+                        for i in range(AVG_MAX_M // AVG_BIN_M)
+                    ]
+                    entry['avg'] = {
+                        'bin_m': AVG_BIN_M, 'max_m': AVG_MAX_M, 'shares': shares,
+                        'p25': round(_weighted_quantile(v[mask], w, 0.25) or 0),
+                        'p50': round(_weighted_quantile(v[mask], w, 0.50) or 0),
+                        'p75': round(_weighted_quantile(v[mask], w, 0.75) or 0),
+                    }
+            if entry:
+                out[f'{fam}{cat}'] = entry
+    return out
 
 
 if __name__ == '__main__':
