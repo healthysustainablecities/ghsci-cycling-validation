@@ -141,10 +141,12 @@
     <h1>Cycling access validation</h1>
     <button id="infoBtn" class="small">i</button>
     <button id="panelToggle" class="small" title="Toggle indicator selection details">⭫</button>
+    
   </div>
+  <div id="showing"></div>
+  <label class="row">City</label>
+  <select id="city"></select>
   <div id="panelBody">
-    <label class="row">City</label>
-    <select id="city"></select>
 
     <label class="row">Indicator</label>
     <select id="threshold"></select>
@@ -165,7 +167,6 @@
       <label class="row">Network</label>
       <select id="network"></select>
     <div id="notice"></div>
-    <div id="showing"></div>
 
     <div class="checks">
       <label><input type="checkbox" id="ltsChk" checked> LTS network</label>

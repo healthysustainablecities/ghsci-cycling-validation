@@ -96,6 +96,18 @@ foreach ($line in $exportOut) {
 if (-not $slug) { throw 'Could not determine city slug from export output.' }
 Write-Host "   slug: $slug"
 
+# guard: don't overwrite site materials that belong to a different config
+# (companion configs sharing a region name must set a distinct
+# cycling_indicators.validation.site_slug in their yml)
+$existingManifest = Join-Path $SiteDir "tiles\$slug\manifest.json"
+if (Test-Path $existingManifest) {
+  $existing = (Get-Content $existingManifest -Raw | ConvertFrom-Json).codename
+  $existingStem = [IO.Path]::GetFileNameWithoutExtension(($existing -replace '\\', '/').Split('/')[-1])
+  if ($existingStem -and $existingStem -ne $stem) {
+    throw "Slug '$slug' is already published for config '$existingStem' - refusing to overwrite it with '$stem'. Set a distinct cycling_indicators.validation.site_slug in $stem.yml."
+  }
+}
+
 # ---------------------------------------------------------------- 3. build tiles
 Step "3/4 Building PMTiles archives"
 # clear any stale copy so build_tiles.sh re-pulls the fresh export from the container
