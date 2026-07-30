@@ -16,7 +16,7 @@
      scrolling surface, so the legend and the assessment share one scrollbar */
   #panels { position:absolute; top:10px; left:10px; z-index:2; background:#fff;
             border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,.3);
-            font-size:13px; max-height:calc(100vh - 40px); overflow-y:auto;
+            font-size:13px; max-height:calc(100vh - 40px); /*overflow-y:auto;*/
             display:flex; align-items:flex-start; }
   #panel { padding:12px 14px; width:300px; flex:0 0 300px; }
   #sep { display:none; align-self:stretch; width:1px; background:#e3e3e3;
@@ -57,6 +57,7 @@
   button.small { font-size:12px; padding:2px 8px; border:1px solid #bbb; background:#fafafa;
                  border-radius:5px; cursor:pointer; }
   button.small:hover { background:#eee; }
+  button.small.on { background:#20303f; color:#fff; border-color:#20303f; }
   #infoBtn { border-radius:50%; width:22px; height:22px; padding:0; font-weight:bold;
              font-family:serif; font-style:italic; }
   .selrow { display:flex; gap:6px; align-items:flex-end; }
@@ -205,6 +206,17 @@
   #hoverTip { position:fixed; pointer-events:none; background:rgba(20,20,20,.92);
               color:#fff; padding:5px 9px; border-radius:6px; font-size:11.5px;
               max-width:240px; z-index:6; display:none; line-height:1.4; }
+  /* scratch ruler readout: bottom-right, clear of the nav control and attribution */
+  #measureBox { position:fixed; bottom:36px; right:12px; z-index:5; display:none;
+                background:rgba(255,255,255,.96); border:1px solid #bbb;
+                border-radius:8px; padding:8px 10px; font-size:11.5px;
+                box-shadow:0 2px 8px rgba(0,0,0,.25); min-width:170px; }
+  #measureTotal { font-size:17px; font-weight:700; color:#20303f; line-height:1.1; }
+  #measureSub { color:#555; margin-top:2px; line-height:1.35; }
+  #measureBtns { display:flex; gap:5px; margin-top:7px; }
+  #measureBtns button { flex:1; }
+  /* !important, because the hover handlers set cursor inline on the canvas */
+  body.measuring #map canvas { cursor:crosshair !important; }
   .maplibregl-popup-content { font-size:12px; max-width:320px; padding:10px 12px 8px; }
   .popup h4 { margin:0 0 2px; font-size:12.5px; }
   .popup .sub { color:#555; margin:0 0 6px; font-size:11.5px; }
@@ -292,6 +304,8 @@
       <button class="small" id="shareBtn">Copy share link</button>
       <button class="small" id="assessBtn" style="display:none">Route assessment</button>
       <button class="small" id="reportBtn" style="display:none">View validation report</button>
+      <button class="small" id="measureBtn"
+              title="Click successive points on the map to accumulate straight-line distance, for your own reference">Measure distance (m)</button>
   </div>
   <div id="round1" style="margin-top:6px; font-size:11.5px; display:none">
     </div>
@@ -312,6 +326,15 @@
 
   <div id="map"></div>
   <div id="hoverTip"></div>
+  <div id="measureBox">
+    <div id="measureTotal">0 m</div>
+    <div id="measureSub"></div>
+    <div id="measureBtns">
+      <button class="small" id="mUndo">Undo</button>
+      <button class="small" id="mClear">Clear</button>
+      <button class="small" id="mDone">Done</button>
+    </div>
+  </div>
 
   <div class="modal-bg" id="infoModal"><div class="modal" id="infoBody"></div></div>
   <div id="reportView">
@@ -322,7 +345,7 @@
     <iframe id="reportFrame"></iframe>
 </div>
 <script>
-const CITY_SLUGS = ['wurzburg', 'dar_es_salaam', 'melbourne', 'minneapolis', 'mexico_city', 'mexico_city_proper', 'dar_es_salaam_custom'].sort();
+const CITY_SLUGS = ['wurzburg', 'dar_es_salaam', 'melbourne', 'minneapolis', 'mexico_city', 'mexico_city_proper', 'dar_es_salaam_custom', 'helsinki'].sort();
 
 const CONCEPTS = {
   food: { label: 'Fresh food / market', strict: 'fresh_food_market', lenient: 'fresh_food_pooled' },
@@ -771,8 +794,7 @@ const OVERLAY_LAYERS = ['dest_pts', 'ptfreq_pts', 'pos_any_pts', 'pos_large_pts'
                         'ac_local_pts', 'ac_complete_pts'];
 function updateOverlays() {
   if (!map || !map.getLayer('dest_pts')) return;
-  // while assessing, the route layers carry the destinations being judged
-  const on = $('destChk').checked && !document.body.classList.contains('assessing');
+  const on = $('destChk').checked;
   const spec = DEST_OVERLAYS[currentIndicator()] || {};
   const vis = {
     dest_pts: !!spec.dest, ptfreq_pts: !!spec.ptfreq,
@@ -922,6 +944,8 @@ async function loadCity(s) {
   $('reportBtn').style.display = hasReport ? 'inline-block' : 'none';
   renderRound1(s);
   exitAssessment();
+  // switching city calls setStyle, which drops the measure source and layers
+  clearMeasure();
   await loadRoutes(s);
 
   const circle = (colour, r) => ({
@@ -983,6 +1007,8 @@ async function loadCity(s) {
     map.addControl(new maplibregl.NavigationControl());
     map.on('moveend', updateHash);
     map.on('click', e => {
+      // while the ruler is active, clicks drop vertices instead of opening popups
+      if (measuring) { addMeasurePoint(e.lngLat); return; }
       const f = map.queryRenderedFeatures(e.point, { layers: ['lts', 'grid'] })[0];
       if (!f) return;
       const html = f.layer.id === 'lts' ? ltsPopupHTML(f.properties) : gridPopupHTML(f.properties);
@@ -1463,11 +1489,9 @@ function startAssessment() {
   // panel, so it moves into the assessment half while that is open
   $('assessHeader').appendChild($('panelToggle'));
   ensureAssessLayers();
-  // hide the access choropleth and destination overlays so the routes read
-  // clearly; the LTS network stays as the stress context being judged
+  // hide the grid choropleth so routes read clearly; destinations follow destChk
   if (map.getLayer('grid')) map.setLayoutProperty('grid', 'visibility', 'none');
-  for (const l of OVERLAY_LAYERS)
-    if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'none');
+  updateOverlays();
   renderStep();
 }
 
@@ -1486,6 +1510,104 @@ function exitAssessment() {
     map.setLayoutProperty('grid', 'visibility',
       $('gridChk').checked ? 'visible' : 'none');
   updateOverlays();
+}
+
+// ---- optional distance measuring tool ----
+// A scratch ruler for collaborators' own reference. Click successive points to
+// accumulate distance. This measures straight-line (great-circle) distance
+// between the clicks, NOT network distance -- it is for reading the map's scale
+// and sanity-checking the indicator distances, not for reproducing them.
+let measuring = false, measurePts = [], measureLabels = [];
+
+function haversineM(a, b) {
+  const R = 6371008.8, rad = Math.PI / 180;
+  const dLat = (b[1] - a[1]) * rad, dLng = (b[0] - a[0]) * rad;
+  const h = Math.sin(dLat / 2) ** 2 +
+            Math.cos(a[1] * rad) * Math.cos(b[1] * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+// running total at each vertex, so vertex i can be labelled with the distance
+// walked to get there
+function measureCumulative() {
+  const out = [0];
+  for (let i = 1; i < measurePts.length; i++)
+    out.push(out[i - 1] + haversineM(measurePts[i - 1], measurePts[i]));
+  return out;
+}
+
+function ensureMeasureLayers() {
+  if (!map || map.getSource('measure')) return;
+  map.addSource('measure', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({ id: 'measure_halo', type: 'line', source: 'measure',
+    filter: ['==', ['geometry-type'], 'LineString'],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': '#fff', 'line-width': 5, 'line-opacity': 0.9 } });
+  map.addLayer({ id: 'measure_line', type: 'line', source: 'measure',
+    filter: ['==', ['geometry-type'], 'LineString'],
+    layout: { 'line-join': 'round' },
+    paint: { 'line-color': '#111', 'line-width': 2, 'line-dasharray': [2, 1.6] } });
+  map.addLayer({ id: 'measure_pts', type: 'circle', source: 'measure',
+    filter: ['==', ['geometry-type'], 'Point'],
+    paint: { 'circle-radius': 4, 'circle-color': '#fff',
+             'circle-stroke-color': '#111', 'circle-stroke-width': 2 } });
+}
+
+function setMeasuring(on) {
+  measuring = on;
+  document.body.classList.toggle('measuring', on);
+  // a double-click would otherwise zoom the map while dropping two vertices
+  if (map) on ? map.doubleClickZoom.disable() : map.doubleClickZoom.enable();
+}
+
+function renderMeasure() {
+  const cum = measureCumulative();
+  const feats = measurePts.map((c, i) => ({ type: 'Feature', properties: { i },
+    geometry: { type: 'Point', coordinates: c } }));
+  if (measurePts.length > 1)
+    feats.push({ type: 'Feature', properties: {},
+      geometry: { type: 'LineString', coordinates: measurePts } });
+  if (map && map.getSource('measure'))
+    map.getSource('measure').setData({ type: 'FeatureCollection', features: feats });
+
+  // annotate each vertex with the running total (HTML markers, as for the routes)
+  measureLabels.forEach(mk => mk.remove());
+  measureLabels = measurePts.map((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'maplbl';
+    el.style.borderColor = '#111';
+    el.textContent = i === 0 ? 'Start' : `${Math.round(cum[i]).toLocaleString()} m`;
+    return new maplibregl.Marker({ element: el, anchor: 'bottom-left', offset: [6, -6] })
+      .setLngLat(c).addTo(map);
+  });
+
+  const total = cum[cum.length - 1] || 0;
+  $('measureBox').style.display = (measuring || measurePts.length) ? 'block' : 'none';
+  $('measureTotal').textContent = `${Math.round(total).toLocaleString()} m`;
+  const bits = [];
+  if (measurePts.length > 1) {
+    const leg = total - cum[cum.length - 2];
+    bits.push(`${(total / 1000).toFixed(2)} km straight-line`);
+    bits.push(`${measurePts.length} points · last leg ${Math.round(leg).toLocaleString()} m`);
+  } else if (measuring) {
+    bits.push(measurePts.length ? 'Click the next point.'
+                                : 'Click points on the map to measure.');
+  }
+  if (!measuring && measurePts.length) bits.push('<i>Paused — press Resume to add more.</i>');
+  $('measureSub').innerHTML = bits.join('<br>');
+  $('mDone').textContent = measuring ? 'Done' : 'Resume';
+  $('measureBtn').classList.toggle('on', measuring);
+  $('measureBtn').textContent = measuring ? 'Measuring…' : 'Measure distance (m)';
+}
+
+function addMeasurePoint(lngLat) {
+  ensureMeasureLayers();
+  measurePts.push([lngLat.lng, lngLat.lat]);
+  renderMeasure();
+}
+function clearMeasure() {
+  measurePts = [];
+  setMeasuring(false);
+  renderMeasure();
 }
 
 // ---- guided validation tour (driver.js) ----
@@ -1562,6 +1684,13 @@ const tour = (window.driver && window.driver.js)
   : null;
 $('tourBtn').onclick = () => { if (tour) tour.drive(); };
 $('assessBtn').onclick = startAssessment;
+$('measureBtn').onclick = () => { setMeasuring(!measuring); renderMeasure(); };
+$('mDone').onclick = () => { setMeasuring(!measuring); renderMeasure(); };
+$('mUndo').onclick = () => { measurePts.pop(); renderMeasure(); };
+$('mClear').onclick = clearMeasure;
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && measuring) { setMeasuring(false); renderMeasure(); }
+});
 $('legendToggle').onclick = () => {
   const hid = document.body.classList.toggle('legend-collapsed');
   $('legendToggle').innerHTML = hid ? '&#9654;' : '&#9664;';
