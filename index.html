@@ -1537,6 +1537,13 @@ function measureCumulative() {
 
 function ensureMeasureLayers() {
   if (!map || map.getSource('measure')) return;
+  // addSource throws while the style is still loading (e.g. a click that lands
+  // during a city switch), so defer the drawing until the style settles. The
+  // vertices and their labels are unaffected, being plain DOM markers.
+  if (!map.isStyleLoaded()) {
+    map.once('idle', () => { ensureMeasureLayers(); renderMeasure(); });
+    return;
+  }
   map.addSource('measure', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
   map.addLayer({ id: 'measure_halo', type: 'line', source: 'measure',
     filter: ['==', ['geometry-type'], 'LineString'],
