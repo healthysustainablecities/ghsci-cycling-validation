@@ -9,11 +9,11 @@
   },
   "grid": {
    "file": "grid.geojsonl",
-   "features": 143183
+   "features": 143352
   },
   "destinations": {
    "file": "destinations.geojsonl",
-   "features": 27661
+   "features": 27786
   },
   "pt_frequent": {
    "file": "pt_frequent.geojsonl",
@@ -21,7 +21,7 @@
   },
   "ac_local": {
    "file": "ac_local.geojsonl",
-   "features": 79249
+   "features": 79528
   },
   "ac_complete": {
    "file": "ac_complete.geojsonl",
@@ -29,11 +29,11 @@
   },
   "pos_any": {
    "file": "pos_any.geojsonl",
-   "features": 407724
+   "features": 418336
   },
   "pos_large": {
    "file": "pos_large.geojsonl",
-   "features": 341480
+   "features": 351209
   },
   "boundary": {
    "file": "boundary.geojsonl",
@@ -197,185 +197,185 @@
   "avg_cycle_dist_lts1_activity_centre_complete"
  ],
  "region_values": {
-  "pct_access_cycle_fresh_food_market_500m": 11.0,
-  "pct_access_cycle_fresh_food_market_1000m": 30.2,
+  "pct_access_cycle_fresh_food_market_500m": 11.2,
+  "pct_access_cycle_fresh_food_market_1000m": 30.3,
   "pct_access_cycle_fresh_food_market_2000m": 60.1,
-  "pct_access_cycle_fresh_food_market_5000m": 90.2,
-  "pct_access_cycle_fresh_food_pooled_500m": 19.8,
-  "pct_access_cycle_fresh_food_pooled_1000m": 46.9,
+  "pct_access_cycle_fresh_food_market_5000m": 90.3,
+  "pct_access_cycle_fresh_food_pooled_500m": 20.0,
+  "pct_access_cycle_fresh_food_pooled_1000m": 47.1,
   "pct_access_cycle_fresh_food_pooled_2000m": 78.5,
   "pct_access_cycle_fresh_food_pooled_5000m": 94.9,
-  "pct_access_cycle_pt_any_500m": 43.4,
-  "pct_access_cycle_pt_any_1000m": 56.7,
-  "pct_access_cycle_pt_any_2000m": 66.7,
+  "pct_access_cycle_pt_any_500m": 43.7,
+  "pct_access_cycle_pt_any_1000m": 56.8,
+  "pct_access_cycle_pt_any_2000m": 66.8,
   "pct_access_cycle_pt_any_5000m": 78.5,
-  "pct_access_cycle_pt_frequent_500m": 14.5,
-  "pct_access_cycle_pt_frequent_1000m": 22.7,
-  "pct_access_cycle_pt_frequent_2000m": 31.0,
-  "pct_access_cycle_pt_frequent_5000m": 44.7,
-  "pct_access_cycle_public_open_space_any_500m": 69.5,
-  "pct_access_cycle_public_open_space_any_1000m": 90.4,
+  "pct_access_cycle_pt_frequent_500m": 14.7,
+  "pct_access_cycle_pt_frequent_1000m": 22.9,
+  "pct_access_cycle_pt_frequent_2000m": 31.2,
+  "pct_access_cycle_pt_frequent_5000m": 44.9,
+  "pct_access_cycle_public_open_space_any_500m": 69.8,
+  "pct_access_cycle_public_open_space_any_1000m": 90.5,
   "pct_access_cycle_public_open_space_any_2000m": 95.5,
-  "pct_access_cycle_public_open_space_any_5000m": 98.5,
-  "pct_access_cycle_public_open_space_large_500m": 55.5,
-  "pct_access_cycle_public_open_space_large_1000m": 84.6,
+  "pct_access_cycle_public_open_space_any_5000m": 98.6,
+  "pct_access_cycle_public_open_space_large_500m": 56.0,
+  "pct_access_cycle_public_open_space_large_1000m": 84.8,
   "pct_access_cycle_public_open_space_large_2000m": 94.3,
-  "pct_access_cycle_public_open_space_large_5000m": 98.1,
-  "pct_access_cycle_activity_centre_local_500m": 30.2,
-  "pct_access_cycle_activity_centre_local_1000m": 44.6,
-  "pct_access_cycle_activity_centre_local_2000m": 60.0,
-  "pct_access_cycle_activity_centre_local_5000m": 74.0,
-  "pct_access_cycle_activity_centre_complete_500m": 12.0,
-  "pct_access_cycle_activity_centre_complete_1000m": 19.3,
-  "pct_access_cycle_activity_centre_complete_2000m": 28.8,
-  "pct_access_cycle_activity_centre_complete_5000m": 42.9,
-  "pct_access_cycle_all_strict_500m": 3.9,
-  "pct_access_cycle_all_strict_1000m": 16.4,
-  "pct_access_cycle_all_strict_2000m": 29.7,
-  "pct_access_cycle_all_strict_5000m": 44.7,
-  "pct_access_cycle_all_lenient_500m": 13.5,
-  "pct_access_cycle_all_lenient_1000m": 37.2,
+  "pct_access_cycle_public_open_space_large_5000m": 98.2,
+  "pct_access_cycle_activity_centre_local_500m": 30.5,
+  "pct_access_cycle_activity_centre_local_1000m": 44.8,
+  "pct_access_cycle_activity_centre_local_2000m": 60.2,
+  "pct_access_cycle_activity_centre_local_5000m": 74.1,
+  "pct_access_cycle_activity_centre_complete_500m": 12.1,
+  "pct_access_cycle_activity_centre_complete_1000m": 19.5,
+  "pct_access_cycle_activity_centre_complete_2000m": 29.0,
+  "pct_access_cycle_activity_centre_complete_5000m": 43.1,
+  "pct_access_cycle_all_strict_500m": 4.2,
+  "pct_access_cycle_all_strict_1000m": 16.5,
+  "pct_access_cycle_all_strict_2000m": 29.8,
+  "pct_access_cycle_all_strict_5000m": 44.9,
+  "pct_access_cycle_all_lenient_500m": 13.8,
+  "pct_access_cycle_all_lenient_1000m": 37.4,
   "pct_access_cycle_all_lenient_2000m": 61.7,
   "pct_access_cycle_all_lenient_5000m": 78.4,
-  "avg_cycle_dist_fresh_food_market": 1716.8,
-  "avg_cycle_dist_fresh_food_pooled": 1259.9,
-  "avg_cycle_dist_pt_any": 930.6,
-  "avg_cycle_dist_pt_frequent": 1577.8,
-  "avg_cycle_dist_public_open_space_any": 494.0,
-  "avg_cycle_dist_public_open_space_large": 619.0,
-  "avg_cycle_dist_activity_centre_local": 1124.8,
-  "avg_cycle_dist_activity_centre_complete": 1683.3,
-  "pct_access_cycle_safe_fresh_food_market_500m": 9.5,
+  "avg_cycle_dist_fresh_food_market": 1712.4,
+  "avg_cycle_dist_fresh_food_pooled": 1257.1,
+  "avg_cycle_dist_pt_any": 927.0,
+  "avg_cycle_dist_pt_frequent": 1568.1,
+  "avg_cycle_dist_public_open_space_any": 493.4,
+  "avg_cycle_dist_public_open_space_large": 615.5,
+  "avg_cycle_dist_activity_centre_local": 1119.7,
+  "avg_cycle_dist_activity_centre_complete": 1680.7,
+  "pct_access_cycle_safe_fresh_food_market_500m": 9.7,
   "pct_access_cycle_safe_fresh_food_market_1000m": 26.4,
-  "pct_access_cycle_safe_fresh_food_market_2000m": 51.9,
+  "pct_access_cycle_safe_fresh_food_market_2000m": 51.8,
   "pct_access_cycle_safe_fresh_food_market_5000m": 80.8,
-  "pct_access_cycle_safe_fresh_food_pooled_500m": 17.2,
-  "pct_access_cycle_safe_fresh_food_pooled_1000m": 40.7,
-  "pct_access_cycle_safe_fresh_food_pooled_2000m": 69.2,
+  "pct_access_cycle_safe_fresh_food_pooled_500m": 17.4,
+  "pct_access_cycle_safe_fresh_food_pooled_1000m": 40.8,
+  "pct_access_cycle_safe_fresh_food_pooled_2000m": 69.3,
   "pct_access_cycle_safe_fresh_food_pooled_5000m": 85.8,
-  "pct_access_cycle_safe_pt_any_500m": 41.8,
-  "pct_access_cycle_safe_pt_any_1000m": 54.0,
+  "pct_access_cycle_safe_pt_any_500m": 42.1,
+  "pct_access_cycle_safe_pt_any_1000m": 54.2,
   "pct_access_cycle_safe_pt_any_2000m": 63.3,
-  "pct_access_cycle_safe_pt_any_5000m": 73.7,
-  "pct_access_cycle_safe_pt_frequent_500m": 13.8,
-  "pct_access_cycle_safe_pt_frequent_1000m": 21.7,
-  "pct_access_cycle_safe_pt_frequent_2000m": 29.1,
-  "pct_access_cycle_safe_pt_frequent_5000m": 40.3,
-  "pct_access_cycle_safe_public_open_space_any_500m": 66.4,
-  "pct_access_cycle_safe_public_open_space_any_1000m": 86.3,
+  "pct_access_cycle_safe_pt_any_5000m": 73.8,
+  "pct_access_cycle_safe_pt_frequent_500m": 14.0,
+  "pct_access_cycle_safe_pt_frequent_1000m": 21.9,
+  "pct_access_cycle_safe_pt_frequent_2000m": 29.3,
+  "pct_access_cycle_safe_pt_frequent_5000m": 40.5,
+  "pct_access_cycle_safe_public_open_space_any_500m": 66.7,
+  "pct_access_cycle_safe_public_open_space_any_1000m": 86.4,
   "pct_access_cycle_safe_public_open_space_any_2000m": 91.1,
   "pct_access_cycle_safe_public_open_space_any_5000m": 92.5,
-  "pct_access_cycle_safe_public_open_space_large_500m": 52.7,
-  "pct_access_cycle_safe_public_open_space_large_1000m": 79.6,
-  "pct_access_cycle_safe_public_open_space_large_2000m": 89.2,
-  "pct_access_cycle_safe_public_open_space_large_5000m": 91.4,
-  "pct_access_cycle_safe_activity_centre_local_500m": 29.0,
-  "pct_access_cycle_safe_activity_centre_local_1000m": 41.8,
-  "pct_access_cycle_safe_activity_centre_local_2000m": 55.9,
-  "pct_access_cycle_safe_activity_centre_local_5000m": 69.3,
-  "pct_access_cycle_safe_activity_centre_complete_500m": 11.7,
-  "pct_access_cycle_safe_activity_centre_complete_1000m": 18.5,
-  "pct_access_cycle_safe_activity_centre_complete_2000m": 26.9,
-  "pct_access_cycle_safe_activity_centre_complete_5000m": 38.9,
-  "pct_access_cycle_safe_all_strict_500m": 3.4,
-  "pct_access_cycle_safe_all_strict_1000m": 15.1,
-  "pct_access_cycle_safe_all_strict_2000m": 27.4,
-  "pct_access_cycle_safe_all_strict_5000m": 40.1,
-  "pct_access_cycle_safe_all_lenient_500m": 11.7,
-  "pct_access_cycle_safe_all_lenient_1000m": 32.4,
-  "pct_access_cycle_safe_all_lenient_2000m": 55.0,
+  "pct_access_cycle_safe_public_open_space_large_500m": 53.1,
+  "pct_access_cycle_safe_public_open_space_large_1000m": 79.9,
+  "pct_access_cycle_safe_public_open_space_large_2000m": 89.3,
+  "pct_access_cycle_safe_public_open_space_large_5000m": 91.5,
+  "pct_access_cycle_safe_activity_centre_local_500m": 29.3,
+  "pct_access_cycle_safe_activity_centre_local_1000m": 42.0,
+  "pct_access_cycle_safe_activity_centre_local_2000m": 56.0,
+  "pct_access_cycle_safe_activity_centre_local_5000m": 69.4,
+  "pct_access_cycle_safe_activity_centre_complete_500m": 11.8,
+  "pct_access_cycle_safe_activity_centre_complete_1000m": 18.7,
+  "pct_access_cycle_safe_activity_centre_complete_2000m": 27.1,
+  "pct_access_cycle_safe_activity_centre_complete_5000m": 39.0,
+  "pct_access_cycle_safe_all_strict_500m": 3.7,
+  "pct_access_cycle_safe_all_strict_1000m": 15.3,
+  "pct_access_cycle_safe_all_strict_2000m": 27.6,
+  "pct_access_cycle_safe_all_strict_5000m": 40.3,
+  "pct_access_cycle_safe_all_lenient_500m": 12.0,
+  "pct_access_cycle_safe_all_lenient_1000m": 32.6,
+  "pct_access_cycle_safe_all_lenient_2000m": 55.1,
   "pct_access_cycle_safe_all_lenient_5000m": 72.4,
-  "avg_cycle_dist_safe_fresh_food_market": 1781.5,
-  "avg_cycle_dist_safe_fresh_food_pooled": 1298.7,
-  "avg_cycle_dist_safe_pt_any": 907.2,
-  "avg_cycle_dist_safe_pt_frequent": 1500.2,
-  "avg_cycle_dist_safe_public_open_space_any": 440.0,
-  "avg_cycle_dist_safe_public_open_space_large": 572.3,
-  "avg_cycle_dist_safe_activity_centre_local": 1134.5,
-  "avg_cycle_dist_safe_activity_centre_complete": 1606.4,
-  "pct_access_cycle_lts1_fresh_food_market_500m": 4.5,
-  "pct_access_cycle_lts1_fresh_food_market_1000m": 12.2,
-  "pct_access_cycle_lts1_fresh_food_market_2000m": 25.4,
-  "pct_access_cycle_lts1_fresh_food_market_5000m": 40.8,
-  "pct_access_cycle_lts1_fresh_food_pooled_500m": 8.3,
-  "pct_access_cycle_lts1_fresh_food_pooled_1000m": 19.3,
-  "pct_access_cycle_lts1_fresh_food_pooled_2000m": 33.5,
-  "pct_access_cycle_lts1_fresh_food_pooled_5000m": 44.0,
-  "pct_access_cycle_lts1_pt_any_500m": 25.3,
-  "pct_access_cycle_lts1_pt_any_1000m": 33.6,
-  "pct_access_cycle_lts1_pt_any_2000m": 38.4,
-  "pct_access_cycle_lts1_pt_any_5000m": 43.1,
-  "pct_access_cycle_lts1_pt_frequent_500m": 7.9,
-  "pct_access_cycle_lts1_pt_frequent_1000m": 14.3,
-  "pct_access_cycle_lts1_pt_frequent_2000m": 20.5,
-  "pct_access_cycle_lts1_pt_frequent_5000m": 26.7,
-  "pct_access_cycle_lts1_public_open_space_any_500m": 35.8,
-  "pct_access_cycle_lts1_public_open_space_any_1000m": 49.1,
-  "pct_access_cycle_lts1_public_open_space_any_2000m": 55.3,
-  "pct_access_cycle_lts1_public_open_space_any_5000m": 56.5,
-  "pct_access_cycle_lts1_public_open_space_large_500m": 26.4,
-  "pct_access_cycle_lts1_public_open_space_large_1000m": 40.0,
-  "pct_access_cycle_lts1_public_open_space_large_2000m": 50.4,
-  "pct_access_cycle_lts1_public_open_space_large_5000m": 53.1,
-  "pct_access_cycle_lts1_activity_centre_local_500m": 20.8,
-  "pct_access_cycle_lts1_activity_centre_local_1000m": 27.3,
-  "pct_access_cycle_lts1_activity_centre_local_2000m": 34.2,
-  "pct_access_cycle_lts1_activity_centre_local_5000m": 40.8,
-  "pct_access_cycle_lts1_activity_centre_complete_500m": 7.9,
-  "pct_access_cycle_lts1_activity_centre_complete_1000m": 12.5,
-  "pct_access_cycle_lts1_activity_centre_complete_2000m": 18.3,
-  "pct_access_cycle_lts1_activity_centre_complete_5000m": 26.2,
-  "pct_access_cycle_lts1_all_strict_500m": 0.9,
-  "pct_access_cycle_lts1_all_strict_1000m": 5.9,
-  "pct_access_cycle_lts1_all_strict_2000m": 16.8,
-  "pct_access_cycle_lts1_all_strict_5000m": 26.4,
-  "pct_access_cycle_lts1_all_lenient_500m": 4.1,
-  "pct_access_cycle_lts1_all_lenient_1000m": 15.5,
-  "pct_access_cycle_lts1_all_lenient_2000m": 29.5,
-  "pct_access_cycle_lts1_all_lenient_5000m": 39.7,
-  "avg_cycle_dist_lts1_fresh_food_market": 1966.6,
-  "avg_cycle_dist_lts1_fresh_food_pooled": 1511.9,
-  "avg_cycle_dist_lts1_pt_any": 882.5,
-  "avg_cycle_dist_lts1_pt_frequent": 1508.5,
-  "avg_cycle_dist_lts1_public_open_space_any": 527.7,
-  "avg_cycle_dist_lts1_public_open_space_large": 730.2,
-  "avg_cycle_dist_lts1_activity_centre_local": 1096.3,
-  "avg_cycle_dist_lts1_activity_centre_complete": 1636.6
+  "avg_cycle_dist_safe_fresh_food_market": 1778.4,
+  "avg_cycle_dist_safe_fresh_food_pooled": 1293.3,
+  "avg_cycle_dist_safe_pt_any": 903.7,
+  "avg_cycle_dist_safe_pt_frequent": 1488.6,
+  "avg_cycle_dist_safe_public_open_space_any": 438.9,
+  "avg_cycle_dist_safe_public_open_space_large": 568.6,
+  "avg_cycle_dist_safe_activity_centre_local": 1130.5,
+  "avg_cycle_dist_safe_activity_centre_complete": 1586.3,
+  "pct_access_cycle_lts1_fresh_food_market_500m": 4.6,
+  "pct_access_cycle_lts1_fresh_food_market_1000m": 12.4,
+  "pct_access_cycle_lts1_fresh_food_market_2000m": 25.6,
+  "pct_access_cycle_lts1_fresh_food_market_5000m": 41.0,
+  "pct_access_cycle_lts1_fresh_food_pooled_500m": 8.4,
+  "pct_access_cycle_lts1_fresh_food_pooled_1000m": 19.4,
+  "pct_access_cycle_lts1_fresh_food_pooled_2000m": 33.9,
+  "pct_access_cycle_lts1_fresh_food_pooled_5000m": 44.2,
+  "pct_access_cycle_lts1_pt_any_500m": 25.6,
+  "pct_access_cycle_lts1_pt_any_1000m": 33.9,
+  "pct_access_cycle_lts1_pt_any_2000m": 38.6,
+  "pct_access_cycle_lts1_pt_any_5000m": 43.3,
+  "pct_access_cycle_lts1_pt_frequent_500m": 8.1,
+  "pct_access_cycle_lts1_pt_frequent_1000m": 14.5,
+  "pct_access_cycle_lts1_pt_frequent_2000m": 20.8,
+  "pct_access_cycle_lts1_pt_frequent_5000m": 27.1,
+  "pct_access_cycle_lts1_public_open_space_any_500m": 36.0,
+  "pct_access_cycle_lts1_public_open_space_any_1000m": 49.5,
+  "pct_access_cycle_lts1_public_open_space_any_2000m": 55.5,
+  "pct_access_cycle_lts1_public_open_space_any_5000m": 56.8,
+  "pct_access_cycle_lts1_public_open_space_large_500m": 26.6,
+  "pct_access_cycle_lts1_public_open_space_large_1000m": 40.4,
+  "pct_access_cycle_lts1_public_open_space_large_2000m": 50.7,
+  "pct_access_cycle_lts1_public_open_space_large_5000m": 53.4,
+  "pct_access_cycle_lts1_activity_centre_local_500m": 21.2,
+  "pct_access_cycle_lts1_activity_centre_local_1000m": 27.7,
+  "pct_access_cycle_lts1_activity_centre_local_2000m": 34.6,
+  "pct_access_cycle_lts1_activity_centre_local_5000m": 41.1,
+  "pct_access_cycle_lts1_activity_centre_complete_500m": 8.1,
+  "pct_access_cycle_lts1_activity_centre_complete_1000m": 12.7,
+  "pct_access_cycle_lts1_activity_centre_complete_2000m": 18.5,
+  "pct_access_cycle_lts1_activity_centre_complete_5000m": 26.5,
+  "pct_access_cycle_lts1_all_strict_500m": 1.1,
+  "pct_access_cycle_lts1_all_strict_1000m": 6.1,
+  "pct_access_cycle_lts1_all_strict_2000m": 17.1,
+  "pct_access_cycle_lts1_all_strict_5000m": 26.7,
+  "pct_access_cycle_lts1_all_lenient_500m": 4.2,
+  "pct_access_cycle_lts1_all_lenient_1000m": 15.7,
+  "pct_access_cycle_lts1_all_lenient_2000m": 29.9,
+  "pct_access_cycle_lts1_all_lenient_5000m": 40.0,
+  "avg_cycle_dist_lts1_fresh_food_market": 1965.6,
+  "avg_cycle_dist_lts1_fresh_food_pooled": 1500.4,
+  "avg_cycle_dist_lts1_pt_any": 874.6,
+  "avg_cycle_dist_lts1_pt_frequent": 1499.1,
+  "avg_cycle_dist_lts1_public_open_space_any": 523.6,
+  "avg_cycle_dist_lts1_public_open_space_large": 721.8,
+  "avg_cycle_dist_lts1_activity_centre_local": 1080.5,
+  "avg_cycle_dist_lts1_activity_centre_complete": 1630.9
  },
  "distributions": {
   "fresh_food_market": {
    "iso": [
-    11.0,
+    11.2,
     19.4,
+    29.8,
     29.9,
-    29.9,
-    9.8
+    9.7
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     11.9,
-     21.3,
-     18.5,
-     14.5,
+     12.1,
+     21.2,
+     18.3,
+     14.6,
      11.0,
-     7.8,
+     7.9,
      5.6,
-     3.8,
-     2.8,
-     2.8
+     3.9,
+     2.7,
+     2.7
     ],
-    "p25": 806,
-    "p50": 1450,
-    "p75": 2390
+    "p25": 798,
+    "p50": 1451,
+    "p75": 2387
    }
   },
   "fresh_food_pooled": {
    "iso": [
-    20.1,
+    20.4,
     27.2,
-    31.5,
+    31.2,
     16.2,
     5.1
    ],
@@ -383,27 +383,27 @@
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     20.6,
-     28.7,
-     20.3,
-     12.9,
-     7.2,
+     20.9,
+     28.6,
+     20.2,
+     12.7,
+     7.3,
      4.3,
      2.4,
      1.4,
      1.0,
      1.2
     ],
-    "p25": 574,
-    "p50": 1016,
-    "p75": 1680
+    "p25": 569,
+    "p50": 1010,
+    "p75": 1678
    }
   },
   "pt_any": {
    "iso": [
-    44.1,
-    12.8,
-    9.9,
+    44.4,
+    12.6,
+    9.8,
     11.7,
     21.5
    ],
@@ -411,94 +411,94 @@
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     55.4,
-     16.7,
+     55.8,
+     16.3,
      7.6,
-     5.0,
+     4.9,
      3.7,
-     3.1,
-     2.8,
+     3.2,
+     2.7,
      2.1,
      1.8,
      1.8
     ],
-    "p25": 199,
-    "p50": 421,
-    "p75": 1167
+    "p25": 200,
+    "p50": 417,
+    "p75": 1163
    }
   },
   "pt_frequent": {
    "iso": [
-    14.7,
-    8.0,
-    8.3,
+    14.9,
+    8.1,
+    8.2,
     13.7,
-    55.3
+    55.1
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     32.2,
-     17.8,
-     10.7,
-     7.6,
-     6.7,
-     5.5,
-     4.8,
+     32.4,
+     17.9,
+     10.6,
+     7.5,
+     6.8,
+     5.3,
+     4.7,
      4.5,
-     4.4,
-     5.9
+     4.5,
+     5.8
     ],
-    "p25": 392,
-    "p50": 1001,
-    "p75": 2508
+    "p25": 382,
+    "p50": 987,
+    "p75": 2487
    }
   },
   "public_open_space_any": {
    "iso": [
-    70.7,
-    20.0,
+    70.9,
+    19.8,
     4.8,
     3.1,
-    1.5
+    1.4
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     71.0,
-     20.8,
+     71.2,
+     20.5,
      3.6,
      1.3,
-     0.9,
+     0.8,
      0.6,
      0.5,
      0.4,
      0.4,
      0.5
     ],
-    "p25": 183,
-    "p50": 329,
-    "p75": 549
+    "p25": 184,
+    "p50": 328,
+    "p75": 544
    }
   },
   "public_open_space_large": {
    "iso": [
-    56.5,
-    28.6,
-    9.2,
+    56.8,
+    28.4,
+    9.1,
     3.8,
-    1.9
+    1.8
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     56.6,
-     29.7,
-     7.1,
-     2.5,
+     57.1,
+     29.3,
+     7.0,
+     2.4,
      1.2,
      0.8,
      0.6,
@@ -506,16 +506,16 @@
      0.4,
      0.6
     ],
-    "p25": 238,
-    "p50": 439,
-    "p75": 728
+    "p25": 235,
+    "p50": 434,
+    "p75": 722
    }
   },
   "activity_centre_local": {
    "iso": [
-    30.5,
-    14.3,
-    15.3,
+    30.8,
+    14.2,
+    15.2,
     13.9,
     25.9
    ],
@@ -523,73 +523,73 @@
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     40.6,
-     19.3,
-     12.7,
+     41.0,
+     19.2,
+     12.5,
      8.0,
-     5.8,
-     4.2,
+     5.7,
+     4.3,
      3.0,
-     2.3,
+     2.2,
      1.8,
-     2.2
+     2.3
     ],
-    "p25": 214,
-    "p50": 718,
-    "p75": 1628
+    "p25": 207,
+    "p50": 711,
+    "p75": 1625
    }
   },
   "activity_centre_complete": {
    "iso": [
-    12.1,
-    7.3,
+    12.2,
+    7.4,
     9.4,
     14.1,
-    57.1
+    56.9
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     27.5,
-     16.8,
-     11.8,
+     27.7,
+     16.9,
+     11.6,
      9.8,
      7.1,
-     5.6,
+     5.4,
      4.9,
-     5.1,
      5.0,
-     6.5
+     5.0,
+     6.6
     ],
-    "p25": 441,
-    "p50": 1228,
-    "p75": 2675
+    "p25": 432,
+    "p50": 1218,
+    "p75": 2666
    }
   },
   "all_strict": {
    "iso": [
-    3.9,
-    12.7,
+    4.2,
+    12.5,
     13.3,
-    14.9,
-    55.3
+    15.0,
+    55.1
    ]
   },
   "all_lenient": {
    "iso": [
-    13.7,
-    23.8,
-    24.3,
+    14.1,
+    23.7,
+    24.0,
     16.6,
     21.6
    ]
   },
   "safe_fresh_food_market": {
    "iso": [
-    9.6,
+    9.7,
     17.1,
-    25.7,
+    25.5,
     29.0,
     18.6
    ],
@@ -597,55 +597,55 @@
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     11.4,
-     20.6,
-     17.6,
+     11.5,
+     20.7,
+     17.5,
      13.8,
-     11.1,
+     11.2,
      8.4,
-     6.2,
+     6.3,
      4.6,
      3.1,
-     3.0
+     2.9
     ],
-    "p25": 827,
-    "p50": 1510,
-    "p75": 2515
+    "p25": 825,
+    "p50": 1509,
+    "p75": 2519
    }
   },
   "safe_fresh_food_pooled": {
    "iso": [
-    17.4,
+    17.6,
     23.8,
-    28.6,
-    16.6,
+    28.5,
+    16.4,
     13.6
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     19.5,
-     27.5,
+     19.7,
+     27.6,
      19.8,
-     13.6,
+     13.5,
      8.3,
      5.1,
-     2.9,
+     3.0,
      1.5,
      0.8,
-     0.9
+     0.8
     ],
-    "p25": 592,
-    "p50": 1065,
-    "p75": 1772
+    "p25": 589,
+    "p50": 1059,
+    "p75": 1768
    }
   },
   "safe_pt_any": {
    "iso": [
-    42.6,
-    11.9,
-    9.2,
+    42.9,
+    11.8,
+    9.0,
     10.5,
     25.8
    ],
@@ -653,66 +653,66 @@
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     56.5,
-     16.4,
-     7.5,
+     56.9,
+     16.2,
+     7.4,
      4.9,
-     3.6,
+     3.7,
      2.9,
      2.6,
-     2.1,
+     2.0,
      1.7,
-     1.7
+     1.8
     ],
-    "p25": 198,
-    "p50": 407,
-    "p75": 1122
+    "p25": 199,
+    "p50": 404,
+    "p75": 1113
    }
   },
   "safe_pt_frequent": {
    "iso": [
-    14.0,
-    7.9,
-    7.4,
-    11.2,
-    59.5
+    14.2,
+    8.0,
+    7.3,
+    11.3,
+    59.3
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     33.5,
-     19.2,
+     33.7,
+     19.3,
      10.3,
-     7.6,
-     6.3,
+     7.4,
+     6.5,
      5.1,
-     4.7,
+     4.5,
      4.3,
      3.8,
-     5.2
+     5.1
     ],
-    "p25": 382,
-    "p50": 902,
-    "p75": 2347
+    "p25": 373,
+    "p50": 881,
+    "p75": 2333
    }
   },
   "safe_public_open_space_any": {
    "iso": [
-    67.8,
-    19.3,
-    4.6,
-    1.3,
-    7.0
+    68.0,
+    19.2,
+    4.5,
+    1.4,
+    6.9
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     71.9,
-     21.6,
+     72.2,
+     21.2,
      3.8,
-     1.2,
+     1.1,
      0.5,
      0.3,
      0.2,
@@ -721,26 +721,26 @@
      0.2
     ],
     "p25": 181,
-    "p50": 323,
-    "p75": 536
+    "p50": 321,
+    "p75": 532
    }
   },
   "safe_public_open_space_large": {
    "iso": [
-    53.7,
+    54.2,
     26.7,
-    9.3,
+    9.0,
     2.2,
-    8.0
+    7.9
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     57.2,
-     29.9,
-     7.7,
-     2.6,
+     57.6,
+     29.7,
+     7.6,
+     2.5,
      1.0,
      0.6,
      0.3,
@@ -748,325 +748,325 @@
      0.2,
      0.2
     ],
-    "p25": 233,
-    "p50": 433,
-    "p75": 721
+    "p25": 231,
+    "p50": 429,
+    "p75": 714
    }
   },
   "safe_activity_centre_local": {
    "iso": [
-    29.4,
-    12.8,
+    29.6,
+    12.7,
     14.1,
     13.4,
-    30.3
+    30.2
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     41.3,
-     18.4,
+     41.5,
+     18.3,
      12.1,
-     8.3,
+     8.1,
      5.8,
      4.3,
      3.1,
-     2.4,
-     2.0,
-     2.2
+     2.5,
+     1.9,
+     2.3
     ],
-    "p25": 202,
-    "p50": 711,
-    "p75": 1673
+    "p25": 195,
+    "p50": 704,
+    "p75": 1671
    }
   },
   "safe_activity_centre_complete": {
    "iso": [
-    11.8,
-    6.8,
-    8.4,
-    12.1,
-    60.9
+    11.9,
+    6.9,
+    8.5,
+    12.0,
+    60.7
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     29.1,
+     29.4,
      17.3,
      11.4,
-     9.7,
-     7.1,
-     5.9,
-     5.1,
-     4.4,
-     4.5,
-     5.5
+     9.9,
+     7.2,
+     5.5,
+     5.2,
+     4.6,
+     4.1,
+     5.3
     ],
-    "p25": 406,
-    "p50": 1147,
-    "p75": 2534
+    "p25": 395,
+    "p50": 1129,
+    "p75": 2481
    }
   },
   "safe_all_strict": {
    "iso": [
-    3.4,
-    12.0,
-    12.3,
-    12.7,
-    59.6
+    3.7,
+    11.9,
+    12.2,
+    12.8,
+    59.4
    ]
   },
   "safe_all_lenient": {
    "iso": [
-    11.9,
-    21.0,
-    22.7,
+    12.2,
+    20.9,
+    22.5,
     17.3,
     27.1
    ]
   },
   "lts1_fresh_food_market": {
    "iso": [
-    4.3,
-    8.1,
-    13.9,
-    16.6,
-    57.1
+    4.4,
+    8.2,
+    14.0,
+    16.7,
+    56.6
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
      9.4,
-     17.0,
-     16.7,
-     14.3,
-     11.9,
-     9.7,
-     6.9,
-     5.3,
-     4.4,
-     4.4
+     17.1,
+     16.9,
+     14.0,
+     11.8,
+     9.8,
+     7.0,
+     5.6,
+     4.2,
+     4.3
     ],
-    "p25": 956,
-    "p50": 1736,
-    "p75": 2767
+    "p25": 952,
+    "p50": 1731,
+    "p75": 2785
    }
   },
   "lts1_fresh_food_pooled": {
    "iso": [
-    8.2,
+    8.3,
     11.6,
-    15.2,
+    15.5,
     11.4,
-    53.6
+    53.2
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     16.5,
-     23.4,
-     18.9,
+     16.7,
+     23.3,
+     19.4,
      13.8,
-     9.9,
-     6.8,
-     4.1,
+     9.7,
+     6.6,
+     4.2,
      2.8,
      2.0,
-     1.8
+     1.6
     ],
-    "p25": 675,
-    "p50": 1260,
-    "p75": 2100
+    "p25": 670,
+    "p50": 1247,
+    "p75": 2085
    }
   },
   "lts1_pt_any": {
    "iso": [
-    26.4,
-    8.7,
-    5.1,
+    26.8,
+    8.8,
+    5.0,
     5.2,
-    54.6
+    54.3
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     55.2,
-     18.9,
-     7.7,
-     4.7,
-     3.1,
+     55.4,
+     19.0,
+     7.6,
+     4.5,
+     3.2,
      2.7,
      2.5,
-     1.9,
+     1.8,
      1.6,
      1.7
     ],
-    "p25": 184,
-    "p50": 423,
-    "p75": 1043
+    "p25": 187,
+    "p50": 419,
+    "p75": 1031
    }
   },
   "lts1_pt_frequent": {
    "iso": [
-    8.2,
+    8.4,
+    6.6,
     6.7,
-    6.6,
-    6.6,
-    72.0
+    6.8,
+    71.5
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     26.9,
+     27.2,
      22.0,
      13.7,
-     9.3,
-     6.8,
-     5.3,
-     4.3,
-     3.7,
+     9.4,
+     6.6,
+     5.0,
+     4.5,
+     3.9,
      3.4,
-     4.6
+     4.4
     ],
-    "p25": 466,
-    "p50": 1032,
-    "p75": 2206
+    "p25": 461,
+    "p50": 1026,
+    "p75": 2178
    }
   },
   "lts1_public_open_space_any": {
    "iso": [
-    36.9,
-    14.4,
+    37.2,
+    14.6,
     6.8,
     1.5,
-    40.4
+    39.9
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     62.3,
-     23.9,
-     8.3,
-     3.1,
+     62.4,
+     24.1,
+     8.1,
+     2.9,
      1.3,
-     0.6,
+     0.5,
      0.3,
      0.1,
      0.1,
      0.1
     ],
-    "p25": 168,
-    "p50": 359,
-    "p75": 703
+    "p25": 166,
+    "p50": 358,
+    "p75": 697
    }
   },
   "lts1_public_open_space_large": {
    "iso": [
-    26.9,
-    14.6,
-    11.4,
+    27.1,
+    15.1,
+    11.3,
     3.0,
-    44.0
+    43.5
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     48.3,
-     25.9,
-     14.0,
-     6.1,
+     48.5,
+     26.5,
+     13.5,
+     6.0,
      2.7,
-     1.4,
+     1.3,
      0.7,
      0.4,
      0.3,
      0.2
     ],
-    "p25": 220,
-    "p50": 525,
-    "p75": 1018
+    "p25": 216,
+    "p50": 521,
+    "p75": 999
    }
   },
   "lts1_activity_centre_local": {
    "iso": [
-    21.1,
+    21.5,
     6.9,
     7.4,
     7.1,
-    57.5
+    57.1
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     44.8,
-     15.9,
+     45.1,
+     16.2,
      10.9,
-     8.0,
-     6.2,
-     4.6,
-     3.2,
+     7.8,
+     6.1,
+     4.7,
+     3.1,
      2.3,
-     2.0,
-     2.1
+     1.8,
+     2.0
     ],
-    "p25": 113,
-    "p50": 645,
-    "p75": 1693
+    "p25": 107,
+    "p50": 633,
+    "p75": 1666
    }
   },
   "lts1_activity_centre_complete": {
    "iso": [
-    8.0,
+    8.2,
     4.8,
     6.2,
-    8.3,
-    72.6
+    8.6,
+    72.3
    ],
    "avg": {
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     26.9,
+     27.2,
      16.4,
-     12.2,
-     9.7,
-     8.7,
-     6.8,
-     5.8,
-     5.1,
-     4.0,
+     12.1,
+     9.4,
+     8.4,
+     7.1,
+     6.1,
+     4.9,
+     3.9,
      4.5
     ],
-    "p25": 445,
-    "p50": 1243,
-    "p75": 2584
+    "p25": 432,
+    "p50": 1234,
+    "p75": 2590
    }
   },
   "lts1_all_strict": {
    "iso": [
-    0.8,
+    1.0,
     5.2,
-    11.5,
-    10.2,
-    72.3
+    11.6,
+    10.3,
+    71.8
    ]
   },
   "lts1_all_lenient": {
    "iso": [
-    3.9,
-    12.0,
-    14.8,
-    11.2,
-    58.1
+    4.0,
+    12.1,
+    15.2,
+    11.1,
+    57.7
    ]
   }
  }

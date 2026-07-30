@@ -12,9 +12,16 @@
 <style>
   body { margin:0; font-family: system-ui, sans-serif; }
   #map { position:absolute; inset:0; }
-  #panel { position:absolute; top:10px; left:10px; z-index:2; background:#fff;
-           padding:12px 14px; border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,.3);
-           font-size:13px; width:300px; max-height:calc(100vh - 40px); overflow-y:auto; }
+  /* one panel that grows rightwards when the assessment opens: a single
+     scrolling surface, so the legend and the assessment share one scrollbar */
+  #panels { position:absolute; top:10px; left:10px; z-index:2; background:#fff;
+            border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,.3);
+            font-size:13px; max-height:calc(100vh - 40px); overflow-y:auto;
+            display:flex; align-items:flex-start; }
+  #panel { padding:12px 14px; width:300px; flex:0 0 300px; }
+  #sep { display:none; align-self:stretch; width:1px; background:#e3e3e3;
+         margin:10px 0; flex:0 0 1px; }
+  body.assessing #sep { display:block; }
   #panel select#variation {width: 70%;}
   #panel h1 { font-size:14px; margin:0 0 8px; }
   #panel label.row { display:block; margin:5px 0 1px; color:#444; font-size:12px; }
@@ -92,6 +99,82 @@
   .histo-x { display:flex; font-size:9.5px; color:#555; }
   .histo-x span { flex:1; text-align:center; }
   .histo-note { font-size:10.5px; color:#555; margin-top:2px; white-space: pre-line;}
+  /* ---- route assessment: a second pane to the right of the legend ---- */
+  #assess { padding:12px 14px; width:330px; flex:0 0 330px; display:none; }
+  body.assessing #assess { display:block; }
+  /* horizontal collapse leaves the legend as a slim bar holding its own
+     re-open button, so the control never disappears from the page */
+  body.legend-collapsed #panel { width:30px; flex:0 0 30px; padding:10px 5px;
+                                 overflow:hidden; }
+  body.legend-collapsed #panel > *:not(#panelHeader) { display:none; }
+  body.legend-collapsed #panelHeader { justify-content:center; }
+  body.legend-collapsed #panelHeader h1,
+  body.legend-collapsed #panelHeader #infoBtn { display:none; }
+  #legendToggle { display:none; }
+  body.assessing #legendToggle { display:inline-block; }
+  /* the vertical collapse applies to whichever half is showing */
+  #panel.collapsed ~ #assess #assessBody,
+  #panel.collapsed ~ #assess #assessProg { display:none; }
+  #assessHeader { display:flex; align-items:center; justify-content:space-between;
+                  gap:4px; }
+  #legendToggle { width:24px; padding:0 2px; }
+  /* route legend (only while assessing) */
+  .rleg-row { display:flex; align-items:center; gap:6px; font-size:11px;
+              color:#333; margin:2px 0; }
+  .rleg-key { width:28px; display:inline-flex; justify-content:center; }
+  .pt-origin { display:inline-block; width:12px; height:12px; border-radius:50%;
+               background:#ffd400; border:2px solid #000; }
+  .rleg-cat { display:inline-flex; align-items:center; gap:3px; margin-right:8px; }
+  .rleg-cat i { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  #assess h2 { font-size:14px; margin:0 0 2px; }
+  #assessProg { font-size:11.5px; color:#666; margin-bottom:6px; }
+  .seg-ctl { display:flex; gap:3px; margin:6px 0 4px; }
+  .seg-ctl button { flex:1; font-size:11px; padding:3px 2px; border:1px solid #bbb;
+                    background:#fafafa; border-radius:4px; cursor:pointer; }
+  .seg-ctl button.on { background:#20303f; color:#fff; border-color:#20303f; }
+  table.rt { width:100%; border-collapse:collapse; font-size:11px; margin-top:4px; }
+  table.rt th { font-weight:600; color:#555; text-align:right; padding:1px 2px;
+                font-size:10px; }
+  table.rt th.l, table.rt td.l { text-align:left; }
+  table.rt td { padding:1px 2px; text-align:right;
+                font-variant-numeric:tabular-nums; }
+  table.rt tr.cur td { background:#eef4fa; }
+  table.rt td.dim, table.rt th.dim { color:#aaa; }
+  table.rt th.selcol, table.rt td.selcol { background:#e8f0f8; font-weight:600;
+                                           color:#123; }
+  table.rt th.selcol { border-radius:4px 4px 0 0; }
+  table.rt tr:last-child td.selcol { border-radius:0 0 4px 4px; }
+  .bd { margin:5px 0; font-size:11px; }
+  .bd > b { font-size:11.5px; }
+  .bd-x { color:#555; margin-left:15px; font-size:10px; font-weight:400;
+          line-height:1.3; }
+  .maplbl { background:rgba(255,255,255,.92); border-left:4px solid #888;
+            border-radius:3px; padding:1px 5px; font-size:10.5px; color:#222;
+            white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.3);
+            pointer-events:none; }
+  .rkey { display:flex; gap:14px; font-size:10.5px; color:#555; margin-top:4px; }
+  .rkey span { display:inline-flex; align-items:center; gap:4px; }
+  .lk-row { display:flex; align-items:center; gap:6px; margin:3px 0; }
+  .lk-lab { flex:1; font-size:10.5px; line-height:1.2; color:#333; }
+  .likert { display:flex; gap:3px; margin-top:2px; flex:0 0 auto; }
+  .likert .lk { flex:0 0 22px; text-align:center; border:1px solid #ccc;
+                border-radius:5px; padding:2px 0; cursor:pointer; background:#fafafa; }
+  .likert .lk input { display:none; }
+  .likert .lk span { font-size:12px; }
+  .likert .lk:has(input:checked) { background:#20303f; border-color:#20303f; }
+  .likert .lk:has(input:checked) span { color:#fff; font-weight:700; }
+  .lk-ends { display:flex; justify-content:space-between; font-size:9.5px;
+             color:#777; margin-top:1px; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%;
+         margin-right:4px; vertical-align:-1px; }
+  #assess fieldset { border:1px solid #ddd; border-radius:6px; padding:6px 8px;
+                     margin:8px 0 0; }
+  #assess legend { font-size:11px; color:#444; padding:0 4px; }
+  #assess fieldset label { display:block; font-size:11.5px; margin:2px 0; }
+  #assess textarea { width:100%; font-size:11.5px; font-family:inherit;
+                     border:1px solid #ccc; border-radius:4px; padding:3px; }
+  .nav { display:flex; gap:6px; margin-top:8px; }
+  .nav button { flex:1; }
   
   .dist-label, .time-label {
     display: block;        /* each label on its own line */
@@ -136,10 +219,12 @@
 </style>
 </head>
 <body>
-<div id="panel">
+<div id="panels">
+  <div id="panel">
   <div id="panelHeader">
     <h1>Cycling access validation</h1>
     <button id="infoBtn" class="small">i</button>
+    <button id="legendToggle" class="small" title="Hide the legend">&#9664;</button>
     <button id="panelToggle" class="small" title="Toggle indicator selection details">⭫</button>
     
   </div>
@@ -183,6 +268,7 @@
     </select>
   </div>
   <div id="panelFooter">
+
     <div class="leg">
       <span class="leg-title">Level of Traffic Stress (LTS)</span>
       <div id="ltsLegend" class="leg-row"></div>
@@ -201,13 +287,29 @@
       <div class="histo-note" id="histoNote"></div>
     </div>
 
-    <div style="margin-top:10px; display:flex; gap:6px" id="actionBtns">
+    <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap" id="actionBtns">
       <button class="small" id="tourBtn">Tour</button>
       <button class="small" id="shareBtn">Copy share link</button>
+      <button class="small" id="assessBtn" style="display:none">Route assessment</button>
       <button class="small" id="reportBtn" style="display:none">View validation report</button>
+  </div>
+  <div id="round1" style="margin-top:6px; font-size:11.5px; display:none">
     </div>
+
   </div>
   </div>
+
+  <div id="sep"></div>
+  <div id="assess">
+    <div id="assessHeader">
+      <h2 id="assessTitle">Route assessment</h2>
+    </div>
+    <div id="assessProg"></div>
+    <div id="assessBody"></div>
+  </div>
+
+  </div>
+
   <div id="map"></div>
   <div id="hoverTip"></div>
 
@@ -247,7 +349,7 @@ const NETWORKS = {
            desc: 'routes restricted to the lowest-stress streets only (LTS 1) for their full length' },
   safe_: { label: 'LTS 1–2 (low stress)',
            desc: 'routes restricted to low-stress streets (LTS 1–2) for their full length' },
-  '':    { label: 'Danger-weighted (full network)',
+  '':    { label: 'Stress penalty (full network)',
            desc: 'routes over the full cycleable network, with length along higher-stress (LTS 3–4) streets penalised by a factor of 1.25 — a benefit-of-the-doubt measure' },
 };
 // Threshold now selects the *display mode*: isochrone bands (all four distances
@@ -256,6 +358,31 @@ const THRESHOLDS = {
   iso: 'Access within distance/time',
   avg: 'Average distance to nearest',
 };
+// Round 1 (2025) validation web maps, for reference where they exist.
+// Two layouts on that site: a single map per city, or separate 2 km / 5 km maps.
+// Dar es Salaam has no entry — it was first analysed in Round 2.
+const ROUND1_BASE = 'https://mahsaall.github.io/CyclingAccessibilityValidation';
+const ROUND1 = {
+  wurzburg: { '': 'Wurzburg/index.html' },
+  melbourne: { '2 km': 'Melbourne/Melbourne2km/index.html',
+               '5 km': 'Melbourne/Melbourne5km/index.html' },
+  minneapolis: { '2 km': 'Minneapolis/Minneapolis2km/index.html',
+                 '5 km': 'Minneapolis/Minneapolis5km/index.html' },
+  // remaining Round 1 cities, for when they are added to this dashboard
+  // (slugs assumed from city name — verify when each is first published)
+  barcelona: { '': 'Barcelona/index.html' },
+  chennai: { '': 'Chennai/index.html' },
+  curitiba: { '': 'Curitiba/index.html' },
+  helsinki: { '': 'Helsinki/index.html' },
+  tarragona: { '': 'Tarragona/index.html' },
+  turin: { '': 'Turin/index.html' },
+  valencia: { '': 'Valencia/index.html' },
+  mexico_city: { '2 km': 'MexicoCity/MexicoCity2km/index.html',
+                 '5 km': 'MexicoCity/MexicoCity5km/index.html' },
+  suzhou: { '2 km': 'Suzhou/Suzhou2km/index.html',
+            '5 km': 'Suzhou/Suzhou5km/index.html' },
+};
+
 const ISO_DISTANCES = ['500m', '1000m', '2000m', '5000m'];
 // Exact Crameri batlow samples at t=1.0/0.667/0.333/0.0, matching
 // _validation_report.py's _plot_isochrone_ax so the dashboard and static
@@ -427,6 +554,17 @@ function _batlowAt(t) { // t in [0,1] along the reversed (pale->dark) ramp
   const i = Math.min(Math.floor(x), ramp.length - 2);
   return _lerpHex(ramp[i], ramp[i + 1], x - i);
 }
+function renderRound1(s) {
+  const el = $('round1');
+  const entry = ROUND1[s];
+  if (!entry) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const links = Object.entries(entry).map(([label, path]) =>
+    `<a href="${ROUND1_BASE}/${path}" target="_blank" rel="noopener">` +
+    `${label ? 'Round 1 map (' + label + ')' : 'Round 1 map'}</a>`).join(' · ');
+  el.innerHTML = `<span style="color:#555">For reference: </span>${links}`;
+  el.style.display = 'block';
+}
+
 function renderHisto() {
   const wrap = $('histo');
   const dist = ((manifests[slug] || {}).distributions || {})[$('network').value + currentIndicator()];
@@ -633,7 +771,8 @@ const OVERLAY_LAYERS = ['dest_pts', 'ptfreq_pts', 'pos_any_pts', 'pos_large_pts'
                         'ac_local_pts', 'ac_complete_pts'];
 function updateOverlays() {
   if (!map || !map.getLayer('dest_pts')) return;
-  const on = $('destChk').checked;
+  // while assessing, the route layers carry the destinations being judged
+  const on = $('destChk').checked && !document.body.classList.contains('assessing');
   const spec = DEST_OVERLAYS[currentIndicator()] || {};
   const vis = {
     dest_pts: !!spec.dest, ptfreq_pts: !!spec.ptfreq,
@@ -781,6 +920,9 @@ async function loadCity(s) {
   const b = manifest.bbox;
   hasReport = (await fetch(`./reports/${s}.html`, { method: 'HEAD' }).catch(() => ({ ok: false }))).ok;
   $('reportBtn').style.display = hasReport ? 'inline-block' : 'none';
+  renderRound1(s);
+  exitAssessment();
+  await loadRoutes(s);
 
   const circle = (colour, r) => ({
     'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, r * 0.6, 14, r],
@@ -866,7 +1008,7 @@ fillSelect($('concept'), Object.entries(CONCEPTS).map(([k, v]) => [k, v.label]))
 fillSelect($('threshold'), Object.entries(THRESHOLDS));
 fillSelect($('network'), Object.entries(NETWORKS).map(([k, v]) => [k, v.label]));
 $('concept').value = 'all'; $('variation').value = 'strict';
-$('threshold').value = 'iso'; $('network').value = 'lts1_';
+$('threshold').value = 'iso'; $('network').value = 'safe_';
 
 for (const id of ['concept', 'variation', 'threshold', 'network'])
   $(id).onchange = () => { updateIndicator(); updateHash(); };
@@ -903,6 +1045,449 @@ $('reportBtn').onclick = () => {
 };
 $('reportClose').onclick = () => { $('reportView').style.display = 'none'; $('reportFrame').src = ''; };
 
+// ================= route assessment (Part 2 of the Round 2 validation) =======
+// Walks a stratified sample of points, showing the actual routes the indicators
+// used to reach the nearest destination of each category under each routing
+// measure, and collects a short structured judgement per point.
+const CAT_COLORS = { fresh_food_market: '#e6194b', pt_frequent: '#2e50e7',
+                     public_open_space_large: '#2f8f3f' };
+const ISSUE_OPTIONS = [
+  ['stress_low', 'Street stress rated too low (should feel less safe)'],
+  ['stress_high', 'Street stress rated too high (is actually fine to ride)'],
+  ['path_unusable', 'Path/link does not exist or is not usable'],
+  ['dismount_wrong', 'Dismount (walking) classification is wrong'],
+  ['dest_wrong', 'Destination is wrong, missing or misclassified'],
+  ['detour', 'Route is an implausible detour'],
+  ['other', 'Other (describe below)'],
+];
+let routeData = null, assessIdx = 0, assessMeasure = null, responses = {};
+let assessLabels = [];
+
+// assessment measure key -> dashboard Network option (column infix), so the
+// choropleth and summary always describe the network whose routes are drawn
+const MEASURE_TO_NET = { lts1: 'lts1_', low_stress: 'safe_', danger_weighted: '' };
+function syncDashboardNetwork() {
+  const n = MEASURE_TO_NET[assessMeasure];
+  if (n === undefined || $('network').value === n) return;
+  $('network').value = n;
+  updateIndicator();
+  updateHash();
+}
+
+function respKey(s) { return `cyclingValidationResponses:${s}`; }
+function loadResponses(s) {
+  try { responses = JSON.parse(localStorage.getItem(respKey(s))) || {}; }
+  catch { responses = {}; }
+}
+function saveResponses() {
+  try { localStorage.setItem(respKey(slug), JSON.stringify(responses)); } catch {}
+}
+
+async function loadRoutes(s) {
+  routeData = null;
+  try {
+    const res = await fetch(`./routes/${s}_routes.json`);
+    if (res.ok) routeData = await res.json();
+  } catch {}
+  $('assessBtn').style.display = routeData ? 'inline-block' : 'none';
+}
+
+function routeFor(pointId, measure, cat) {
+  return (routeData.routes || []).find(
+    x => x.p === pointId && x.meas === measure && x.cat === cat);
+}
+
+// How a route's distance budget is spent.  Verified against the exported costs:
+// cost = ridden_low + 1.25*ridden_high + 3*walked + intersection crossings,
+// where the crossing term appears only on the stress-penalty network.
+const DANGER_W = 1.25, DISMOUNT_W = 3;
+function costBreakdown(rt) {
+  let low = 0, high = 0, walked = 0;
+  for (const s of rt.seg || []) {
+    if (s.d) walked += s.m;
+    else if (s.lts === 3 || s.lts === 4) high += s.m;
+    else low += s.m;
+  }
+  const predicted = low + DANGER_W * high + DISMOUNT_W * walked;
+  // travelled is derived from the same segment sum as the parts, so the
+  // displayed total always equals the displayed components
+  return { low, high, walked, travelled: low + high + walked,
+           imped: Math.max(0, rt.cm - predicted) };
+}
+function travelledM(rt) {
+  return (rt.seg && rt.seg.length) ? costBreakdown(rt).travelled : rt.m;
+}
+
+// One-line account of how the counted distance is made up, e.g.
+// "757 m ridden + (118 m walk × 3 dismount penalty)".  The connection from the
+// sample point to the network (and to the destination door) is counted as ridden.
+// The ridden figure is derived from the total so the arithmetic shown always
+// reconciles with the distance in the table, whatever the rounding.
+function breakdownText(pt, c) {
+  const rt = routeFor(pt.id, assessMeasure, c.key);
+  if (!rt || !rt.ok) return 'no route within the limit';
+  if (!rt.seg || !rt.seg.length) return 'destination is at this location';
+  const b = costBreakdown(rt);
+  const total = Math.round(rt.net);
+  // derive from the *rounded* components so the equation shown adds up exactly
+  // to the distance in the table
+  const walk = Math.round(b.walked), high = Math.round(b.high);
+  const wCross = b.imped >= 1 ? Math.round(b.imped) : 0;
+  const ridden = total - DISMOUNT_W * walk - Math.round(DANGER_W * high) - wCross;
+  const parts = [`${ridden.toLocaleString()} m ridden`];
+  if (high) parts.push(`(${high.toLocaleString()} m higher-stress ` +
+    `× ${DANGER_W} stress penalty)`);
+  if (walk) parts.push(`(${walk.toLocaleString()} m walk ` +
+    `× ${DISMOUNT_W} dismount penalty)`);
+  if (wCross) parts.push(`(${wCross.toLocaleString()} m crossings)`);
+  return parts.join(' + ');
+}
+
+function ensureAssessLayers() {
+  if (map.getSource('assess')) return;
+  map.addSource('assess', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  const colorExpr = ['match', ['get', 'cat'],
+    'fresh_food_market', CAT_COLORS.fresh_food_market,
+    'pt_frequent', CAT_COLORS.pt_frequent,
+    'public_open_space_large', CAT_COLORS.public_open_space_large, '#888'];
+  // highlighter styling: thick and semi-transparent so the street underneath
+  // (and its LTS colour) stays readable through the route
+  const w = ['interpolate', ['linear'], ['zoom'], 11, 6, 14, 11, 17, 16];
+  map.addLayer({ id: 'assess_ridden', type: 'line', source: 'assess',
+    filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'd'], 0]],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': colorExpr, 'line-width': w, 'line-opacity': 0.42 } });
+  map.addLayer({ id: 'assess_dismount', type: 'line', source: 'assess',
+    filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'd'], 1]],
+    layout: { 'line-cap': 'butt', 'line-join': 'round' },
+    paint: { 'line-color': colorExpr, 'line-width': w, 'line-opacity': 0.42,
+             'line-dasharray': [1, 0.9] } });
+  map.addLayer({ id: 'assess_dest', type: 'circle', source: 'assess',
+    filter: ['==', ['get', 'kind'], 'dest'],
+    paint: { 'circle-radius': 6, 'circle-color': colorExpr,
+             'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
+  map.addLayer({ id: 'assess_origin', type: 'circle', source: 'assess',
+    filter: ['==', ['get', 'kind'], 'origin'],
+    paint: { 'circle-radius': 8, 'circle-color': '#ffd400',
+             'circle-stroke-color': '#000', 'circle-stroke-width': 2 } });
+  wireAssessHover();
+}
+
+// hover detail for the sample point, the destinations and each route segment
+function wireAssessHover() {
+  const tip = $('hoverTip');
+  const catLabel = k => {
+    const c = (routeData.categories || []).find(x => x.key === k);
+    return c ? c.label : k;
+  };
+  const html = p => {
+    if (p.kind === 'origin')
+      return `<b>Sample point ${routeData.points[assessIdx].id}</b>` +
+             `<br>the location being assessed`;
+    if (p.kind === 'dest')
+      return `<b>Nearest ${catLabel(p.cat).toLowerCase()}</b>` +
+             `<br>destination this route reaches`;
+    const bits = [`${Math.round(p.m).toLocaleString()} m`];
+    if (p.lts) bits.push(`LTS ${p.lts}`);
+    if (p.hw) bits.push(p.hw);
+    return `<b>${p.d ? 'Walked (bike dismounted)' : 'Ridden'}` +
+           `${p.n ? ' — ' + p.n : ''}</b><br>` + bits.join(' · ') +
+           (p.d ? '<br>walked distance counts ×3 toward the limit' : '') +
+           `<br><span style="opacity:.75">route to ${catLabel(p.cat).toLowerCase()}</span>`;
+  };
+  for (const l of ['assess_origin', 'assess_dest', 'assess_ridden', 'assess_dismount']) {
+    map.on('mousemove', l, e => {
+      if (!e.features.length) return;
+      map.getCanvas().style.cursor = 'pointer';
+      tip.innerHTML = html(e.features[0].properties);
+      tip.style.left = (e.originalEvent.clientX + 14) + 'px';
+      tip.style.top = (e.originalEvent.clientY + 10) + 'px';
+      tip.style.display = 'block';
+    });
+    map.on('mouseleave', l, () => {
+      map.getCanvas().style.cursor = '';
+      tip.style.display = 'none';
+    });
+  }
+}
+
+function drawStep() {
+  const pt = routeData.points[assessIdx];
+  const feats = [{ type: 'Feature', properties: { kind: 'origin' },
+                   geometry: { type: 'Point', coordinates: [pt.lon, pt.lat] } }];
+  const bounds = new maplibregl.LngLatBounds([pt.lon, pt.lat], [pt.lon, pt.lat]);
+  for (const c of routeData.categories) {
+    const rt = routeFor(pt.id, assessMeasure, c.key);
+    if (!rt || !rt.ok) continue;
+    for (const s of (rt.seg || [])) {
+      feats.push({ type: 'Feature',
+        properties: { cat: c.key, d: s.d, lts: s.lts, m: s.m,
+                      hw: s.hw || '', n: s.n || '' },
+        geometry: { type: 'LineString', coordinates: s.c } });
+      for (const co of s.c) bounds.extend(co);
+    }
+    const last = (rt.seg || [])[rt.seg.length - 1];
+    if (last) feats.push({ type: 'Feature',
+      properties: { kind: 'dest', cat: c.key },
+      geometry: { type: 'Point', coordinates: last.c[last.c.length - 1] } });
+  }
+  map.getSource('assess').setData({ type: 'FeatureCollection', features: feats });
+  // annotate the origin and each destination directly on the map (HTML markers,
+  // so no glyph server is needed for a self-contained site)
+  assessLabels.forEach(mk => mk.remove());
+  assessLabels = feats.filter(f => f.properties.kind).map(f => {
+    const el = document.createElement('div');
+    el.className = 'maplbl';
+    if (f.properties.kind === 'origin') {
+      el.textContent = 'Origin';
+      el.style.borderColor = '#000';
+    } else {
+      const c = routeData.categories.find(x => x.key === f.properties.cat);
+      el.textContent = c ? c.label : f.properties.cat;
+      el.style.borderColor = CAT_COLORS[f.properties.cat] || '#888';
+    }
+    return new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, -10] })
+      .setLngLat(f.geometry.coordinates).addTo(map);
+  });
+  // keep the routes clear of whichever panes are currently open
+  const paneRight = [...document.querySelectorAll('#panel, #assess')]
+    .filter(e => getComputedStyle(e).display !== 'none')
+    .reduce((mx, e) => Math.max(mx, e.getBoundingClientRect().right), 0);
+  map.fitBounds(bounds, {
+    padding: { top: 60, bottom: 60, left: Math.round(paneRight) + 30, right: 60 },
+    maxZoom: 16, duration: 400,
+  });
+}
+
+function stepHTML() {
+  const pt = routeData.points[assessIdx];
+  const r = responses[pt.id] || {};
+  const measBtns = routeData.measures.map(m =>
+    `<button class="${m.key === assessMeasure ? 'on' : ''}" data-meas="${m.key}">${m.label}</button>`).join('');
+  const limit = (routeData.max_band_m || 5000).toLocaleString();
+  const rows = routeData.categories.map(c => {
+    const cells = routeData.measures.map(m => {
+      const rt = routeFor(pt.id, m.key, c.key);
+      const sel = m.key === assessMeasure ? ' selcol' : '';
+      if (!rt || !rt.ok) return `<td class="dim${sel}">—</td>`;
+      // the indicator value: what is actually compared with the distance limits
+      return `<td class="${sel ? 'selcol' : 'dim'}">` +
+             `${Math.round(rt.net).toLocaleString()}</td>`;
+    }).join('');
+    return `<tr><td class="l"><span class="dot" style="background:${CAT_COLORS[c.key] || '#888'}"></span>` +
+           `${c.label}<div class="bd-x">${breakdownText(pt, c)}</div></td>${cells}</tr>`;
+  }).join('');
+  const issues = ISSUE_OPTIONS.map(([k, lbl]) =>
+    `<label><input type="checkbox" name="issue" value="${k}"` +
+    `${(r.issues || []).includes(k) ? ' checked' : ''}> ${lbl}</label>`).join('');
+  // one scale per destination, so a problem with a destination can be told apart
+  // from a problem with the route to it
+  const scales = routeData.categories.map(c => {
+    const cur = (r.plaus || {})[c.key];
+    const btns = [1, 2, 3, 4, 5].map(n =>
+      `<label class="lk"><input type="radio" name="plaus_${c.key}" value="${n}"` +
+      `${String(cur) === String(n) ? ' checked' : ''}><span>${n}</span></label>`).join('');
+    return `<div class="lk-row"><span class="lk-lab">` +
+      `<span class="dot" style="background:${CAT_COLORS[c.key] || '#888'}"></span>` +
+      `${c.label}</span><span class="likert">${btns}</span></div>`;
+  }).join('');
+  return `
+    <div class="seg-ctl" id="measCtl">${measBtns}</div>
+    <table class="rt"><thead><tr><th class="l">Distance (m)</th>` +
+      routeData.measures.map(m =>
+        `<th class="${m.key === assessMeasure ? 'selcol' : 'dim'}">${m.short}</th>`).join('') +
+    `</tr></thead><tbody>${rows}</tbody></table>
+    <div class="rkey">
+      <span><svg width="24" height="8"><line x1="1" y1="4" x2="23" y2="4"
+        stroke="#777" stroke-width="4" stroke-linecap="round"/></svg> ridden</span>
+      <span><svg width="24" height="8"><line x1="1" y1="4" x2="23" y2="4"
+        stroke="#777" stroke-width="4" stroke-dasharray="4 3"/></svg> walked</span>
+    </div>
+    <div style="font-size:10px;color:#666;margin:2px 0 6px">
+      Distance compared with the ${limit} m limit; walking and higher-stress riding
+      count for more than their real length. Highlighted column is drawn on the map;
+      &ldquo;—&rdquo; = not reachable.</div>
+    <fieldset><legend>2.1 Does each route look plausible here?</legend>
+      ${scales}
+      <div class="lk-ends"><span>1 — not at all</span><span>5 — completely</span></div>
+    </fieldset>
+    <fieldset><legend>2.2 If not, what is wrong?</legend>${issues}</fieldset>
+    <fieldset><legend>2.3 Comments</legend>
+      <textarea id="assessComment" rows="2" placeholder="Optional">${r.comment || ''}</textarea>
+    </fieldset>
+    <div class="nav">
+      <button class="small" id="prevBtn"${assessIdx === 0 ? ' disabled' : ''}>Back</button>
+      <button class="small" id="nextBtn">${assessIdx === routeData.points.length - 1 ? 'Finish' : 'Next'}</button>
+    </div>
+    <div class="nav"><button class="small" id="exitBtn">Exit assessment</button></div>`;
+}
+
+function captureResponse() {
+  const pt = routeData.points[assessIdx];
+  const g = n => document.querySelector(`input[name="${n}"]:checked`);
+  const plaus = {};
+  for (const c of routeData.categories) {
+    const el = document.querySelector(`input[name="plaus_${c.key}"]:checked`);
+    if (el) plaus[c.key] = Number(el.value);
+  }
+  const rec = {
+    plaus,
+    issues: [...document.querySelectorAll('input[name="issue"]:checked')].map(e => e.value),
+    comment: ($('assessComment') || {}).value || '',
+  };
+  if (Object.keys(plaus).length || rec.issues.length || rec.comment) {
+    responses[pt.id] = rec;
+    saveResponses();
+  }
+}
+
+function renderStep() {
+  const pt = routeData.points[assessIdx];
+  const done = Object.keys(responses).length;
+  $('assessProg').textContent =
+    `Point ${assessIdx + 1} of ${routeData.points.length} · ${done} answered`;
+  $('assessBody').innerHTML = stepHTML();
+  drawStep();
+  $('measCtl').onclick = e => {
+    const b = e.target.closest('button[data-meas]');
+    if (!b) return;
+    captureResponse();
+    assessMeasure = b.dataset.meas;
+    syncDashboardNetwork();
+    renderStep();
+  };
+  $('prevBtn').onclick = () => { captureResponse(); assessIdx--; renderStep(); };
+  $('nextBtn').onclick = () => {
+    captureResponse();
+    if (assessIdx === routeData.points.length - 1) finishAssessment();
+    else { assessIdx++; renderStep(); }
+  };
+  $('exitBtn').onclick = () => { captureResponse(); exitAssessment(); };
+}
+
+function assessmentCSV() {
+  const head = ['city', 'slug', 'seed', 'point_id', 'quadrant', 'lon', 'lat'];
+  for (const c of routeData.categories) head.push(`plausible_${c.key}_1_5`);
+  head.push('issues', 'comment');
+  for (const m of routeData.measures)
+    for (const c of routeData.categories)
+      head.push(`${m.key}__${c.key}_m`);
+  const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  const lines = [head.join(',')];
+  for (const pt of routeData.points) {
+    const r = responses[pt.id] || {};
+    const row = [routeData.name, routeData.slug, routeData.seed, pt.id, pt.q,
+                 pt.lon, pt.lat];
+    for (const c of routeData.categories) row.push((r.plaus || {})[c.key] || '');
+    row.push((r.issues || []).join('|'), r.comment || '');
+    for (const m of routeData.measures)
+      for (const c of routeData.categories) {
+        const rt = routeFor(pt.id, m.key, c.key);
+        row.push(rt && rt.ok ? Math.round(rt.m) : '');
+      }
+    lines.push(row.map(esc).join(','));
+  }
+  return lines.join('\n');
+}
+
+function finishAssessment() {
+  const n = Object.keys(responses).length;
+  // mean plausibility rating per destination, so the pattern is visible at a glance
+  const summary = routeData.categories.map(c => {
+    const vals = Object.values(responses)
+      .map(r => (r.plaus || {})[c.key]).filter(v => typeof v === 'number');
+    const mean = vals.length
+      ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '–';
+    return `<tr><td class="l"><span class="dot" style="background:${
+      CAT_COLORS[c.key] || '#888'}"></span>${c.label}</td>` +
+      `<td>${vals.length}</td><td>${mean}</td></tr>`;
+  }).join('');
+  $('assessProg').textContent = `Complete — ${n} of ${routeData.points.length} points answered`;
+  $('assessBody').innerHTML = `
+    <p style="font-size:12px">Thank you. Download your responses and email the file
+    to the research team, or copy them to paste into a message.</p>
+    <table class="rt"><thead><tr><th class="l">Destination</th><th>Rated</th>
+      <th>Mean 1–5</th></tr></thead>
+    <tbody>${summary || '<tr><td class="l">no responses</td><td>0</td><td>–</td></tr>'}</tbody></table>
+    <div class="nav">
+      <button class="small" id="dlBtn">Download CSV</button>
+      <button class="small" id="copyBtn">Copy</button>
+    </div>
+    <div class="nav">
+      <button class="small" id="backBtn">Back to points</button>
+      <button class="small" id="exitBtn2">Exit assessment</button>
+    </div>`;
+  $('dlBtn').onclick = () => {
+    const blob = new Blob([assessmentCSV()], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `cycling_route_assessment_${routeData.slug}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  $('copyBtn').onclick = async () => {
+    try { await navigator.clipboard.writeText(assessmentCSV()); }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = assessmentCSV(); document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+    }
+    $('copyBtn').textContent = 'Copied ✓';
+    setTimeout(() => { $('copyBtn').textContent = 'Copy'; }, 1500);
+  };
+  $('backBtn').onclick = () => { assessIdx = 0; renderStep(); };
+  $('exitBtn2').onclick = exitAssessment;
+}
+
+function startAssessment() {
+  if (!routeData) return;
+  // adding sources/layers before the style is ready throws, so wait it out if
+  // the button is pressed while a city is still loading
+  if (!map || !map.isStyleLoaded()) {
+    if (map) map.once('idle', startAssessment);
+    return;
+  }
+  loadResponses(slug);
+  assessIdx = 0;
+  // start on whatever network the dashboard is showing, so the two agree from
+  // the outset; fall back to the low-stress headline measure
+  const fromDash = Object.entries(MEASURE_TO_NET)
+    .find(([, n]) => n === $('network').value);
+  assessMeasure = (fromDash && routeData.measures.some(m => m.key === fromDash[0]))
+    ? fromDash[0]
+    : (routeData.measures.find(m => m.key === 'low_stress') || routeData.measures[0]).key;
+  syncDashboardNetwork();
+  $('assessTitle').textContent = `${routeData.name}: route assessment`;
+  document.body.classList.add('assessing');
+  // the vertical collapse control always sits in the top-right of the whole
+  // panel, so it moves into the assessment half while that is open
+  $('assessHeader').appendChild($('panelToggle'));
+  ensureAssessLayers();
+  // hide the access choropleth and destination overlays so the routes read
+  // clearly; the LTS network stays as the stress context being judged
+  if (map.getLayer('grid')) map.setLayoutProperty('grid', 'visibility', 'none');
+  for (const l of OVERLAY_LAYERS)
+    if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'none');
+  renderStep();
+}
+
+function exitAssessment() {
+  document.body.classList.remove('assessing', 'legend-collapsed');
+  $('legendToggle').innerHTML = '&#9664;';
+  if ($('panelToggle').parentElement !== $('panelHeader'))
+    $('panelHeader').appendChild($('panelToggle'));
+  assessLabels.forEach(mk => mk.remove());
+  assessLabels = [];
+  if (!map) return;
+  if (map.getSource('assess'))
+    map.getSource('assess').setData({ type: 'FeatureCollection', features: [] });
+  // restore the layers the assessment hid, per their checkboxes
+  if (map.getLayer('grid'))
+    map.setLayoutProperty('grid', 'visibility',
+      $('gridChk').checked ? 'visible' : 'none');
+  updateOverlays();
+}
+
 // ---- guided validation tour (driver.js) ----
 // Steps mirror the Round 2 worksheet of the CyclingValidation workbook:
 // 1.1/1.2 (accuracy of access at 2 km / 5 km), 1.3 (relevance ratings for the
@@ -936,7 +1521,7 @@ const TOUR_STEPS = [
   { element: '#network', popover: {
       title: 'Routing assumption',
       description: '<b>LTS 1 only</b> (streets suitable for all ages and abilities), ' +
-        '<b>LTS 1–2</b> (low stress), or <b>danger-weighted</b> (whole network, ' +
+        '<b>LTS 1–2</b> (low stress), or <b>stress penalty</b> (whole network, ' +
         'stress penalised). Rate their local relevance in question 1.3. The ' +
         '<b>ⓘ</b> button explains the current combination in plain language.' } },
   { element: '#showing', popover: {
@@ -976,6 +1561,12 @@ const tour = (window.driver && window.driver.js)
     })
   : null;
 $('tourBtn').onclick = () => { if (tour) tour.drive(); };
+$('assessBtn').onclick = startAssessment;
+$('legendToggle').onclick = () => {
+  const hid = document.body.classList.toggle('legend-collapsed');
+  $('legendToggle').innerHTML = hid ? '&#9654;' : '&#9664;';
+  $('legendToggle').title = hid ? 'Display legend controls' : 'Hide the legend';
+};
 if (tour && !localStorage.getItem('cyclingValidationTourSeen')) {
   localStorage.setItem('cyclingValidationTourSeen', '1');
   setTimeout(() => tour.drive(), 1500);

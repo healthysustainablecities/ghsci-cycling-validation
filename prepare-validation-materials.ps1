@@ -108,8 +108,14 @@ if (Test-Path $existingManifest) {
   }
 }
 
-# ---------------------------------------------------------------- 3. build tiles
-Step "3/4 Building PMTiles archives"
+# ------------------------------------------------------------- 3. route sample
+Step "3/5 Exporting route assessment sample"
+docker exec ghsci /env/bin/python /home/ghsci/process/_export_validation_routes.py $cfgRel
+$routesOk = ($LASTEXITCODE -eq 0)
+if (-not $routesOk) { Warn 'Route export failed - the route assessment will be unavailable for this city.' }
+
+# ---------------------------------------------------------------- 4. build tiles
+Step "4/5 Building PMTiles archives"
 # clear any stale copy so build_tiles.sh re-pulls the fresh export from the container
 $work = Join-Path $SiteDir 'build\_work'
 if (Test-Path (Join-Path $work $slug)) { Remove-Item -Recurse -Force (Join-Path $work $slug) }
@@ -119,8 +125,8 @@ try {
   if ($LASTEXITCODE -ne 0) { throw 'Tile build failed.' }
 } finally { Pop-Location }
 
-# ---------------------------------------------------------------- 4. assemble site
-Step "4/4 Copying materials into the validation site"
+# ---------------------------------------------------------------- 5. assemble site
+Step "5/5 Copying materials into the validation site"
 $tilesDir = Join-Path $SiteDir 'tiles'
 Copy-Item (Join-Path $work "$slug.pmtiles") $tilesDir -Force
 Copy-Item (Join-Path $work ($slug + '_lts.pmtiles')) $tilesDir -Force
@@ -129,6 +135,14 @@ $manifestDir = Join-Path $tilesDir $slug
 if (-not (Test-Path $manifestDir)) { New-Item -ItemType Directory -Path $manifestDir | Out-Null }
 Copy-Item (Join-Path $work "$slug\manifest.json") $manifestDir -Force
 Write-Host "   tiles/$slug.pmtiles, ${slug}_lts.pmtiles, ${slug}_grid.pmtiles, $slug/manifest.json"
+
+if ($routesOk) {
+  $routesDir = Join-Path $SiteDir 'routes'
+  if (-not (Test-Path $routesDir)) { New-Item -ItemType Directory -Path $routesDir | Out-Null }
+  docker cp "ghsci:/tmp/validation_tiles/$slug/${slug}_routes.json" (Join-Path $routesDir "${slug}_routes.json")
+  if ($LASTEXITCODE -eq 0) { Write-Host "   routes/${slug}_routes.json" }
+  else { Warn 'Could not copy the routes file out of the container.' }
+}
 
 $reportSrc = Join-Path $ProcessDir "data\_study_region_outputs\$stem\${stem}_cycling_validation_report.html"
 if ($reportOk -and (Test-Path $reportSrc)) {
