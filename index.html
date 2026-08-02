@@ -1152,7 +1152,10 @@ function travelledM(rt) {
 function breakdownText(pt, c) {
   const rt = routeFor(pt.id, assessMeasure, c.key);
   if (!rt || !rt.ok) return 'no route within the limit';
-  if (!rt.seg || !rt.seg.length) return 'destination is at this location';
+  // no network path only means the sample point and the destination share a node;
+  // the connection legs at either end can still be most of a few hundred metres
+  if ((!rt.seg || !rt.seg.length) && Math.round(rt.net) <= 0)
+    return 'destination is at this location';
   const b = costBreakdown(rt);
   const total = Math.round(rt.net);
   // derive from the *rounded* components so the equation shown adds up exactly
@@ -1180,14 +1183,31 @@ function ensureAssessLayers() {
   // (and its LTS colour) stays readable through the route
   const w = ['interpolate', ['linear'], ['zoom'], 11, 6, 14, 11, 17, 16];
   map.addLayer({ id: 'assess_ridden', type: 'line', source: 'assess',
-    filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'd'], 0]],
+    filter: ['all', ['==', ['geometry-type'], 'LineString'],
+             ['==', ['get', 'conn'], 0], ['==', ['get', 'd'], 0]],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': colorExpr, 'line-width': w, 'line-opacity': 0.42 } });
   map.addLayer({ id: 'assess_dismount', type: 'line', source: 'assess',
-    filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'd'], 1]],
+    filter: ['all', ['==', ['geometry-type'], 'LineString'],
+             ['==', ['get', 'conn'], 0], ['==', ['get', 'd'], 1]],
     layout: { 'line-cap': 'butt', 'line-join': 'round' },
     paint: { 'line-color': colorExpr, 'line-width': w, 'line-opacity': 0.42,
              'line-dasharray': [1, 0.9] } });
+  // The connection legs -- sample point to its terminal node, and destination node
+  // to the destination.  Deliberately unlike the route itself: these are counted at
+  // face value, without stress weighting, and may run along a street the measure
+  // otherwise excludes, so they must not read as part of the assessed route.
+  map.addLayer({ id: 'assess_conn', type: 'line', source: 'assess',
+    filter: ['==', ['get', 'conn'], 1],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': colorExpr, 'line-opacity': 0.75,
+             'line-width': ['interpolate', ['linear'], ['zoom'], 11, 2.5, 14, 4, 17, 6],
+             'line-dasharray': [0.1, 1.8] } });
+  // the destination's own offset from the network: not counted at all
+  map.addLayer({ id: 'assess_snap', type: 'line', source: 'assess',
+    filter: ['==', ['get', 'conn'], 2],
+    paint: { 'line-color': colorExpr, 'line-opacity': 0.5, 'line-width': 1.5,
+             'line-dasharray': [2, 2] } });
   map.addLayer({ id: 'assess_dest', type: 'circle', source: 'assess',
     filter: ['==', ['get', 'kind'], 'dest'],
     paint: { 'circle-radius': 6, 'circle-color': colorExpr,
@@ -1212,7 +1232,20 @@ function wireAssessHover() {
              `<br>the location being assessed`;
     if (p.kind === 'dest')
       return `<b>Nearest ${catLabel(p.cat).toLowerCase()}</b>` +
-             `<br>destination this route reaches`;
+             `<br>destination this route reaches` +
+             (p.snap > 0 ? `<br><span style="opacity:.75">${Math.round(p.snap)} m ` +
+              `off the network (not counted)</span>` : '');
+    if (p.conn === 1)
+      return `<b>Connection to the network</b><br>` +
+             `${Math.round(p.m).toLocaleString()} m along the street ` +
+             (p.side === 'o' ? 'from the sample point to the nearest intersection'
+                             : 'from the network to the destination') +
+             `<br>counted in full, without stress weighting` +
+             `<br><span style="opacity:.75">route to ${catLabel(p.cat).toLowerCase()}` +
+             `</span>`;
+    if (p.conn === 2)
+      return `<b>Destination sits off the network</b><br>` +
+             `${Math.round(p.m).toLocaleString()} m — not counted in the distance`;
     const bits = [`${Math.round(p.m).toLocaleString()} m`];
     if (p.lts) bits.push(`LTS ${p.lts}`);
     if (p.hw) bits.push(p.hw);
@@ -1221,7 +1254,8 @@ function wireAssessHover() {
            (p.d ? '<br>walked distance counts ×3 toward the limit' : '') +
            `<br><span style="opacity:.75">route to ${catLabel(p.cat).toLowerCase()}</span>`;
   };
-  for (const l of ['assess_origin', 'assess_dest', 'assess_ridden', 'assess_dismount']) {
+  for (const l of ['assess_origin', 'assess_dest', 'assess_ridden',
+                   'assess_dismount', 'assess_conn', 'assess_snap']) {
     map.on('mousemove', l, e => {
       if (!e.features.length) return;
       map.getCanvas().style.cursor = 'pointer';
@@ -1237,25 +1271,67 @@ function wireAssessHover() {
   }
 }
 
+// The end of the final segment that the route actually arrives at.  Exports made
+// before segments were emitted in travel order leave the geometry in the edge's own
+// digitising direction, so the arrival end is whichever end is *not* shared with the
+// preceding segment.
+function arrivalEnd(segs) {
+  const b = segs[segs.length - 1].c;
+  if (segs.length < 2) return b[b.length - 1];
+  const a = segs[segs.length - 2].c, ends = [a[0], a[a.length - 1]];
+  const near = p => Math.min(...ends.map(
+    e => (e[0] - p[0]) ** 2 + (e[1] - p[1]) ** 2));
+  return near(b[0]) < near(b[b.length - 1]) ? b[b.length - 1] : b[0];
+}
+
 function drawStep() {
   const pt = routeData.points[assessIdx];
   const feats = [{ type: 'Feature', properties: { kind: 'origin' },
                    geometry: { type: 'Point', coordinates: [pt.lon, pt.lat] } }];
   const bounds = new maplibregl.LngLatBounds([pt.lon, pt.lat], [pt.lon, pt.lat]);
+  const line = (coords, props) => {
+    if (!coords || coords.length < 2) return;
+    feats.push({ type: 'Feature', properties: props,
+                 geometry: { type: 'LineString', coordinates: coords } });
+    for (const co of coords) bounds.extend(co);
+  };
   for (const c of routeData.categories) {
     const rt = routeFor(pt.id, assessMeasure, c.key);
     if (!rt || !rt.ok) continue;
     for (const s of (rt.seg || [])) {
-      feats.push({ type: 'Feature',
-        properties: { cat: c.key, d: s.d, lts: s.lts, m: s.m,
-                      hw: s.hw || '', n: s.n || '' },
-        geometry: { type: 'LineString', coordinates: s.c } });
-      for (const co of s.c) bounds.extend(co);
+      line(s.c, { cat: c.key, conn: 0, d: s.d, lts: s.lts, m: s.m,
+                  hw: s.hw || '', n: s.n || '' });
     }
-    const last = (rt.seg || [])[rt.seg.length - 1];
-    if (last) feats.push({ type: 'Feature',
-      properties: { kind: 'dest', cat: c.key },
-      geometry: { type: 'Point', coordinates: last.c[last.c.length - 1] } });
+    // the leg from the sample point out to the node the route starts from: real
+    // distance the indicator charged, and without it the route appears to begin
+    // somewhere else entirely
+    const oc = (pt.conn || {})[String(rt.t)];
+    if (oc) line(oc, { cat: c.key, conn: 1, side: 'o', m: rt.to });
+    // no leg where the point sits on the node itself (offset 0, nothing to draw)
+    else if (rt.seg && rt.seg.length && (rt.to === undefined || rt.to > 0)) {
+      const s0 = rt.seg[0].c, d = p => (p[0] - pt.lon) ** 2 + (p[1] - pt.lat) ** 2;
+      const near = d(s0[0]) <= d(s0[s0.length - 1]) ? s0[0] : s0[s0.length - 1];
+      line([[pt.lon, pt.lat], near], { cat: c.key, conn: 1, side: 'o', m: rt.to });
+    }
+    // ... and the matching leg at the far end, on to the destination itself
+    let destAt = null;
+    if (rt.dest) {
+      line(rt.dest.c, { cat: c.key, conn: 1, side: 'd', m: rt.dest.off });
+      if (rt.dest.snap > 0 && rt.dest.mp)
+        line([rt.dest.mp, [rt.dest.lon, rt.dest.lat]],
+             { cat: c.key, conn: 2, m: rt.dest.snap });
+      destAt = [rt.dest.lon, rt.dest.lat];
+    } else if (rt.seg && rt.seg.length) {
+      destAt = arrivalEnd(rt.seg);
+    }
+    if (destAt) {
+      feats.push({ type: 'Feature',
+        properties: { kind: 'dest', cat: c.key,
+                      off: rt.dest ? rt.dest.off : null,
+                      snap: rt.dest ? rt.dest.snap : null },
+        geometry: { type: 'Point', coordinates: destAt } });
+      bounds.extend(destAt);
+    }
   }
   map.getSource('assess').setData({ type: 'FeatureCollection', features: feats });
   // annotate the origin and each destination directly on the map (HTML markers,
@@ -1328,11 +1404,15 @@ function stepHTML() {
         stroke="#777" stroke-width="4" stroke-linecap="round"/></svg> ridden</span>
       <span><svg width="24" height="8"><line x1="1" y1="4" x2="23" y2="4"
         stroke="#777" stroke-width="4" stroke-dasharray="4 3"/></svg> walked</span>
+      <span><svg width="24" height="8"><line x1="1" y1="4" x2="23" y2="4"
+        stroke="#777" stroke-width="2.5" stroke-linecap="round"
+        stroke-dasharray="0.1 4.5"/></svg> connection</span>
     </div>
     <div style="font-size:10px;color:#666;margin:2px 0 6px">
       Distance compared with the ${limit} m limit; walking and higher-stress riding
-      count for more than their real length. Highlighted column is drawn on the map;
-      &ldquo;—&rdquo; = not reachable.</div>
+      count for more than their real length. Dotted legs join the sample point and the
+      destination to the network and count at face value. Highlighted column is drawn
+      on the map; &ldquo;—&rdquo; = not reachable.</div>
     <fieldset><legend>2.1 Does each route look plausible here?</legend>
       ${scales}
       <div class="lk-ends"><span>1 — not at all</span><span>5 — completely</span></div>

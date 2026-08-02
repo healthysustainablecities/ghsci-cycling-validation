@@ -22,14 +22,22 @@
     - just the yml file name, e.g. "Minneapolis.yml" or "Minneapolis"
       (searched for under process/data/Cycling)
 
+.PARAMETER RoutesOnly
+  Re-export only the route assessment sample (step 3) and copy it into the site,
+  skipping the report, the layer export and the tile build. Use this when only the
+  route export has changed - the tiles and report take far longer and are unaffected.
+
 .EXAMPLE
   .\prepare-validation-materials.ps1 Minneapolis
 .EXAMPLE
   .\prepare-validation-materials.ps1 "data/Cycling/Dar es Salaam/DarEsSalaam.yml"
+.EXAMPLE
+  .\prepare-validation-materials.ps1 MexicoCityProper -RoutesOnly
 #>
 param(
   [Parameter(Mandatory = $true)]
-  [string]$Config
+  [string]$Config,
+  [switch]$RoutesOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -78,63 +86,79 @@ if (-not $GitBash) {
 }
 if (-not $GitBash) { throw 'Git Bash not found (install Git for Windows).' }
 
-# ---------------------------------------------------------------- 1. report
-Step "1/4 Generating validation report (this can take several minutes)"
-docker exec ghsci /env/bin/python /home/ghsci/process/_validation_report.py $cfgRel
-$reportOk = ($LASTEXITCODE -eq 0)
-if (-not $reportOk) { Warn 'Report generation failed - continuing with tiles; report will be skipped.' }
-
-# ---------------------------------------------------------------- 2. export layers
-Step "2/4 Exporting validation map layers"
-$exportOut = docker exec ghsci /env/bin/python /home/ghsci/process/_export_validation_tiles.py $cfgRel
-if ($LASTEXITCODE -ne 0) { $exportOut | Write-Host; throw 'Layer export failed.' }
-$exportOut | Write-Host
 $slug = $null
-foreach ($line in $exportOut) {
-  if ($line -match '-> /tmp/validation_tiles/(\S+)') { $slug = $Matches[1]; break }
-}
-if (-not $slug) { throw 'Could not determine city slug from export output.' }
-Write-Host "   slug: $slug"
+if (-not $RoutesOnly) {
+  # -------------------------------------------------------------- 1. report
+  Step "1/4 Generating validation report (this can take several minutes)"
+  docker exec ghsci /env/bin/python /home/ghsci/process/_validation_report.py $cfgRel
+  $reportOk = ($LASTEXITCODE -eq 0)
+  if (-not $reportOk) { Warn 'Report generation failed - continuing with tiles; report will be skipped.' }
 
-# guard: don't overwrite site materials that belong to a different config
-# (companion configs sharing a region name must set a distinct
-# cycling_indicators.validation.site_slug in their yml)
-$existingManifest = Join-Path $SiteDir "tiles\$slug\manifest.json"
-if (Test-Path $existingManifest) {
-  $existing = (Get-Content $existingManifest -Raw | ConvertFrom-Json).codename
-  $existingStem = [IO.Path]::GetFileNameWithoutExtension(($existing -replace '\\', '/').Split('/')[-1])
-  if ($existingStem -and $existingStem -ne $stem) {
-    throw "Slug '$slug' is already published for config '$existingStem' - refusing to overwrite it with '$stem'. Set a distinct cycling_indicators.validation.site_slug in $stem.yml."
+  # -------------------------------------------------------------- 2. export layers
+  Step "2/4 Exporting validation map layers"
+  $exportOut = docker exec ghsci /env/bin/python /home/ghsci/process/_export_validation_tiles.py $cfgRel
+  if ($LASTEXITCODE -ne 0) { $exportOut | Write-Host; throw 'Layer export failed.' }
+  $exportOut | Write-Host
+  foreach ($line in $exportOut) {
+    if ($line -match '-> /tmp/validation_tiles/(\S+)') { $slug = $Matches[1]; break }
   }
+  if (-not $slug) { throw 'Could not determine city slug from export output.' }
+  Write-Host "   slug: $slug"
+
+  # guard: don't overwrite site materials that belong to a different config
+  # (companion configs sharing a region name must set a distinct
+  # cycling_indicators.validation.site_slug in their yml)
+  $existingManifest = Join-Path $SiteDir "tiles\$slug\manifest.json"
+  if (Test-Path $existingManifest) {
+    $existing = (Get-Content $existingManifest -Raw | ConvertFrom-Json).codename
+    $existingStem = [IO.Path]::GetFileNameWithoutExtension(($existing -replace '\\', '/').Split('/')[-1])
+    if ($existingStem -and $existingStem -ne $stem) {
+      throw "Slug '$slug' is already published for config '$existingStem' - refusing to overwrite it with '$stem'. Set a distinct cycling_indicators.validation.site_slug in $stem.yml."
+    }
+  }
+} else {
+  $reportOk = $false
+  Write-Host "   routes only: skipping the report, layer export and tile build"
 }
 
 # ------------------------------------------------------------- 3. route sample
-Step "3/5 Exporting route assessment sample"
-docker exec ghsci /env/bin/python /home/ghsci/process/_export_validation_routes.py $cfgRel
+Step "$(if ($RoutesOnly) { '1/1' } else { '3/5' }) Exporting route assessment sample"
+$routesOut = docker exec ghsci /env/bin/python /home/ghsci/process/_export_validation_routes.py $cfgRel
 $routesOk = ($LASTEXITCODE -eq 0)
+$routesOut | Write-Host
 if (-not $routesOk) { Warn 'Route export failed - the route assessment will be unavailable for this city.' }
+if ($RoutesOnly) {
+  # no tile export to name the city, so take the slug from the routes file path
+  foreach ($line in $routesOut) {
+    if ($line -match 'wrote /tmp/validation_tiles/([^/]+)/') { $slug = $Matches[1]; break }
+  }
+  if (-not $slug) { throw 'Could not determine city slug from the route export output.' }
+  Write-Host "   slug: $slug"
+}
 
-# ---------------------------------------------------------------- 4. build tiles
-Step "4/5 Building PMTiles archives"
-# clear any stale copy so build_tiles.sh re-pulls the fresh export from the container
-$work = Join-Path $SiteDir 'build\_work'
-if (Test-Path (Join-Path $work $slug)) { Remove-Item -Recurse -Force (Join-Path $work $slug) }
-Push-Location $SiteDir
-try {
-  & $GitBash ./build/build_tiles.sh $slug
-  if ($LASTEXITCODE -ne 0) { throw 'Tile build failed.' }
-} finally { Pop-Location }
+if (-not $RoutesOnly) {
+  # -------------------------------------------------------------- 4. build tiles
+  Step "4/5 Building PMTiles archives"
+  # clear any stale copy so build_tiles.sh re-pulls the fresh export from the container
+  $work = Join-Path $SiteDir 'build\_work'
+  if (Test-Path (Join-Path $work $slug)) { Remove-Item -Recurse -Force (Join-Path $work $slug) }
+  Push-Location $SiteDir
+  try {
+    & $GitBash ./build/build_tiles.sh $slug
+    if ($LASTEXITCODE -ne 0) { throw 'Tile build failed.' }
+  } finally { Pop-Location }
 
-# ---------------------------------------------------------------- 5. assemble site
-Step "5/5 Copying materials into the validation site"
-$tilesDir = Join-Path $SiteDir 'tiles'
-Copy-Item (Join-Path $work "$slug.pmtiles") $tilesDir -Force
-Copy-Item (Join-Path $work ($slug + '_lts.pmtiles')) $tilesDir -Force
-Copy-Item (Join-Path $work ($slug + '_grid.pmtiles')) $tilesDir -Force
-$manifestDir = Join-Path $tilesDir $slug
-if (-not (Test-Path $manifestDir)) { New-Item -ItemType Directory -Path $manifestDir | Out-Null }
-Copy-Item (Join-Path $work "$slug\manifest.json") $manifestDir -Force
-Write-Host "   tiles/$slug.pmtiles, ${slug}_lts.pmtiles, ${slug}_grid.pmtiles, $slug/manifest.json"
+  # -------------------------------------------------------------- 5. assemble site
+  Step "5/5 Copying materials into the validation site"
+  $tilesDir = Join-Path $SiteDir 'tiles'
+  Copy-Item (Join-Path $work "$slug.pmtiles") $tilesDir -Force
+  Copy-Item (Join-Path $work ($slug + '_lts.pmtiles')) $tilesDir -Force
+  Copy-Item (Join-Path $work ($slug + '_grid.pmtiles')) $tilesDir -Force
+  $manifestDir = Join-Path $tilesDir $slug
+  if (-not (Test-Path $manifestDir)) { New-Item -ItemType Directory -Path $manifestDir | Out-Null }
+  Copy-Item (Join-Path $work "$slug\manifest.json") $manifestDir -Force
+  Write-Host "   tiles/$slug.pmtiles, ${slug}_lts.pmtiles, ${slug}_grid.pmtiles, $slug/manifest.json"
+}
 
 if ($routesOk) {
   $routesDir = Join-Path $SiteDir 'routes'
@@ -145,7 +169,9 @@ if ($routesOk) {
 }
 
 $reportSrc = Join-Path $ProcessDir "data\_study_region_outputs\$stem\${stem}_cycling_validation_report.html"
-if ($reportOk -and (Test-Path $reportSrc)) {
+if ($RoutesOnly) {
+  Write-Host "   (report and tiles left as they are)"
+} elseif ($reportOk -and (Test-Path $reportSrc)) {
   Copy-Item $reportSrc (Join-Path $SiteDir "reports\$slug.html") -Force
   Write-Host "   reports/$slug.html"
 } else {
