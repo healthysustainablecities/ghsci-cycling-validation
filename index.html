@@ -1238,9 +1238,8 @@ function wireAssessHover() {
     if (p.conn === 1)
       return `<b>Connection to the network</b><br>` +
              `${Math.round(p.m).toLocaleString()} m along the street ` +
-             (p.side === 'o' ? 'from the sample point to the nearest intersection'
-                             : 'from the network to the destination') +
-             `<br>counted in full, without stress weighting` +
+             (p.side === 'o' ? ' counted from the sample point to the nearest intersection'
+                             : ' counted from the network to the destination') +
              `<br><span style="opacity:.75">route to ${catLabel(p.cat).toLowerCase()}` +
              `</span>`;
     if (p.conn === 2)
@@ -1409,10 +1408,8 @@ function stepHTML() {
         stroke-dasharray="0.1 4.5"/></svg> connection</span>
     </div>
     <div style="font-size:10px;color:#666;margin:2px 0 6px">
-      Distance compared with the ${limit} m limit; walking and higher-stress riding
-      count for more than their real length. Dotted legs join the sample point and the
-      destination to the network and count at face value. Highlighted column is drawn
-      on the map; &ldquo;—&rdquo; = not reachable.</div>
+      Distance compared with the 2000 m / 5000 m threshold; penalties are incurred by higher-stress riding (×1.25) and dismount (walking; ×3) . Dotted legs join the sample point and the
+      destination to the network and count at face value. Selected network route is highlighted and displayed on the map; &ldquo;—&rdquo; = not reachable.</div>
     <fieldset><legend>2.1 Does each route look plausible here?</legend>
       ${scales}
       <div class="lk-ends"><span>1 — not at all</span><span>5 — completely</span></div>
