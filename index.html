@@ -16,7 +16,8 @@
      scrolling surface, so the legend and the assessment share one scrollbar */
   #panels { position:absolute; top:10px; left:10px; z-index:2; background:#fff;
             border-radius:8px; box-shadow:0 1px 6px rgba(0,0,0,.3);
-            font-size:13px; max-height:calc(100vh - 40px); /*overflow-y:auto;*/
+            font-size:13px; max-height:calc(100vh - 40px); 
+            overflow-y:auto; overflow-x: hidden;
             display:flex; align-items:flex-start; }
   #panel { padding:12px 14px; width:300px; flex:0 0 300px; }
   #sep { display:none; align-self:stretch; width:1px; background:#e3e3e3;
