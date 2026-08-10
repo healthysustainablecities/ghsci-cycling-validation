@@ -150,6 +150,8 @@
   .bd > b { font-size:11.5px; }
   .bd-x { color:#555; margin-left:15px; font-size:10px; font-weight:400;
           line-height:1.3; }
+  .dm-x { color:#6a51a3; margin-left:15px; font-size:10px; font-weight:400;
+          line-height:1.3; }
   .maplbl { background:rgba(255,255,255,.92); border-left:4px solid #888;
             border-radius:3px; padding:1px 5px; font-size:10.5px; color:#222;
             white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.3);
@@ -249,6 +251,11 @@
     <label class="row">Indicator</label>
     <select id="threshold"></select>
 
+    <div id="gapBandRow" style="display:none">
+      <label class="row">Distance threshold</label>
+      <select id="gapBand"></select>
+    </div>
+
     <div class="selrow">
       <div>
         <label class="row">Destination</label>
@@ -269,6 +276,7 @@
     <div class="checks">
       <label><input type="checkbox" id="ltsChk" checked> LTS network</label>
       <label><input type="checkbox" id="gridChk" checked> Grid access choropleth</label>
+      <label id="dismountChkRow" style="display:none"><input type="checkbox" id="dismountChk"> Dismount priority links</label>
       <label><input type="checkbox" id="destChk"> Show indicator destinations</label>
       <span class="subhead">Region context</span>
       <label><input type="checkbox" id="boundaryChk" checked> Study region boundary</label>
@@ -288,7 +296,7 @@
     </div>
 
     <div class="leg">
-      <span class="leg-title" title="50% of population access to destination by distance band (m) using selected network">Access within distance (m)</span>
+      <span class="leg-title" id="accLegendTitle" title="50% of population access to destination by distance band (m) using selected network">Access within distance (m)</span>
       <div id="accLegend" class="leg-row"></div>
       <div id="accLegendTimes" class="leg-row leg-row-secondary"></div>
     </div>
@@ -346,7 +354,12 @@
     <iframe id="reportFrame"></iframe>
 </div>
 <script>
-const CITY_SLUGS = ['wurzburg', 'dar_es_salaam', 'melbourne', 'minneapolis', 'mexico_city', 'mexico_city_proper', 'dar_es_salaam_custom', 'helsinki'].sort();
+// dar_es_salaam_custom withdrawn 2026-08-07: its study region database no longer
+// exists, so it could not be re-run for the staircase-routability correction
+// (steps/corridor excluded unless ramp:bicycle). Listing it alongside corrected
+// cities would invite comparisons across two different methods. Restore the slug
+// once that region has been re-analysed.
+const CITY_SLUGS = ['wurzburg', 'dar_es_salaam', 'melbourne', 'minneapolis', 'mexico_city', 'mexico_city_proper', 'helsinki'].sort();
 
 const CONCEPTS = {
   food: { label: 'Fresh food / market', strict: 'fresh_food_market', lenient: 'fresh_food_pooled' },
@@ -371,17 +384,31 @@ const IND_ORDER = Object.keys(IND_LABELS);
 const NETWORKS = {
   lts1_: { label: 'LTS 1 only',
            desc: 'routes restricted to the lowest-stress streets only (LTS 1) for their full length' },
+  ride_: { label: 'LTS 1–2, no dismount',
+           desc: 'routes restricted to low-stress streets (LTS 1–2) that can be ridden the whole way — links where the rider would have to get off and walk the bike are excluded' },
   safe_: { label: 'LTS 1–2 (low stress)',
-           desc: 'routes restricted to low-stress streets (LTS 1–2) for their full length' },
+           desc: 'routes restricted to low-stress streets (LTS 1–2) for their full length, walking the bike where a footway link is the only low-stress connection (walked distance counted three times over)' },
   '':    { label: 'Stress penalty (full network)',
            desc: 'routes over the full cycleable network, with length along higher-stress (LTS 3–4) streets penalised by a factor of 1.25 — a benefit-of-the-doubt measure' },
 };
-// Threshold now selects the *display mode*: isochrone bands (all four distances
-// at once, matching the static report) or a continuous average-distance map.
+// The paired with/without-dismount contrast is not a routed network of its own but a
+// derived comparison of the two above, so it is offered as an indicator type rather
+// than a network.
+const DMGAP = 'dmgap_';
+// Threshold selects the *display mode*: isochrone bands (all four distances at once,
+// matching the static report), a continuous average-distance map, or the
+// dismount-dependence contrast.
 const THRESHOLDS = {
   iso: 'Access within distance/time',
   avg: 'Average distance to nearest',
+  dmgap: 'Dismount dependence (with vs without)',
 };
+// dismount-dependence classes: % of a cell's sample points whose access exists only
+// because the rider may get off and walk.  Bounds match GAP_CLASSES in
+// _export_validation_tiles.py so the map and its histogram agree.
+const GAP_BREAKS = [0, 10, 25, 50];
+const GAP_COLORS = ['#eeeeee', '#dadaeb', '#bcbddc', '#9e9ac8', '#6a51a3'];
+const GAP_LABELS = ['none', '≤ 10%', '≤ 25%', '≤ 50%', '> 50%'];
 // Round 1 (2025) validation web maps, for reference where they exist.
 // Two layouts on that site: a single map per city, or separate 2 km / 5 km maps.
 // Dar es Salaam has no entry — it was first analysed in Round 2.
@@ -445,6 +472,7 @@ const OVERLAY_COLORS = {
   ac_local_pts: '#f032e6', ac_complete_pts: '#f032e6',
 };
 
+const DISMOUNT_COLOR = '#6a51a3';
 const BATLOW = ['#011959', '#10505f', '#3c7156', '#a8963c', '#f9a380', '#fdb4c7'];
 const LTS_COLOURS = { 1: '#1a9850', 2: '#a6d96a', 3: '#fdae61', 4: '#d73027' };
 const LTS_LABELS = { 1: 'lowest stress, suitable for all', 2: 'low stress',
@@ -462,7 +490,8 @@ let map, cols = new Set(), slug = null, hasReport = false;
 let isolated = null;
 
 // ---- shareable URL state (#city=…&d=…&v=…&t=…&n=…&l=…&b=…&m=zoom/lat/lng) ----
-const LAYER_CHECKS = ['ltsChk', 'gridChk', 'destChk', 'boundaryChk', 'bufferChk'];
+const LAYER_CHECKS = ['ltsChk', 'gridChk', 'destChk', 'boundaryChk', 'bufferChk',
+                      'dismountChk'];
 const initialState = location.hash.length > 1
   ? new URLSearchParams(location.hash.slice(1)) : null;
 let initialCameraPending = !!(initialState && initialState.get('m'));
@@ -475,6 +504,7 @@ function updateHash() {
   p.set('v', $('variation').value);
   p.set('t', $('threshold').value);
   p.set('n', $('network').value);
+  if ($('threshold').value === 'dmgap') p.set('g', $('gapBand').value);
   p.set('l', LAYER_CHECKS.filter(id => $(id).checked).join('.'));
   p.set('b', $('basemap').value);
   const c = map.getCenter();
@@ -493,6 +523,7 @@ function applyInitialControls() {
   if (rawT && /^\d+m$/.test(rawT)) $('threshold').value = 'iso';
   const n = initialState.get('n');
   if (n !== null && n in NETWORKS) $('network').value = n;
+  setIf('gapBand', initialState.get('g'), v => ISO_DISTANCES.includes(v));
   const l = initialState.get('l');
   if (l !== null) {
     const on = l.split('.');
@@ -503,15 +534,23 @@ function applyInitialControls() {
 
 function pctCol(net, ind, distm) { return `pct_access_cycle_${net}${ind}_${distm}`; }
 function avgCol(net, ind) { return `avg_cycle_dist_${net}${ind}`; }
+// mean extra riding distance needed to reach the destination without dismounting,
+// over the sample points reachable both ways
+function extraCol(ind) { return `avg_cycle_extra_${DMGAP}${ind}`; }
 function currentIndicator() {
   const c = CONCEPTS[$('concept').value];
   return c[$('variation').value];
 }
+function gapBand() { return $('gapBand').value || '2000m'; }
 // "reference" column for region-overall stat / fallback lookups: the 2 km band
-// in isochrone mode (a stable single number), or the avg-distance column.
+// in isochrone mode (a stable single number), the avg-distance column, or the
+// dismount-dependence gap at the selected band.
 function currentColumn() {
   const net = $('network').value, ind = currentIndicator();
-  return $('threshold').value === 'avg' ? avgCol(net, ind) : pctCol(net, ind, '2000m');
+  const mode = $('threshold').value;
+  if (mode === 'avg') return avgCol(net, ind);
+  if (mode === 'dmgap') return pctCol(DMGAP, ind, gapBand());
+  return pctCol(net, ind, '2000m');
 }
 
 function fillSelect(sel, entries) {
@@ -525,7 +564,12 @@ function hasIsoData(net, con, vari) {
 function hasAvgData(net, con, vari) {
   return cols.has(avgCol(net, CONCEPTS[con][vari]));
 }
+// the dismount contrast is derived, so it does not depend on the network selection
+function hasGapData(con, vari) {
+  return cols.has(pctCol(DMGAP, CONCEPTS[con][vari], '2000m'));
+}
 function hasModeData(mode, net, con, vari) {
+  if (mode === 'dmgap') return hasGapData(con, vari);
   return mode === 'avg' ? hasAvgData(net, con, vari) : hasIsoData(net, con, vari);
 }
 
@@ -533,6 +577,7 @@ function hasModeData(mode, net, con, vari) {
 function refreshAvailability() {
   const net = $('network').value, vari = $('variation').value,
         con = $('concept').value, mode = $('threshold').value;
+  const gapMode = mode === 'dmgap';
   for (const o of $('network').options)
     o.disabled = !hasModeData(mode, o.value, con, vari);
   for (const o of $('threshold').options)
@@ -541,15 +586,26 @@ function refreshAvailability() {
     o.disabled = !hasModeData(mode, net, con, o.value);
   for (const o of $('concept').options)
     o.disabled = !['strict', 'lenient'].some(v => hasModeData(mode, net, o.value, v));
+  // in dismount-dependence mode the comparison is fixed (LTS 1–2 with vs without
+  // dismounting), so the network picker has nothing to choose
+  $('network').disabled = gapMode;
+  $('gapBandRow').style.display = gapMode ? '' : 'none';
+  for (const o of $('gapBand').options)
+    o.disabled = !cols.has(pctCol(DMGAP, CONCEPTS[con][vari], o.value));
+  if (gapMode && $('gapBand').selectedOptions[0]
+      && $('gapBand').selectedOptions[0].disabled) {
+    const first = [...$('gapBand').options].find(o => !o.disabled);
+    if (first) $('gapBand').value = first.value;
+  }
 }
 
 // if the current combination has no data, walk to the nearest valid one
 function autofix() {
   const con = $('concept').value;
   if (hasModeData($('threshold').value, $('network').value, con, $('variation').value)) return true;
-  for (const mode of [$('threshold').value, 'iso', 'avg'])
+  for (const mode of [$('threshold').value, 'iso', 'avg', 'dmgap'])
     for (const vari of [$('variation').value, 'strict', 'lenient'])
-      for (const net of [$('network').value, 'safe_', '', 'lts1_'])
+      for (const net of [$('network').value, 'safe_', '', 'lts1_', 'ride_'])
         if (hasModeData(mode, net, con, vari)) {
           $('threshold').value = mode; $('variation').value = vari; $('network').value = net;
           return true;
@@ -559,9 +615,14 @@ function autofix() {
 
 function showingText() {
   const ind = currentIndicator(), mode = $('threshold').value, net = $('network').value;
-  const body = mode === 'avg'
-    ? `Average network distance (m) from each grid cell’s sample points to the nearest destination — ${NETWORKS[net].label} routing.`
-    : `Each grid cell is coloured by the closest distance band (500 m / 1000 m / 2000 m / 5000 m) at which at least half its sample points have access — ${NETWORKS[net].label} routing.`;
+  let body;
+  if (mode === 'dmgap') {
+    body = `Each grid cell is coloured by the share of its sample points that can only reach the destination within ${gapBand().replace('m', ' m')} because the rider may get off and walk the bike — the low-stress (LTS 1–2) route with dismounting compared with the same route ridden throughout.`;
+  } else if (mode === 'avg') {
+    body = `Average network distance (m) from each grid cell’s sample points to the nearest destination — ${NETWORKS[net].label} routing.`;
+  } else {
+    body = `Each grid cell is coloured by the closest distance band (500 m / 1000 m / 2000 m / 5000 m) at which at least half its sample points have access — ${NETWORKS[net].label} routing.`;
+  }
   return `<b>${IND_LABELS[ind]}</b><br>${body}`;
 }
 
@@ -591,10 +652,36 @@ function renderRound1(s) {
 
 function renderHisto() {
   const wrap = $('histo');
-  const dist = ((manifests[slug] || {}).distributions || {})[$('network').value + currentIndicator()];
   const mode = $('threshold').value;
+  const family = mode === 'dmgap' ? DMGAP : $('network').value;
+  const dist = ((manifests[slug] || {}).distributions || {})[family + currentIndicator()];
   if (!dist || !$('gridChk').checked) { wrap.style.display = 'none'; return; }
   const maxBar = 52; // px, tallest bar
+  if (mode === 'dmgap') {
+    const shares = (dist.gap || {})[gapBand()];
+    if (!shares) { wrap.style.display = 'none'; return; }
+    const peak = Math.max(...shares, 1);
+    $('histoTitle').textContent = 'Share of population by dismount dependence';
+    $('histoBars').innerHTML = shares.map((v, i) =>
+      `<div class="histo-bar" style="height:${Math.max(2, v / peak * maxBar)}px;` +
+      `background:${GAP_COLORS[i]}"><span class="histo-val">${v}%</span></div>`).join('');
+    $('histoX').innerHTML = GAP_LABELS.map(l => `<span>${l}</span>`).join('');
+    const affected = shares.slice(1).reduce((a, b) => a + b, 0);
+    // a city whose network has no walk-only links at all (e.g. where footways are
+    // not mapped as banning cycling) has nothing to compare — say so, rather than
+    // leaving an entirely unshaded map to be read as missing data
+    $('histoNote').textContent = affected === 0
+      ? 'No access in this city depends on dismounting: this network has no ' +
+        'low-stress links that a rider would have to get off and walk.'
+      : `${affected.toFixed(1)}% of residents live where some access within ` +
+        `${gapBand().replace('m', ' m')} depends on dismounting`
+        + (dist.extra_mean !== undefined
+          ? `\nfor the ${dist.extra_pop_pct}% who can ride around the walked links, ` +
+            `doing so adds ${dist.extra_mean.toLocaleString()} m on average`
+          : '');
+    wrap.style.display = 'block';
+    return;
+  }
   if (mode === 'iso' && dist.iso) {
     const colors = [...ISO_COLORS, ISO_NO_ACCESS];
     const labels = ['500 m', '1000 m', '2000 m', '5000 m', 'None'];
@@ -647,8 +734,23 @@ function isoExpression(net, ind) {
   ];
 }
 
+// dismount dependence: % of a cell's sample points whose access at the selected
+// band exists only because the rider may walk the bike
+function gapExpression(ind, band) {
+  const v = ['coalesce', ['get', pctCol(DMGAP, ind, band)], -1];
+  return ['case',
+    ['<', v, 0], 'rgba(0,0,0,0)',
+    ['<=', v, GAP_BREAKS[0]], GAP_COLORS[0],
+    ['<=', v, GAP_BREAKS[1]], GAP_COLORS[1],
+    ['<=', v, GAP_BREAKS[2]], GAP_COLORS[2],
+    ['<=', v, GAP_BREAKS[3]], GAP_COLORS[3],
+    GAP_COLORS[4],
+  ];
+}
+
 function gridFillExpression() {
   const net = $('network').value, ind = currentIndicator();
+  if ($('threshold').value === 'dmgap') return gapExpression(ind, gapBand());
   if ($('threshold').value === 'avg') {
     const col = avgCol(net, ind);
     const ramp = [...BATLOW].reverse();
@@ -661,7 +763,9 @@ function gridFillExpression() {
 }
 
 function renderLegends() {
-  const isAvg = $('threshold').value === 'avg';
+  const mode = $('threshold').value;
+  const isAvg = mode === 'avg';
+  const isGap = mode === 'dmgap';
 
   // ---- LTS ----
   const ltsValues = [1, 2, 3, 4];
@@ -678,7 +782,21 @@ function renderLegends() {
   `).join('');
 
   // ---- Access / Dist. ----
-  if (isAvg) {
+  const accTitle = $('accLegendTitle');
+  accTitle.textContent = isGap
+    ? 'Access depending on dismounting (% of sample points)'
+    : 'Access within distance (m)';
+  accTitle.title = isGap
+    ? 'Share of the cell’s sample points that reach the destination within the selected threshold only when the rider may get off and walk the bike'
+    : '50% of population access to destination by distance band (m) using selected network';
+  if (isGap) {
+    $('accLegend').innerHTML = GAP_COLORS.map((c, i) => `
+      <div class="leg-item static">
+        <span class="patch" style="background:${c}"></span>
+        <span class="dist-label">${GAP_LABELS[i]}</span>
+      </div>
+    `).join('');
+  } else if (isAvg) {
     // no interactive isolation in avg mode, so mark as static
     const ramp   = [...BATLOW].reverse();
     const distLabels   = ['0', '1000', '2000', '3000', '4000', '5000'];
@@ -739,7 +857,9 @@ function toggleIsolate(kind, value) {
 // legend, and the *other* layer type) is recoloured flat grey at low opacity.
 function applyIsolation() {
   if (!map) return;
-  const isAvg = $('threshold').value === 'avg';
+  // isolation applies to the isochrone bands only; the average-distance and
+  // dismount-dependence maps are continuous/derived
+  const isAvg = $('threshold').value !== 'iso';
 
   if (map.getLayer('lts')) {
     if (isolated && isolated.kind === 'lts') {
@@ -815,6 +935,7 @@ function fmtDist(v) { return (v === null || v === undefined) ? '–' : `${Math.r
 function gridPopupHTML(p) {
   const net = $('network').value;
   const sel = currentIndicator();
+  if ($('threshold').value === 'dmgap') return gapPopupHTML(p, sel);
   const bandRows = IND_ORDER.map(ind => {
     const c = ISO_DISTANCES.map(d => pctCol(net, ind, d));
     if (!c.some(col => cols.has(col))) return '';
@@ -838,6 +959,49 @@ function gridPopupHTML(p) {
   if (bandRows) html += `<h5>Access band (closest distance with ≥50% of sample points reached)…</h5><table>${bandRows}</table>`;
   if (avgRows) html += `<h5>Average distance to nearest…</h5><table>${avgRows}</table>`;
   return html + '</div>';
+}
+
+// dismount-dependence popup: the same cell read three ways — access with
+// dismounting, access ridden throughout, and the gap between them
+function gapPopupHTML(p, sel) {
+  const band = gapBand();
+  const pct = v => (v === null || v === undefined) ? '–' : `${Math.round(v)}%`;
+  const rows = IND_ORDER.map(ind => {
+    const g = p[pctCol(DMGAP, ind, band)];
+    if (g === undefined) return '';
+    const withD = p[pctCol('safe_', ind, band)];
+    const ride = p[pctCol('ride_', ind, band)];
+    const extra = p[extraCol(ind)];
+    return `<tr class="${ind === sel ? 'sel' : ''}"><td>${IND_LABELS[ind]}</td>` +
+           `<td class="v">${pct(withD)}</td><td class="v">${pct(ride)}</td>` +
+           `<td class="v"><b>${pct(g)}</b></td>` +
+           `<td class="v">${extra === null || extra === undefined ? '–' : `+${Math.round(extra).toLocaleString()} m`}</td></tr>`;
+  }).join('');
+  return `<div class="popup"><h4>${IND_LABELS[sel]}</h4>` +
+    `<p class="sub">Sample points reaching the destination within ${band.replace('m', ' m')}</p>` +
+    (rows
+      ? '<table><tr><td></td><td class="v">with<br>dismount</td>' +
+        '<td class="v">ridden<br>only</td><td class="v">depends on<br>dismount</td>' +
+        '<td class="v">extra to<br>ride around</td></tr>' + rows + '</table>'
+      : '<p class="sub">No dismount contrast available for this cell.</p>') +
+    '</div>';
+}
+
+// a link riders must dismount and walk, scored by how much of the population's
+// nearest-destination routing leans on it
+function dismountPopupHTML(p) {
+  const n = v => Math.round(v || 0).toLocaleString();
+  return `<div class="popup"><h4>${p.name || 'Unnamed footway'}</h4>` +
+    `<p class="sub"><span class="swatch" style="background:${DISMOUNT_COLOR}"></span>` +
+    `Dismount required — ${p.highway || 'path'}, ${n(p.length_m)} m</p><table>` +
+    `<tr><td>Journeys walking it</td><td class="v">${n(p.dm_pop_served)}</td></tr>` +
+    `<tr><td>…that depend on it</td><td class="v"><b>${n(p.dm_pop_dependent)}</b></td></tr>` +
+    `<tr><td>Destination types</td><td class="v">${p.dm_specs || 0}</td></tr>` +
+    '</table><p class="sub" style="margin-top:6px">Resident–destination journeys whose ' +
+    'nearest-destination low-stress route walks this link, and the subset with no ridden ' +
+    'low-stress route to that destination type at all. Summed over the destination types ' +
+    'in the last row, so a resident heading to two of them counts twice. Scores rank ' +
+    'links; they are not additive across links, since one route may walk several.</p></div>';
 }
 
 function ltsPopupHTML(p) {
@@ -901,10 +1065,25 @@ function wireHover() {
 
 function infoHTML() {
   const ind = currentIndicator(), net = $('network').value, mode = $('threshold').value;
-  const what = mode === 'avg'
+  const what = mode === 'dmgap'
+    ? `the <b>share of the cell’s sample points whose access depends on dismounting</b>: they reach such a destination within ${gapBand().replace('m', ' m')} on the low-stress (LTS 1–2) network when the rider may get off and walk the bike, but not when the same route must be ridden throughout`
+    : mode === 'avg'
     ? `the <b>average network distance</b> (metres) from the cell’s sample points to the nearest such destination, averaged only over sample points that can reach one at all — so sparse areas can show few reachable points <i>and</i> long distances`
     : `an <b>isochrone-style distance band</b>: the closest of 500 m, 1000 m, 2000 m or 5000 m at which at least half the cell’s sample points can reach such a destination (neutral grey = no band within 5000 m has majority access)`;
-  const isoSection = mode === 'avg' ? '' : `
+  const gapSection = mode !== 'dmgap' ? '' : `
+    <h3>Why this comparison</h3>
+    <p>A low-stress route that only exists because part of it is walked along a footpath —
+    beside an arterial, or across a hostile intersection — is not a route that can be
+    ridden. Contrasting the two shows where the low-stress network is genuinely
+    connected and where it is being held together by pushing the bike, which is a
+    signal for where cycling infrastructure would do the most work. Cells shaded pale
+    grey have no such dependence; the darker the purple, the more of the cell’s
+    access rests on dismounting.</p>
+    <p>Click a cell for the underlying numbers: access with dismounting, access ridden
+    throughout, the gap between them, and the extra distance needed to ride around the
+    walked links where that is possible at all. The <b>Dismount priority links</b> layer
+    (where available) names the individual links carrying that load.</p>`;
+  const isoSection = mode !== 'iso' ? '' : `
     <h3>Reading the colour bands</h3>
     <p>Each grid cell is coloured by the <b>closest</b> distance at which the majority
     (≥ 50%) of its sample points have access — pale pink/yellow = very close (500 m),
@@ -914,9 +1093,9 @@ function infoHTML() {
   return `<h2>How to read this indicator</h2>
     <p><b>${IND_LABELS[ind]}</b> — for each 100 m population grid cell, the map shows ${what}.</p>
     <h3>Destination</h3><p>Access is counted to ${IND_DESCS[ind]}.</p>
-    ${isoSection}
-    <h3>Routing (${NETWORKS[net].label})</h3>
-    <p>Routes are computed over ${NETWORKS[net].desc}. Level of Traffic Stress (LTS) grades each
+    ${isoSection}${gapSection}
+    <h3>Routing (${mode === 'dmgap' ? 'LTS 1–2, with vs without dismount' : NETWORKS[net].label})</h3>
+    <p>Routes are computed over ${mode === 'dmgap' ? NETWORKS.safe_.desc + ', compared with ' + NETWORKS.ride_.desc : NETWORKS[net].desc}. Level of Traffic Stress (LTS) grades each
     street segment from 1 (lowest stress, suitable for all riders) to 4 (high stress), based on
     cycling infrastructure, street class, speed limit and assumed traffic volumes derived from
     OpenStreetMap.</p>
@@ -927,6 +1106,9 @@ function infoHTML() {
     distance threshold, reflecting walking pace (~5 km/h) against cycling (~15 km/h).
     Stairs and indoor corridors are excluded as impractical with a bike. On the map, such
     segments show “Dismount required: yes” when clicked.</p>
+    <p>Because that allowance can carry a lot of weight, the same low-stress measure is
+    also computed <b>without</b> it (Network: “LTS 1–2, no dismount”), and the
+    <b>Dismount dependence</b> indicator maps the difference between the two.</p>
     <h3>Strict vs lenient</h3>
     <p>Each destination category has a <b>strict</b> definition (fresh food markets only;
     frequent public transport; large open spaces; “complete” activity centres) and a
@@ -948,6 +1130,11 @@ async function loadCity(s) {
   // switching city calls setStyle, which drops the measure source and layers
   clearMeasure();
   await loadRoutes(s);
+
+  // the dismount priority layer only exists for cities analysed with it
+  const hasDismount = !!(manifest.layers || {}).dismount;
+  $('dismountChkRow').style.display = hasDismount ? '' : 'none';
+  if (!hasDismount) $('dismountChk').checked = false;
 
   const circle = (colour, r) => ({
     'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, r * 0.6, 14, r],
@@ -985,6 +1172,19 @@ async function loadCity(s) {
         paint: { 'line-color': ['match', ['get', 'lvl_traf_stress'],
                    1, LTS_COLOURS[1], 2, LTS_COLOURS[2], 3, LTS_COLOURS[3], 4, LTS_COLOURS[4], '#888'],
                  'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.4, 13, 1.6, 16, 3.5] } },
+      // links riders must dismount and walk, weighted by the population routed
+      // over them: candidate locations for cycling infrastructure.  Only present
+      // for cities analysed with it (the tiles have no such layer otherwise).
+      ...(hasDismount ? [{
+        id: 'dismount', type: 'line', source: 'city', 'source-layer': 'dismount',
+        layout: { visibility: $('dismountChk').checked ? 'visible' : 'none',
+                  'line-cap': 'round' },
+        paint: { 'line-color': DISMOUNT_COLOR,
+                 'line-opacity': 0.85,
+                 'line-width': ['interpolate', ['linear'], ['zoom'],
+                   10, ['interpolate', ['linear'], ['get', 'dm_pop_dependent'], 0, 1.5, 500, 6],
+                   16, ['interpolate', ['linear'], ['get', 'dm_pop_dependent'], 0, 4, 500, 18]] },
+      }] : []),
       { id: 'pos_any_pts', type: 'circle', source: 'city', 'source-layer': 'pos_any',
         layout: { visibility: 'none' }, paint: circle(OVERLAY_COLORS.pos_any_pts, 3.5) },
       { id: 'pos_large_pts', type: 'circle', source: 'city', 'source-layer': 'pos_large',
@@ -1010,9 +1210,15 @@ async function loadCity(s) {
     map.on('click', e => {
       // while the ruler is active, clicks drop vertices instead of opening popups
       if (measuring) { addMeasurePoint(e.lngLat); return; }
-      const f = map.queryRenderedFeatures(e.point, { layers: ['lts', 'grid'] })[0];
+      const layers = ['lts', 'grid'];
+      if (map.getLayer('dismount')
+          && map.getLayoutProperty('dismount', 'visibility') === 'visible')
+        layers.unshift('dismount');
+      const f = map.queryRenderedFeatures(e.point, { layers })[0];
       if (!f) return;
-      const html = f.layer.id === 'lts' ? ltsPopupHTML(f.properties) : gridPopupHTML(f.properties);
+      const html = f.layer.id === 'dismount' ? dismountPopupHTML(f.properties)
+        : f.layer.id === 'lts' ? ltsPopupHTML(f.properties)
+        : gridPopupHTML(f.properties);
       new maplibregl.Popup({ maxWidth: '340px' }).setLngLat(e.lngLat).setHTML(html).addTo(map);
     });
     wireHover();
@@ -1034,11 +1240,18 @@ async function loadCity(s) {
 fillSelect($('concept'), Object.entries(CONCEPTS).map(([k, v]) => [k, v.label]));
 fillSelect($('threshold'), Object.entries(THRESHOLDS));
 fillSelect($('network'), Object.entries(NETWORKS).map(([k, v]) => [k, v.label]));
+fillSelect($('gapBand'), ISO_DISTANCES.map(d => [d, d.replace('m', ' m')]));
 $('concept').value = 'all'; $('variation').value = 'strict';
 $('threshold').value = 'iso'; $('network').value = 'safe_';
+$('gapBand').value = '2000m';
 
-for (const id of ['concept', 'variation', 'threshold', 'network'])
+for (const id of ['concept', 'variation', 'threshold', 'network', 'gapBand'])
   $(id).onchange = () => { updateIndicator(); updateHash(); };
+$('dismountChk').onchange = e => {
+  if (map.getLayer('dismount'))
+    map.setLayoutProperty('dismount', 'visibility', e.target.checked ? 'visible' : 'none');
+  updateHash();
+};
 $('city').onchange = () => loadCity($('city').value);
 $('ltsChk').onchange = e => { map.setLayoutProperty('lts', 'visibility', e.target.checked ? 'visible' : 'none'); updateHash(); };
 $('gridChk').onchange = e => { map.setLayoutProperty('grid', 'visibility', e.target.checked ? 'visible' : 'none'); renderHisto(); updateHash(); };
@@ -1092,10 +1305,13 @@ let assessLabels = [];
 
 // assessment measure key -> dashboard Network option (column infix), so the
 // choropleth and summary always describe the network whose routes are drawn
-const MEASURE_TO_NET = { lts1: 'lts1_', low_stress: 'safe_', danger_weighted: '' };
+const MEASURE_TO_NET = { lts1: 'lts1_', low_stress_ride: 'ride_',
+                         low_stress: 'safe_', danger_weighted: '' };
 function syncDashboardNetwork() {
   const n = MEASURE_TO_NET[assessMeasure];
   if (n === undefined || $('network').value === n) return;
+  // the dismount-dependence map compares two networks at once, so leave it alone
+  if ($('threshold').value === 'dmgap') return;
   $('network').value = n;
   updateIndicator();
   updateHash();
@@ -1171,6 +1387,22 @@ function breakdownText(pt, c) {
     `× ${DISMOUNT_W} dismount penalty)`);
   if (wCross) parts.push(`(${wCross.toLocaleString()} m crossings)`);
   return parts.join(' + ');
+}
+
+// What the dismount allowance is worth here: the same low-stress route ridden
+// throughout, for comparison with the one that may walk the bike.  Shown only while
+// one of that pair is selected, and only when the two actually differ.
+function dismountCompareText(pt, c) {
+  if (assessMeasure !== 'low_stress' && assessMeasure !== 'low_stress_ride') return '';
+  const walk = routeFor(pt.id, 'low_stress', c.key);
+  const ride = routeFor(pt.id, 'low_stress_ride', c.key);
+  if (!walk || !ride || !walk.ok) return '';
+  if (!ride.ok) {
+    const limit = (routeData.max_band_m || 5000).toLocaleString();
+    return `without dismounting: no low-stress route within ${limit} m`;
+  }
+  const diff = Math.round(ride.net) - Math.round(walk.net);
+  return diff > 0 ? `without dismounting: +${diff.toLocaleString()} m` : '';
 }
 
 function ensureAssessLayers() {
@@ -1376,8 +1608,10 @@ function stepHTML() {
       return `<td class="${sel ? 'selcol' : 'dim'}">` +
              `${Math.round(rt.net).toLocaleString()}</td>`;
     }).join('');
+    const cmp = dismountCompareText(pt, c);
     return `<tr><td class="l"><span class="dot" style="background:${CAT_COLORS[c.key] || '#888'}"></span>` +
-           `${c.label}<div class="bd-x">${breakdownText(pt, c)}</div></td>${cells}</tr>`;
+           `${c.label}<div class="bd-x">${breakdownText(pt, c)}</div>` +
+           (cmp ? `<div class="dm-x">${cmp}</div>` : '') + `</td>${cells}</tr>`;
   }).join('');
   const issues = ISSUE_OPTIONS.map(([k, lbl]) =>
     `<label><input type="checkbox" name="issue" value="${k}"` +
@@ -1409,7 +1643,8 @@ function stepHTML() {
         stroke-dasharray="0.1 4.5"/></svg> connection</span>
     </div>
     <div style="font-size:10px;color:#666;margin:2px 0 6px">
-      Distance compared with the 2000 m / 5000 m threshold; penalties are incurred by higher-stress riding (×1.25) and dismount (walking; ×3) . Dotted legs join the sample point and the
+      Distance compared with the 2000 m / 5000 m threshold; penalties are incurred by higher-stress riding (×1.25) and dismount (walking; ×3) . The no-dismount route (LSR) may not walk at all,
+      so where it is longer or missing, that access depends on getting off and pushing the bike. Dotted legs join the sample point and the
       destination to the network and count at face value. Selected network route is highlighted and displayed on the map; &ldquo;—&rdquo; = not reachable.</div>
     <fieldset><legend>2.1 Does each route look plausible here?</legend>
       ${scales}
@@ -1473,9 +1708,11 @@ function assessmentCSV() {
   const head = ['city', 'slug', 'seed', 'point_id', 'quadrant', 'lon', 'lat'];
   for (const c of routeData.categories) head.push(`plausible_${c.key}_1_5`);
   head.push('issues', 'comment');
+  // the indicator value shown in the table (net), and the raw geometric path length
+  // it is made from (m) — reported separately so the download matches the screen
   for (const m of routeData.measures)
     for (const c of routeData.categories)
-      head.push(`${m.key}__${c.key}_m`);
+      head.push(`${m.key}__${c.key}_m`, `${m.key}__${c.key}_path_m`);
   const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
   const lines = [head.join(',')];
   for (const pt of routeData.points) {
@@ -1487,7 +1724,8 @@ function assessmentCSV() {
     for (const m of routeData.measures)
       for (const c of routeData.categories) {
         const rt = routeFor(pt.id, m.key, c.key);
-        row.push(rt && rt.ok ? Math.round(rt.m) : '');
+        row.push(rt && rt.ok ? Math.round(rt.net) : '',
+                 rt && rt.ok ? Math.round(rt.m) : '');
       }
     lines.push(row.map(esc).join(','));
   }
@@ -1713,11 +1951,14 @@ const TOUR_STEPS = [
       description: 'The map zooms to the study region. Each city has one row to ' +
         'complete in the Round 2 worksheet.' } },
   { element: '#threshold', popover: {
-      title: 'Two views of access',
+      title: 'Three views of access',
       description: '<b>Access within distance/time</b> colours each 100 m cell by the ' +
         'closest distance band (500 / 1000 / 2000 / 5000 m) at which most of its ' +
         'sample points reach the destination — the same colour bands as the written ' +
         'report. <b>Average distance/time to nearest</b> shows an alternative continuous representation of access. ' +
+        '<b>Dismount dependence</b> maps how much of the access relies on getting off ' +
+        'and walking the bike, by comparing the low-stress route with the same route ' +
+        'ridden throughout. ' +
         'Form question <b>1.3</b> asks how relevant each framing is for your city.' } },
   { element: '#concept', popover: {
       title: 'Destination & definition',
@@ -1728,7 +1969,9 @@ const TOUR_STEPS = [
   { element: '#network', popover: {
       title: 'Routing assumption',
       description: '<b>LTS 1 only</b> (streets suitable for all ages and abilities), ' +
-        '<b>LTS 1–2</b> (low stress), or <b>stress penalty</b> (whole network, ' +
+        '<b>LTS 1–2</b> (low stress), <b>LTS 1–2, no dismount</b> (the same, but ' +
+        'ridden the whole way — no walking the bike along footways), or ' +
+        '<b>stress penalty</b> (whole network, ' +
         'stress penalised). Rate their local relevance in question 1.3. The ' +
         '<b>ⓘ</b> button explains the current combination in plain language.' } },
   { element: '#showing', popover: {
@@ -1740,7 +1983,9 @@ const TOUR_STEPS = [
       description: 'Turn the <b>LTS street network</b>, the <b>access choropleth</b>, ' +
         'the <b>destinations being measured</b>, and region context (boundary and ' +
         '5 km analysis buffer) on and off as you judge questions <b>1.1</b> (2 km) ' +
-        'and <b>1.2</b> (5 km) accuracy, and 1.4 (destinations).' } },
+        'and <b>1.2</b> (5 km) accuracy, and 1.4 (destinations). Where available, ' +
+        '<b>Dismount priority links</b> highlights the footways riders must walk, ' +
+        'drawn thicker the more residents’ access depends on them.' } },
   { element: '#basemap', popover: {
       title: 'Ground truth with satellite',
       description: 'Switch to the grayscale <b>satellite</b> basemap to check streets ' +

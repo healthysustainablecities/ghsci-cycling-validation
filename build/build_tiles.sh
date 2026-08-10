@@ -9,8 +9,14 @@
 # makes the joined/advertised maxzoom lie, and layers vanish at high zoom.
 #
 # Usage (from anywhere): bash build/build_tiles.sh <slug> [<slug> ...]
-# Requires: docker image tippecanoe:local (see build/Dockerfile) and the
-# "ghsci" container running with /tmp/validation_tiles/<slug> already exported.
+# Requires: docker image tippecanoe:local (see build/Dockerfile) and the analysis
+# container running with /tmp/validation_tiles/<slug> already exported by
+# process/_export_validation_tiles.py (that is the canonical copy -- build/ used to
+# carry a duplicate, which drifted out of date and was removed).
+# Environment:
+#   GHSCI_CONTAINER  container to copy the exported layers from (default "ghsci")
+#   REUSE_EXPORT=1   tile the copy already in _work/<slug> instead of re-copying,
+#                    for iterating on tippecanoe flags without re-exporting
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORK="$SCRIPT_DIR/_work"
@@ -30,13 +36,26 @@ layer_args() {
   case "$1" in
     destinations|pt_frequent) echo "-Z8 --drop-densest-as-needed" ;;
     pos_any|pos_large|ac_local|ac_complete) echo "-Z11 --drop-densest-as-needed" ;;
+    dismount) echo "-Z10 --drop-densest-as-needed" ;;
     boundary|buffer) echo "-Z4" ;;
   esac
 }
 
 for slug in "$@"; do
   echo "== $slug"
-  [ -d "$WORK/$slug" ] || docker cp "ghsci:/tmp/validation_tiles/$slug" "$WORK/"
+  # Always re-copy the exported layers, so a rebuild can never quietly tile the
+  # previous run's data: _work/<slug> persists between builds, and an earlier
+  # version of this script skipped the copy whenever it existed.
+  # REUSE_EXPORT=1 keeps the old behaviour for iterating on tippecanoe flags
+  # without re-exporting; GHSCI_CONTAINER overrides the container the layers come
+  # from (the analysis container is not always named "ghsci" -- e.g. a feature
+  # branch running alongside a main-development stack).
+  if [ -d "$WORK/$slug" ] && [ "${REUSE_EXPORT:-0}" = "1" ]; then
+    echo "-- reusing existing export in _work/$slug (REUSE_EXPORT=1)"
+  else
+    rm -rf "${WORK:?}/$slug"
+    docker cp "${GHSCI_CONTAINER:-ghsci}:/tmp/validation_tiles/$slug" "$WORK/"
+  fi
 
   echo "-- lts (own archive)"
   tc tippecanoe -q --force -o "/data/${slug}_lts.pmtiles" -l lts -Z8 -z12 \
