@@ -274,7 +274,7 @@
     <div id="notice"></div>
 
     <div class="checks">
-      <label><input type="checkbox" id="ltsChk" checked> LTS network</label>
+      <label><input type="checkbox" id="ltsChk" checked> Level of Traffic Stress (LTS) network</label>
       <label><input type="checkbox" id="gridChk" checked> Grid access choropleth</label>
       <label id="dismountChkRow" style="display:none"><input type="checkbox" id="dismountChk"> Dismount priority links</label>
       <label><input type="checkbox" id="destChk"> Show indicator destinations</label>
@@ -532,6 +532,19 @@ function applyInitialControls() {
   setIf('basemap', initialState.get('b'), v => ['sat', 'positron'].includes(v));
 }
 
+// Population-weighted region value for a grid column, as recorded in the manifest
+// from indicators_region's pop_ prefixed column — the same number the written
+// validation report quotes.  This is the *mean share*: each cell contributes the
+// share of its sample points with access, weighted by its population.  It is not
+// the same as summing the mapped bands, which classify a whole cell by whether
+// >= 50% of its sample points have access and so round every partially-served
+// cell up or down (up to ~4 pp apart in Wurzburg).  Always quote this for
+// "N% of residents ..."; the bands describe the map, not the population.
+function regionValue(col) {
+  const v = ((manifests[slug] || {}).region_values || {})[col];
+  return (v === undefined || v === null) ? null : v;
+}
+
 function pctCol(net, ind, distm) { return `pct_access_cycle_${net}${ind}_${distm}`; }
 function avgCol(net, ind) { return `avg_cycle_dist_${net}${ind}`; }
 // mean extra riding distance needed to reach the destination without dismounting,
@@ -654,8 +667,8 @@ function renderHisto() {
   const wrap = $('histo');
   const mode = $('threshold').value;
   const family = mode === 'dmgap' ? DMGAP : $('network').value;
-  const dist = ((manifests[slug] || {}).distributions || {})[family + currentIndicator()];
-  if (!dist || !$('gridChk').checked) { wrap.style.display = 'none'; return; }
+  const dist = ((manifests[slug] || {}).distributions || {})[family + currentIndicator()] || {};
+  if (!$('gridChk').checked) { wrap.style.display = 'none'; return; }
   const maxBar = 52; // px, tallest bar
   if (mode === 'dmgap') {
     const shares = (dist.gap || {})[gapBand()];
@@ -666,15 +679,23 @@ function renderHisto() {
       `<div class="histo-bar" style="height:${Math.max(2, v / peak * maxBar)}px;` +
       `background:${GAP_COLORS[i]}"><span class="histo-val">${v}%</span></div>`).join('');
     $('histoX').innerHTML = GAP_LABELS.map(l => `<span>${l}</span>`).join('');
-    const affected = shares.slice(1).reduce((a, b) => a + b, 0);
+    const anywhere = shares.slice(1).reduce((a, b) => a + b, 0);
+    // headline = the population-weighted mean share (the report's number); the
+    // "lives in a cell with any dependence" figure the bars add up to is a much
+    // larger, coarser quantity, so it is labelled as such rather than led with
+    const gap = regionValue(pctCol(DMGAP, currentIndicator(), gapBand()));
+    const band = gapBand().replace('m', ' m');
     // a city whose network has no walk-only links at all (e.g. where footways are
     // not mapped as banning cycling) has nothing to compare — say so, rather than
     // leaving an entirely unshaded map to be read as missing data
-    $('histoNote').textContent = affected === 0
+    $('histoNote').textContent = anywhere === 0
       ? 'No access in this city depends on dismounting: this network has no ' +
         'low-stress links that a rider would have to get off and walk.'
-      : `${affected.toFixed(1)}% of residents live where some access within ` +
-        `${gapBand().replace('m', ' m')} depends on dismounting`
+      : (gap === null
+          ? `${anywhere.toFixed(1)}% of residents live where some access within ` +
+            `${band} depends on dismounting`
+          : `${gap.toFixed(1)}% of residents' access within ${band} depends on ` +
+            `dismounting\n${anywhere.toFixed(1)}% live in a cell where any of it does`)
         + (dist.extra_mean !== undefined
           ? `\nfor the ${dist.extra_pop_pct}% who can ride around the walked links, ` +
             `doing so adds ${dist.extra_mean.toLocaleString()} m on average`
@@ -682,19 +703,37 @@ function renderHisto() {
     wrap.style.display = 'block';
     return;
   }
-  if (mode === 'iso' && dist.iso) {
+  // Bars and headline both come from the region's population-weighted mean shares.
+  // Those are cumulative (access within 500 m implies access within 1000 m, at the
+  // sample point and so after averaging), so successive differences give the share
+  // of residents whose *nearest* such destination falls in each band, and the
+  // remainder to 100% is the share with none within the largest threshold.  The
+  // bars therefore sum to 100 and the headline is their running total.  Older
+  // manifests without region_values fall back to the exported iso distribution,
+  // which classifies each cell by where >= 50% of its sample points have access.
+  const isoBars = () => {
+    const net = $('network').value, ind = currentIndicator();
+    const cum = ISO_DISTANCES.map(d => regionValue(pctCol(net, ind, d)));
+    if (cum.some(v => v === null)) return dist.iso ? { bars: dist.iso, cum: null } : null;
+    const bars = [];
+    let prev = 0;
+    for (const v of cum) { bars.push(Math.max(0, v - prev)); prev = v; }
+    bars.push(Math.max(0, 100 - prev));
+    return { bars, cum };
+  };
+  const iso = mode === 'iso' ? isoBars() : null;
+  if (mode === 'iso' && iso) {
     const colors = [...ISO_COLORS, ISO_NO_ACCESS];
     const labels = ['500 m', '1000 m', '2000 m', '5000 m', 'None'];
-    const peak = Math.max(...dist.iso, 1);
+    const peak = Math.max(...iso.bars, 1);
     $('histoTitle').textContent = 'Share of population by access band';
-    $('histoBars').innerHTML = dist.iso.map((v, i) =>
+    $('histoBars').innerHTML = iso.bars.map((v, i) =>
       `<div class="histo-bar" style="height:${Math.max(2, v / peak * maxBar)}px;background:${colors[i]}">` +
-      `<span class="histo-val">${v}%</span></div>`).join('');
+      `<span class="histo-val">${v.toFixed(1)}%</span></div>`).join('');
     $('histoX').innerHTML = labels.map(l => `<span>${l}</span>`).join('');
-    const pct2000 = dist.iso.slice(0, 3)
-    .reduce((a, b) => a + b, 0);
-    const pct5000 = dist.iso.slice(0, 4)
-      .reduce((a, b) => a + b, 0);
+    const running = n => iso.bars.slice(0, n).reduce((a, b) => a + b, 0);
+    const pct2000 = iso.cum ? iso.cum[ISO_DISTANCES.indexOf('2000m')] : running(3);
+    const pct5000 = iso.cum ? iso.cum[ISO_DISTANCES.indexOf('5000m')] : running(4);
     $('histoNote').textContent =
       pct2000.toFixed(1) + '% of residents have access within 2000 m (~10 min cycling)\n' +
       pct5000.toFixed(1) + '% of residents have access within 5000 m (~25 mins cycling)';
