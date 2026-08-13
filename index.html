@@ -10,6 +10,16 @@
 <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
 <style>
+  /* Panel accents, mirroring the map colour constants defined in the script
+     (LTS_COLOURS, ISO_COLORS, DISMOUNT_COLOR) so a control is shaded with the
+     same hue as the thing it refers to. --pink-ring is a deepened 500 m pink:
+     #faccfa itself is too pale to read as an outline on the white panel. */
+  :root {
+    --lts1:#1a9850;  --lts1-fill:rgba(26,152,80,.22);   /* LTS_COLOURS[1] */
+    --pink:#faccfa;  --pink-fill:rgba(250,204,250,.45); /* ISO_COLORS[0], the 500 m band */
+    --pink-ring:rgba(224,138,224,.95);
+    --dm:#6a51a3;    --dm-fill:rgba(106,81,163,.78);    /* DISMOUNT_COLOR */
+  }
   body { margin:0; font-family: system-ui, sans-serif; }
   #map { position:absolute; inset:0; }
   /* one panel that grows rightwards when the assessment opens: a single
@@ -42,7 +52,8 @@
     font-size: 14px;
   }
 
-  /* when collapsed, hide only the middle controls */
+  /* Three vertical steps, cycled by #panelToggle: everything -> indicator
+     controls hidden (legend, histogram and buttons still there) -> header only. */
   #panel.collapsed #panelBody {
     display: none;
   }
@@ -50,6 +61,10 @@
   /* optionally tighten spacing when collapsed */
   #panel.collapsed {
     padding-bottom: 8px;
+  }
+
+  #panel.collapsed2 > *:not(#panelHeader) {
+    display: none;
   }
  #showing { margin:8px 0; padding:7px 8px; background:#f2f6fa; border-radius:6px;
              font-size:12px; line-height:1.35; }
@@ -59,6 +74,24 @@
                  border-radius:5px; cursor:pointer; }
   button.small:hover { background:#eee; }
   button.small.on { background:#20303f; color:#fff; border-color:#20303f; }
+  .icon-btn { position:relative; width:26px; padding:2px 0; line-height:1.1;
+              text-align:center; }
+  /* transient confirmation bubble, so the icon does not have to change */
+  #shareBtn.copied::after { content:'Link copied'; position:absolute; bottom:120%;
+              left:50%; transform:translateX(-50%); background:rgba(20,20,20,.92);
+              color:#fff; padding:3px 7px; border-radius:5px; font-size:11px;
+              white-space:nowrap; z-index:3; }
+  /* the two buttons that carry the task: the tour that explains it (LTS 1 green)
+     and the activity itself (the 500 m batlow pink) */
+  #tourBtn { background:var(--lts1-fill); border-color:var(--lts1); }
+  #tourBtn:hover { background:rgba(26,152,80,.34); }
+  #assessBtn { background:var(--pink-fill); border-color:var(--pink-ring); }
+  #assessBtn:hover { background:rgba(250,204,250,.75); }
+  #assessStatus { align-self:center; font-size:10.5px; color:#777; font-style:italic; }
+  #assessStatus.part { color:#8a5a00; }
+  #assessStatus.done { color:var(--lts1); font-style:normal; font-weight:600; }
+  button.small[disabled] { opacity:.5; cursor:not-allowed; }
+  button.small[disabled]:hover { background:#fafafa; }
   #infoBtn { border-radius:50%; width:22px; height:22px; padding:0; font-weight:bold;
              font-family:serif; font-style:italic; }
   .selrow { display:flex; gap:6px; align-items:flex-end; }
@@ -112,10 +145,10 @@
   body.legend-collapsed #panelHeader { justify-content:center; }
   body.legend-collapsed #panelHeader h1,
   body.legend-collapsed #panelHeader #infoBtn { display:none; }
-  #legendToggle { display:none; }
-  body.assessing #legendToggle { display:inline-block; }
+  /* the sideways collapse is its own control, available at any time */
   /* the vertical collapse applies to whichever half is showing */
   #panel.collapsed ~ #assess #assessBody,
+  #panel.collapsed ~ #assess #assessNav,
   #panel.collapsed ~ #assess #assessProg { display:none; }
   #assessHeader { display:flex; align-items:center; justify-content:space-between;
                   gap:4px; }
@@ -130,10 +163,44 @@
   .rleg-cat i { width:10px; height:10px; border-radius:50%; display:inline-block; }
   #assess h2 { font-size:14px; margin:0 0 2px; }
   #assessProg { font-size:11.5px; color:#666; margin-bottom:6px; }
-  .seg-ctl { display:flex; gap:3px; margin:6px 0 4px; }
-  .seg-ctl button { flex:1; font-size:11px; padding:3px 2px; border:1px solid #bbb;
-                    background:#fafafa; border-radius:4px; cursor:pointer; }
-  .seg-ctl button.on { background:#20303f; color:#fff; border-color:#20303f; }
+  /* stage navigator across the parts of the validation activity */
+  #assessNav { display:flex; gap:3px; margin:0 0 6px; }
+  #assessNav button { flex:1; font-size:10.5px; padding:3px 1px; border:1px solid #bbb;
+                      background:#fafafa; border-radius:4px; cursor:pointer; }
+  #assessNav button.on { background:#20303f; color:#fff; border-color:#20303f; }
+  /* The four network scenarios as one horizontal row, shared by Parts A and B.
+     Answered ones are shaded LTS 1 green and the pink ring marks what to answer
+     next, so completion and the next action read at a glance. Selection is an
+     outline rather than a fill, so a scenario can be selected and complete at once. */
+  .net-btns { display:flex; gap:3px; margin:6px 0 4px; }
+  .net-btns button { flex:1; font-size:10.5px; line-height:1.2; padding:4px 2px;
+                     border:1px solid #bbb; background:#fafafa; border-radius:4px;
+                     cursor:pointer; }
+  .net-btns button:hover { background:#eee; }
+  .net-btns button.done { background:var(--lts1-fill); border-color:var(--lts1); }
+  .net-btns button.on { border:2px solid #20303f; padding:3px 1px; font-weight:700; }
+  .net-btns button.next, .nav button.next { box-shadow:0 0 0 2px var(--pink-ring); }
+  /* the question, and the yes/no (or no/unsure/yes) answer */
+  .q { margin:9px 0 0; font-size:11.5px; line-height:1.35; }
+  .q b { display:block; margin-bottom:3px; }
+  .q .assume { color:#444; font-style:italic; }
+  .yn { display:flex; gap:6px; margin:5px 0 2px; }
+  .yn label { flex:1; text-align:center; border:1px solid #ccc; border-radius:5px;
+              padding:3px 0; cursor:pointer; background:#fafafa; font-size:11.5px; }
+  .yn input { display:none; }
+  .yn label:has(input:checked) { background:#20303f; border-color:#20303f;
+                                 color:#fff; font-weight:700; }
+  /* dest_wrong is a heading for the three destination types, not an option itself */
+  .issue-head { font-size:11.5px; margin:2px 0 0; color:#333; }
+  .subchecks { margin-left:18px; }
+  .nudge { color:#a33; font-size:10.5px; margin-top:5px; }
+  .hintline { font-size:10.5px; color:#555; line-height:1.35; margin:5px 0 0; }
+  #assess .intro { font-size:11.5px; line-height:1.4; }
+  #assess .intro p { margin:5px 0; }
+  /* border-box, or the 100% width plus padding and border spills past the panel */
+  #assess input[type=text] { width:100%; font-size:11.5px; font-family:inherit;
+                             border:1px solid #ccc; border-radius:4px; padding:3px;
+                             box-sizing:border-box; }
   table.rt { width:100%; border-collapse:collapse; font-size:11px; margin-top:4px; }
   table.rt th { font-weight:600; color:#555; text-align:right; padding:1px 2px;
                 font-size:10px; }
@@ -158,25 +225,18 @@
             pointer-events:none; }
   .rkey { display:flex; gap:14px; font-size:10.5px; color:#555; margin-top:4px; }
   .rkey span { display:inline-flex; align-items:center; gap:4px; }
-  .lk-row { display:flex; align-items:center; gap:6px; margin:3px 0; }
-  .lk-lab { flex:1; font-size:10.5px; line-height:1.2; color:#333; }
-  .likert { display:flex; gap:3px; margin-top:2px; flex:0 0 auto; }
-  .likert .lk { flex:0 0 22px; text-align:center; border:1px solid #ccc;
-                border-radius:5px; padding:2px 0; cursor:pointer; background:#fafafa; }
-  .likert .lk input { display:none; }
-  .likert .lk span { font-size:12px; }
-  .likert .lk:has(input:checked) { background:#20303f; border-color:#20303f; }
-  .likert .lk:has(input:checked) span { color:#fff; font-weight:700; }
-  .lk-ends { display:flex; justify-content:space-between; font-size:9.5px;
-             color:#777; margin-top:1px; }
   .dot { display:inline-block; width:9px; height:9px; border-radius:50%;
          margin-right:4px; vertical-align:-1px; }
   #assess fieldset { border:1px solid #ddd; border-radius:6px; padding:6px 8px;
                      margin:8px 0 0; }
+  /* a "No" with no reason yet: the answer is not complete until one is ticked */
+  #assess fieldset.need { border-color:#a33; }
+  #assess fieldset.need legend { color:#a33; font-weight:600; }
   #assess legend { font-size:11px; color:#444; padding:0 4px; }
   #assess fieldset label { display:block; font-size:11.5px; margin:2px 0; }
   #assess textarea { width:100%; font-size:11.5px; font-family:inherit;
-                     border:1px solid #ccc; border-radius:4px; padding:3px; }
+                     border:1px solid #ccc; border-radius:4px; padding:3px;
+                     box-sizing:border-box; }
   .nav { display:flex; gap:6px; margin-top:8px; }
   .nav button { flex:1; }
   
@@ -206,6 +266,43 @@
   #reportBar { padding:6px 12px; background:#20303f; color:#fff; display:flex;
                justify-content:space-between; align-items:center; font-size:13px; }
   #reportBar button { background:#fff; }
+  /* Part C, in the side panel alongside the map: a rater judging whether the
+     method suits their city should still be able to look at their city. Three
+     narrow columns fit 330px because each scale is a three-way switch rather
+     than a dropdown — which also halves the clicks. */
+  #assess h3 { font-size:12.5px; margin:12px 0 1px; color:#20303f; }
+  #assess .ghint { font-size:10.5px; color:#666; margin:0 0 4px; line-height:1.3; }
+  .ck-head, .ck-row { display:flex; align-items:center; gap:3px; }
+  .ck-head { font-size:9.5px; color:#555; font-weight:600; text-align:center;
+             border-bottom:1px solid #ddd; padding-bottom:2px; }
+  .ck-row { font-size:10.5px; padding:2px 0; border-bottom:1px solid #f2f2f2;
+            touch-action:none; user-select:none; }
+  .ck-row.dragging { opacity:.55; }
+  /* the rank number belongs to the position, not the item: it stays put and the
+     rest of the row moves past it, so the column always reads 1..n */
+  .rk-n { flex:0 0 12px; color:#555; font-variant-numeric:tabular-nums;
+          text-align:right; }
+  .ck-grip { flex:0 0 10px; color:#bbb; font-size:9px; text-align:center;
+             cursor:grab; }
+  .ck-row.dragging .ck-grip { cursor:grabbing; }
+  .ck-lab { flex:1; min-width:0; line-height:1.25; text-align:left; cursor:grab; }
+  .ck-sc, .ck-sw { flex:0 0 63px; display:flex; gap:1px; }
+  /* a rule between the two response columns, with room either side of it */
+  .ck-c2 { border-left:1px solid #ddd; margin-left:9px; padding-left:9px; }
+  .ck-sw button { flex:1; font-size:9.5px; line-height:1.4; padding:1px 0;
+                  border:1px solid #ccc; background:#fafafa; border-radius:3px;
+                  cursor:pointer; color:#333; }
+  .ck-sw button:hover { background:#eee; }
+  /* selected values take the batlow ramp used by the distance bands, pink positive */
+  .ck-sw button.sel[data-v="-1"] { background:#011959; border-color:#011959; color:#fff; }
+  .ck-sw button.sel[data-v="0"]  { background:#a8963c; border-color:#a8963c; color:#fff; }
+  .ck-sw button.sel[data-v="1"]  { background:var(--pink); border-color:var(--pink-ring);
+                                   color:#3a123a; font-weight:700; }
+  .ck-na { flex:0 0 63px; text-align:center; color:#bbb; font-size:10px; }
+  .ck-rank-h { flex:0 0 25px; text-align:center; }
+  .ck-other { width:100%; font-size:11px; font-family:inherit; border:1px solid #ccc;
+              border-radius:4px; padding:3px; margin-top:4px; box-sizing:border-box; }
+  .ck-help { border-bottom:1px dotted #999; cursor:help; }
   #hoverTip { position:fixed; pointer-events:none; background:rgba(20,20,20,.92);
               color:#fff; padding:5px 9px; border-radius:6px; font-size:11.5px;
               max-width:240px; z-index:6; display:none; line-height:1.4; }
@@ -240,7 +337,7 @@
     <h1>Cycling access validation</h1>
     <button id="infoBtn" class="small">i</button>
     <button id="legendToggle" class="small" title="Hide the legend">&#9664;</button>
-    <button id="panelToggle" class="small" title="Toggle indicator selection details">⭫</button>
+    <button id="panelToggle" class="small" title="Hide the indicator selection details">⭫</button>
     
   </div>
   <div id="showing"></div>
@@ -309,9 +406,11 @@
     </div>
 
     <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap" id="actionBtns">
+      <button class="small icon-btn" id="shareBtn" title="Copy share link"
+              aria-label="Copy share link">&#128279;</button>
       <button class="small" id="tourBtn">Tour</button>
-      <button class="small" id="shareBtn">Copy share link</button>
-      <button class="small" id="assessBtn" style="display:none">Route assessment</button>
+      <button class="small" id="assessBtn" style="display:none">Validation activity</button>
+      <span id="assessStatus"></span>
       <button class="small" id="reportBtn" style="display:none">View validation report</button>
       <button class="small" id="measureBtn"
               title="Click successive points on the map to accumulate straight-line distance, for your own reference">Measure distance (m)</button>
@@ -325,8 +424,9 @@
   <div id="sep"></div>
   <div id="assess">
     <div id="assessHeader">
-      <h2 id="assessTitle">Route assessment</h2>
+      <h2 id="assessTitle">Validation activity</h2>
     </div>
+    <div id="assessNav"></div>
     <div id="assessProg"></div>
     <div id="assessBody"></div>
   </div>
@@ -382,13 +482,13 @@ const IND_LABELS = {
 };
 const IND_ORDER = Object.keys(IND_LABELS);
 const NETWORKS = {
-  lts1_: { label: 'LTS 1 only',
+  lts1_: { label: 'Low stress (LTS 1), allowing dismount',
            desc: 'routes restricted to the lowest-stress streets only (LTS 1) for their full length' },
-  ride_: { label: 'LTS 1–2, no dismount',
+  ride_: { label: 'Low stress (LTS 1–2), without dismount',
            desc: 'routes restricted to low-stress streets (LTS 1–2) that can be ridden the whole way — links where the rider would have to get off and walk the bike are excluded' },
-  safe_: { label: 'LTS 1–2 (low stress)',
+  safe_: { label: 'Low stress (LTS 1–2), allowing dismount',
            desc: 'routes restricted to low-stress streets (LTS 1–2) for their full length, walking the bike where a footway link is the only low-stress connection (walked distance counted three times over)' },
-  '':    { label: 'Stress penalty (full network)',
+  '':    { label: 'Stress penalty, allowing dismount',
            desc: 'routes over the full cycleable network, with length along higher-stress (LTS 3–4) streets penalised by a factor of 1.25 — a benefit-of-the-doubt measure' },
 };
 // The paired with/without-dismount contrast is not a routed network of its own but a
@@ -492,6 +592,8 @@ let isolated = null;
 // ---- shareable URL state (#city=…&d=…&v=…&t=…&n=…&l=…&b=…&m=zoom/lat/lng) ----
 const LAYER_CHECKS = ['ltsChk', 'gridChk', 'destChk', 'boundaryChk', 'bufferChk',
                       'dismountChk'];
+// the zoom every city opens at, unless a share link carries its own camera
+const DEFAULT_ZOOM = 11;
 const initialState = location.hash.length > 1
   ? new URLSearchParams(location.hash.slice(1)) : null;
 let initialCameraPending = !!(initialState && initialState.get('m'));
@@ -1153,6 +1255,21 @@ function infoHTML() {
     frequent public transport; large open spaces; “complete” activity centres) and a
     <b>lenient</b> one (pooled fresh food sources; any stop; any open space; “local”
     activity centres). Comparing the two brackets the plausible range for access.</p>
+    <h3>The validation activity</h3>
+    <p>The <b>Validation activity</b> button opens the structured feedback form, in three parts.
+    <b>Part A</b> walks a stratified sample of points — five in each geographic quadrant of the
+    study region, drawn with probability proportional to grid-cell population — and shows the
+    actual routes the indicators used to reach the nearest destination of each category. Each
+    point is judged once under <b>each of the four network scenarios</b>, so the four ways of
+    accounting for access are compared on identical points. <b>Part B</b> asks for one overall
+    judgement per scenario, and <b>Part C</b> rates the wider method against your city's context.</p>
+    <p>The four scenarios assume, in turn, that:</p>
+    <ul style="margin:2px 0 0 16px;padding:0">
+      ${Object.keys(MEASURE_UI).map(k =>
+        `<li><b>${MEASURE_UI[k].full}</b> — ${MEASURE_UI[k].assume}.</li>`).join('')}
+    </ul>
+    <p>Answers are held in this browser as you go, and downloaded at the end as a single
+    file to email to the research team.</p>
     <p style="text-align:right"><button class="small" onclick="infoModal.style.display='none'">Close</button></p>`;
 }
 
@@ -1238,12 +1355,12 @@ async function loadCity(s) {
         layout: { visibility: 'none' }, paint: circle(OVERLAY_COLORS.ptfreq_pts, 4.5) },
     ],
   };
+  const bb = [[b[0], b[1]], [b[2], b[3]]];
   if (map) {
     map.setMinZoom(0);
     map.setStyle(style);
-    map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { duration: 0 });
   } else {
-    map = new maplibregl.Map({ container: 'map', style, bounds: [[b[0], b[1]], [b[2], b[3]]] });
+    map = new maplibregl.Map({ container: 'map', style, bounds: bb });
     map.addControl(new maplibregl.NavigationControl());
     map.on('moveend', updateHash);
     map.on('click', e => {
@@ -1262,10 +1379,17 @@ async function loadCity(s) {
     });
     wireHover();
   }
+  // Every city opens at the same zoom, centred on its region, so the street
+  // detail and the apparent scale of the grid are comparable between cities
+  // rather than a function of how large the study region happens to be.
+  const fit = map.cameraForBounds(bb, { padding: 20 })
+    || { center: map.getCenter(), zoom: map.getZoom() };
   // don't allow zooming out beyond the whole-city view: low-zoom tiles thin
   // out dense layers to stay within size budgets, which reads as gaps.
-  // Floor of 9 because grid tiles below z9 are thinned even for large regions.
-  map.setMinZoom(Math.max(9, map.getZoom() - 0.1));
+  // Floor of 9 because grid tiles below z9 are thinned even for large regions;
+  // capped at the default so a compact region isn't clamped back out of it.
+  map.setMinZoom(Math.max(9, Math.min(DEFAULT_ZOOM, fit.zoom - 0.1)));
+  if (!initialCameraPending) map.jumpTo({ center: fit.center, zoom: DEFAULT_ZOOM });
   if (initialCameraPending) {
     initialCameraPending = false;
     const [z, lat, lng] = (initialState.get('m') || '').split('/').map(Number);
@@ -1311,8 +1435,13 @@ $('shareBtn').onclick = async () => {
     ta.value = url; document.body.appendChild(ta); ta.select();
     document.execCommand('copy'); ta.remove();
   }
-  $('shareBtn').textContent = 'Link copied ✓';
-  setTimeout(() => { $('shareBtn').textContent = 'Copy share link'; }, 1500);
+  // the icon stays put; the confirmation is a transient bubble above it
+  $('shareBtn').classList.add('copied');
+  $('shareBtn').title = 'Link copied';
+  setTimeout(() => {
+    $('shareBtn').classList.remove('copied');
+    $('shareBtn').title = 'Copy share link';
+  }, 1500);
 };
 const infoModal = $('infoModal');
 $('infoBtn').onclick = () => { $('infoBody').innerHTML = infoHTML(); infoModal.style.display = 'flex'; };
@@ -1330,22 +1459,201 @@ $('reportClose').onclick = () => { $('reportView').style.display = 'none'; $('re
 // measure, and collects a short structured judgement per point.
 const CAT_COLORS = { fresh_food_market: '#e6194b', pt_frequent: '#2e50e7',
                      public_open_space_large: '#2f8f3f' };
-const ISSUE_OPTIONS = [
-  ['stress_low', 'Street stress rated too low (should feel less safe)'],
-  ['stress_high', 'Street stress rated too high (is actually fine to ride)'],
-  ['path_unusable', 'Path/link does not exist or is not usable'],
-  ['dismount_wrong', 'Dismount (walking) classification is wrong'],
-  ['dest_wrong', 'Destination is wrong, missing or misclassified'],
-  ['detour', 'Route is an implausible detour'],
-  ['other', 'Other (describe below)'],
-];
-let routeData = null, assessIdx = 0, assessMeasure = null, responses = {};
-let assessLabels = [];
-
+// Display label and plain-language assumption for each routing measure. Stated once
+// here and reused by the Part A question, the Part B question, the network button
+// tooltips, the Part C checklist and the info modal, so a rater never meets two
+// different accounts of the same scenario. Keyed by the measure key in the routes
+// JSON, so relabelling costs no regeneration of those files.
+// `btn` is the compact caption for the horizontal scenario buttons; `full` is the
+// label used wherever there is room for it, including the question itself.
+const MEASURE_UI = {
+  lts1: {
+    full: 'Low stress (LTS 1), allowing dismount', btn: 'LTS 1',
+    assume: 'most children could feel safe riding on these streets (LTS 1), allowing dismount to walk the bike where required' },
+  low_stress_ride: {
+    full: 'Low stress (LTS 1–2), without dismount', btn: 'LTS 1–2<br>no dismount',
+    assume: 'most adults could feel safe riding on these streets (LTS 1–2), and the whole route can be ridden — no getting off to push' },
+  low_stress: {
+    full: 'Low stress (LTS 1–2), allowing dismount', btn: 'LTS 1–2',
+    assume: 'most adults could feel safe riding on these streets (LTS 1–2), allowing dismount to walk the bike where required' },
+  danger_weighted: {
+    full: 'Stress penalty, allowing dismount', btn: 'Stress<br>penalty',
+    assume: 'riders will use higher-stress streets (LTS 3–4) where they must, but each metre of those counts as 1.25 m, allowing dismount to walk the bike where required' },
+};
 // assessment measure key -> dashboard Network option (column infix), so the
 // choropleth and summary always describe the network whose routes are drawn
 const MEASURE_TO_NET = { lts1: 'lts1_', low_stress_ride: 'ride_',
                          low_stress: 'safe_', danger_weighted: '' };
+const measLabel = k => (MEASURE_UI[k] || {}).full ||
+  (((routeData && (routeData.measures || []).find(m => m.key === k)) || {}).label) || k;
+const measAssume = k => (MEASURE_UI[k] || {}).assume || '';
+const measTip = k => {
+  const n = NETWORKS[MEASURE_TO_NET[k]];
+  return measAssume(k) + (n ? `.\n\nRoutes are ${n.desc}.` : '');
+};
+
+const ISSUE_OPTIONS = [
+  ['stress_low', 'Street stress rated too low (it is less safe than represented)'],
+  ['stress_high', 'Street stress rated too high (it is actually fine to ride)'],
+  ['path_unusable', 'Path/link does not exist or is not usable'],
+  ['dismount_wrong', 'Dismount (walking) classification is wrong'],
+  ['detour', 'Route is an implausible detour'],
+  // a heading rather than an option: recorded when one of DEST_ISSUES is ticked.
+  // The label is reused unchanged in the finish page's issue tally.
+  ['dest_wrong', 'Destination is wrong, missing or misclassified'],
+  ['other', 'Other'],
+];
+// nested under dest_wrong, and multi-selectable: a rater may flag more than one
+const DEST_ISSUES = [
+  ['fresh_food_market', 'fresh food / market'],
+  ['pt_frequent', 'public transport'],
+  ['public_open_space_large', 'public open space'],
+];
+// Parts A and B are binary, asked in the same order in both. Part C keeps the
+// three-point scale, where "unsure" is a meaningful answer about the method.
+const YN = [[-1, 'No'], [1, 'Yes']];
+const TRI = [[-1, 'No'], [0, 'Unsure'], [1, 'Yes']];
+
+// any reason at all — a named issue, or one of the destination types under the
+// dest_wrong heading, which counts on its own
+const hasReason = rec => ((rec || {}).issues || []).length > 0
+  || ((rec || {}).dests || []).length > 0;
+// "Other" says nothing until it is described, so it carries the comment with it
+const needsComment = rec => ((rec || {}).issues || []).includes('other');
+const reasonsGiven = rec => hasReason(rec)
+  && (!needsComment(rec) || !!((rec || {}).comment || '').trim());
+// is a "No" still waiting for its reason? drives the highlight on the reason box
+const needIssues = (isNo, rec) => isNo && !hasReason(rec);
+// the comment box turns required, and says so, while "Other" is unexplained
+function markCommentNeed(rec) {
+  const box = $('commentBox');
+  if (!box) return;
+  const wanted = needsComment(rec);
+  box.classList.toggle('need', wanted && !((rec || {}).comment || '').trim());
+  box.querySelector('legend').innerHTML = wanted
+    ? 'Comment &mdash; please describe &ldquo;Other&rdquo;' : 'Comment (optional)';
+}
+const checkedValues = name =>
+  [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(e => e.value);
+// leaving "No" clears the reasons on screen as well as in the record, so the two
+// never disagree while the box is hidden
+function clearIssueTicks() {
+  for (const el of document.querySelectorAll('input[name="issue"], input[name="dest"]'))
+    el.checked = false;
+}
+
+// A "No" is only a complete answer once at least one reason is given: the reason
+// is the part that can be acted on, so an unexplained No counts as unfinished.
+const answered = a => !!a && !!a.ok && (a.ok !== 'no' || reasonsGiven(a));
+const answeredOverall = o => !!o && o.r !== undefined && o.r !== ''
+  && (Number(o.r) !== -1 || reasonsGiven(o));
+
+// The reasons behind a "No", shared by both parts: at a point in Part A, and for
+// the city as a whole in Part B. All options are non-exclusive. `dest_wrong` is
+// only a heading over the three destination types — there is nothing to say
+// beyond which of them is wrong — so it has no checkbox of its own and is
+// recorded whenever one of its children is ticked.
+function issuesHTML(a) {
+  return ISSUE_OPTIONS.map(([k, lbl]) => {
+    if (k === 'dest_wrong')
+      return `<div class="issue-head">${lbl}:</div><div class="subchecks">` +
+        DEST_ISSUES.map(([dk, dl]) =>
+          `<label><input type="checkbox" name="dest" value="${dk}"` +
+          `${(a.dests || []).includes(dk) ? ' checked' : ''}> ${dl}</label>`).join('') +
+        '</div>';
+    return `<label><input type="checkbox" name="issue" value="${k}"` +
+      `${(a.issues || []).includes(k) ? ' checked' : ''}> ${lbl}</label>`;
+  }).join('');
+}
+
+// What the rater has ticked, with dest_wrong implied by its children so the
+// issue category stays countable alongside the others.
+function collectReasons() {
+  const dests = checkedValues('dest');
+  const issues = checkedValues('issue').filter(k => k !== 'dest_wrong');
+  if (dests.length) issues.push('dest_wrong');
+  return { issues, dests };
+}
+
+// Part C. `rate` false means the group is a preference question only — importance
+// ranking, no validity or applicability. Help text reuses the wording already used
+// elsewhere in the page (NETWORKS descriptions, IND_DESCS) wherever one exists.
+const CHECKLIST = [
+  { key: 'network', title: 'Network', rate: true,
+    hint: 'How a route is allowed to be made up.',
+    items: [
+      { key: 'lts1', label: 'LTS 1', help: measTip('lts1') },
+      { key: 'low_stress_ride', label: 'LTS 1–2 without dismount', help: measTip('low_stress_ride') },
+      { key: 'low_stress', label: 'LTS 1–2 allowing dismount', help: measTip('low_stress') },
+      { key: 'danger_weighted', label: 'Stress penalty', help: measTip('danger_weighted') },
+      { key: 'other', label: 'Other (leave a comment)', other: true,
+        help: 'Any other way of defining the cycleable network that would matter in your city.' },
+    ] },
+  { key: 'distances', title: 'Distances', rate: true,
+    hint: 'How far counts as accessible, and how that is summarised.',
+    items: [
+      { key: 'd500', label: '500 m threshold',
+        help: 'Access counted only where the nearest destination is within 500 m of counted network distance — on the order of two minutes riding.' },
+      { key: 'd1000', label: '1000 m threshold',
+        help: 'Access counted within 1000 m of counted network distance — on the order of four minutes riding.' },
+      { key: 'd2000', label: '2000 m threshold',
+        help: 'Access counted within 2000 m of counted network distance — on the order of eight minutes riding. This is the headline threshold in most of these results.' },
+      { key: 'd5000', label: '5000 m threshold',
+        help: 'Access counted within 5000 m of counted network distance — on the order of twenty minutes riding, and the outer limit used in this analysis.' },
+      { key: 'iso_summary', label: 'Isochrone summary (distance bands)',
+        help: 'Each grid cell is coloured by the closest of 500 m, 1000 m, 2000 m or 5000 m at which at least half its sample points can reach a destination.' },
+      { key: 'avg_summary', label: '“Average distance” (continuous) summary',
+        help: 'The average network distance from a cell’s sample points to the nearest destination, averaged only over the points that can reach one at all — so sparse areas show few reachable points and long distances.' },
+      { key: 'other', label: 'Other (leave a comment)', other: true,
+        help: 'Any other distance, time or summary that would matter in your city.' },
+    ] },
+  { key: 'destinations', title: 'Destinations', rate: true,
+    hint: 'What access is counted to.',
+    items: [
+      { key: 'per_destination', label: 'Accessibility to each destination within threshold',
+        help: 'Access reported separately for each category: a fresh food market or supermarket, a frequent public transport stop, and an entry to a large (>1.5 ha) public open space.' },
+      { key: 'co_located', label: 'Accessibility to a walkable catchment (400 m) of co-located destinations',
+        help: 'Access to ' + IND_DESCS.activity_centre_complete },
+      { key: 'lenient', label: 'Lenient destination variants (e.g. any public transport, any public open space)',
+        help: 'The same measures computed with broader definitions — fresh food pooled with convenience stores, any public transport stop, any public open space — which together with the strict definitions brackets the plausible range for access.' },
+      { key: 'other', label: 'Other (leave a comment)', other: true,
+        help: 'Any other destination or definition that would matter in your city.' },
+    ] },
+  { key: 'result_formats', title: 'Result formats', rate: false,
+    hint: 'A preference question — rank these by how useful each would be to you, most useful first. No validity or applicability rating applies.',
+    items: [
+      { key: 'dashboard', label: 'Dashboard / website',
+        help: 'An interactive online map and control panel, like the one you are using now.' },
+      { key: 'graph', label: 'Graph',
+        help: 'Charts summarising how access is distributed across the city and its sub-areas.' },
+      { key: 'map', label: 'Map',
+        help: 'Static, print-ready maps of access across the city.' },
+      { key: 'pdf', label: 'PDF report',
+        help: 'A written report combining statistics, maps and case studies — the validation report available from this dashboard.' },
+      { key: 'table', label: 'Table',
+        help: 'Summary tables of indicator values for the region and its sub-areas.' },
+      { key: 'data_tabular', label: 'Tabular data file',
+        help: 'A CSV or spreadsheet of indicator values per grid cell, sub-area and region, for your own analysis.' },
+      { key: 'data_spatial', label: 'Geospatial data file',
+        help: 'A GeoPackage or similar of the grid, network and destinations, for use in GIS.' },
+      { key: 'other', label: 'Other (leave a comment)', other: true,
+        help: 'Any other format that would be more useful in your setting.' },
+    ] },
+];
+const FREE_TEXT = [
+  ['destinations_missing', 'Are there any key destinations missing or wrongly included in your city?'],
+  ['general', 'Any other comments on the indicators or this validation?'],
+];
+
+let routeData = null, assessIdx = 0, assessMeasure = null;
+let assessLabels = [], assessStage = 'start', nudged = false, preAssessLayers = null;
+// the whole response record for the current city
+let resp = blankResp();
+function blankResp() {
+  return { rater: '', slug: '', updated: '',
+           points: {}, overall: {}, checklist: {}, freeText: {} };
+}
+
 function syncDashboardNetwork() {
   const n = MEASURE_TO_NET[assessMeasure];
   if (n === undefined || $('network').value === n) return;
@@ -1356,13 +1664,90 @@ function syncDashboardNetwork() {
   updateHash();
 }
 
-function respKey(s) { return `cyclingValidationResponses:${s}`; }
+// Round 2 response record. The key is deliberately new: `cyclingValidationResponses:`
+// holds the earlier per-point 1–5 shape, which cannot be mapped onto per-network
+// yes/no answers. That data is left in place untouched rather than migrated.
+const RESP_PREFIX = 'cyclingValidationV2:';
+const RATER_KEY = 'cyclingValidationRater';
+function respKey(s) { return RESP_PREFIX + s; }
 function loadResponses(s) {
-  try { responses = JSON.parse(localStorage.getItem(respKey(s))) || {}; }
-  catch { responses = {}; }
+  resp = blankResp();
+  try {
+    const raw = JSON.parse(localStorage.getItem(respKey(s)));
+    if (raw && typeof raw === 'object') resp = Object.assign(resp, raw);
+  } catch {}
+  resp.slug = s;
+  // the rater is the same person across cities, so it lives outside the city record
+  try { resp.rater = localStorage.getItem(RATER_KEY) || resp.rater || ''; } catch {}
+  // seed each checklist group's ranking with the order the items are declared in
+  for (const g of CHECKLIST) {
+    const cur = resp.checklist[g.key] || { order: [], items: {} };
+    const known = g.items.map(i => i.key);
+    cur.items = cur.items || {};
+    cur.order = (cur.order || []).filter(k => known.includes(k));
+    for (const k of known) if (!cur.order.includes(k)) cur.order.push(k);
+    resp.checklist[g.key] = cur;
+  }
 }
 function saveResponses() {
-  try { localStorage.setItem(respKey(slug), JSON.stringify(responses)); } catch {}
+  resp.updated = new Date().toISOString();
+  try { localStorage.setItem(respKey(resp.slug || slug), JSON.stringify(resp)); } catch {}
+  try { if (resp.rater) localStorage.setItem(RATER_KEY, resp.rater); } catch {}
+  refreshActivityStatus(resp.slug || slug);
+}
+
+// ---- progress counters, shared by the stage navigator and the start screen ----
+// Each takes an optional record so the status beside the button can be read off
+// a stored city without disturbing the one being worked on.
+function nPoints() { return routeData ? routeData.points.length : 0; }
+function nMeasures() { return routeData ? routeData.measures.length : 0; }
+function pointAnswers(id, r) {
+  return Object.values(((r || resp).points || {})[id] || {}).filter(answered).length;
+}
+function countA(r) {
+  return (routeData ? routeData.points : []).reduce((n, p) => n + pointAnswers(p.id, r), 0);
+}
+function countB(r) {
+  return Object.values((r || resp).overall || {}).filter(answeredOverall).length;
+}
+// Part C progress counts the rateable items only: the "Other" rows are free text,
+// and Result formats is ranked rather than rated, so neither can be "unanswered".
+function rateableC() {
+  return CHECKLIST.filter(g => g.rate)
+    .flatMap(g => g.items.filter(i => !i.other).map(i => [g.key, i.key]));
+}
+function countC(r) {
+  return rateableC().filter(([gk, ik]) => {
+    const v = (((r || resp).checklist || {})[gk] || {}).items || {};
+    const it = v[ik] || {};
+    return it.v !== undefined && it.v !== '' && it.a !== undefined && it.a !== '';
+  }).length;
+}
+function totalC() { return rateableC().length; }
+function activityComplete(r) {
+  return !!routeData && countA(r) === nPoints() * nMeasures()
+    && countB(r) === nMeasures() && countC(r) === totalC();
+}
+// What is still missing, in the same wording as the progress line.
+function outstandingText(r) {
+  return `Parts A, B and C must all be complete before you can download: ` +
+    `A ${countA(r)}/${nPoints() * nMeasures()}, B ${countB(r)}/${nMeasures()}, ` +
+    `C ${countC(r)}/${totalC()}.`;
+}
+// A one-word state beside the Validation activity button, so someone returning
+// to the page can see where they left off without opening the activity.
+function refreshActivityStatus(s) {
+  const el = $('assessStatus');
+  if (!el) return;
+  if (!routeData) { el.textContent = ''; el.className = ''; return; }
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(respKey(s || slug))); } catch {}
+  const r = Object.assign(blankResp(), stored || {});
+  const started = countA(r) + countB(r) + countC(r) > 0;
+  const done = activityComplete(r);
+  el.textContent = !started ? 'not yet started'
+    : done ? 'completed! \u{1F389}\u{1F64F}' : 'incomplete';
+  el.className = done ? 'done' : started ? 'part' : '';
 }
 
 async function loadRoutes(s) {
@@ -1372,6 +1757,7 @@ async function loadRoutes(s) {
     if (res.ok) routeData = await res.json();
   } catch {}
   $('assessBtn').style.display = routeData ? 'inline-block' : 'none';
+  refreshActivityStatus(s);
 }
 
 function routeFor(pointId, measure, cat) {
@@ -1632,11 +2018,61 @@ function drawStep() {
   });
 }
 
+const attr = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+// for the comment boxes, which are now banked as they are typed rather than on
+// navigation: no need to rewrite the whole record on every keystroke
+const debounce = (fn, ms) => {
+  let t;
+  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+};
+
+// The scenario buttons, shared by Parts A and B so the control is learnt once.
+function netBtnsHTML(current) {
+  return '<div class="net-btns" id="measCtl">' + routeData.measures.map(m =>
+    `<button data-meas="${m.key}" title="${attr(measTip(m.key))}"` +
+    `${m.key === current ? ' class="on"' : ''}>` +
+    `${(MEASURE_UI[m.key] || {}).btn || m.short}</button>`).join('') + '</div>';
+}
+
+// Arriving at a point, or at Part B, starts on the leftmost scenario still
+// unanswered — so a rater always works left to right and a fresh point always
+// opens on LTS 1, rather than inheriting whatever was last looked at.
+function resetMeasure(done) {
+  if (!routeData) return;
+  assessMeasure = (routeData.measures.find(m => !done.has(m.key))
+    || routeData.measures[0]).key;
+  syncDashboardNetwork();
+}
+
+// Which scenarios carry an answer — for a point (Part A), and for the city (Part B).
+const donePoint = id => new Set(routeData.measures.map(m => m.key)
+  .filter(k => answered((resp.points[id] || {})[k])));
+const doneOverall = () => new Set(routeData.measures.map(m => m.key)
+  .filter(k => answeredOverall(resp.overall[k])));
+
+// Progress feedback applied by class, not by re-rendering, so a part-typed
+// comment is never lost: shade what is answered, ring what to do next. The ring
+// only appears once the scenario on screen has been answered — until then the
+// thing to do is the question already in front of the rater — and lands on the
+// forward button when every scenario has an answer.
+function markProgress(done, current) {
+  const btns = [...document.querySelectorAll('#measCtl button[data-meas]')];
+  for (const b of btns) {
+    b.classList.toggle('done', done.has(b.dataset.meas));
+    b.classList.remove('next');
+  }
+  const fwd = $('nextBtn');
+  if (fwd) fwd.classList.remove('next');
+  if (!done.has(current)) return;
+  const nextUp = btns.find(b => !done.has(b.dataset.meas));
+  if (nextUp) nextUp.classList.add('next');
+  else if (fwd) fwd.classList.add('next');
+}
+
 function stepHTML() {
   const pt = routeData.points[assessIdx];
-  const r = responses[pt.id] || {};
-  const measBtns = routeData.measures.map(m =>
-    `<button class="${m.key === assessMeasure ? 'on' : ''}" data-meas="${m.key}">${m.label}</button>`).join('');
+  const a = (resp.points[pt.id] || {})[assessMeasure] || {};
   const limit = (routeData.max_band_m || 5000).toLocaleString();
   const rows = routeData.categories.map(c => {
     const cells = routeData.measures.map(m => {
@@ -1652,22 +2088,8 @@ function stepHTML() {
            `${c.label}<div class="bd-x">${breakdownText(pt, c)}</div>` +
            (cmp ? `<div class="dm-x">${cmp}</div>` : '') + `</td>${cells}</tr>`;
   }).join('');
-  const issues = ISSUE_OPTIONS.map(([k, lbl]) =>
-    `<label><input type="checkbox" name="issue" value="${k}"` +
-    `${(r.issues || []).includes(k) ? ' checked' : ''}> ${lbl}</label>`).join('');
-  // one scale per destination, so a problem with a destination can be told apart
-  // from a problem with the route to it
-  const scales = routeData.categories.map(c => {
-    const cur = (r.plaus || {})[c.key];
-    const btns = [1, 2, 3, 4, 5].map(n =>
-      `<label class="lk"><input type="radio" name="plaus_${c.key}" value="${n}"` +
-      `${String(cur) === String(n) ? ' checked' : ''}><span>${n}</span></label>`).join('');
-    return `<div class="lk-row"><span class="lk-lab">` +
-      `<span class="dot" style="background:${CAT_COLORS[c.key] || '#888'}"></span>` +
-      `${c.label}</span><span class="likert">${btns}</span></div>`;
-  }).join('');
   return `
-    <div class="seg-ctl" id="measCtl">${measBtns}</div>
+    ${netBtnsHTML(assessMeasure)}
     <table class="rt"><thead><tr><th class="l">Distance (m)</th>` +
       routeData.measures.map(m =>
         `<th class="${m.key === assessMeasure ? 'selcol' : 'dim'}">${m.short}</th>`).join('') +
@@ -1685,47 +2107,67 @@ function stepHTML() {
       Distance compared with the 2000 m / 5000 m threshold; penalties are incurred by higher-stress riding (×1.25) and dismount (walking; ×3) . The no-dismount route (LSR) may not walk at all,
       so where it is longer or missing, that access depends on getting off and pushing the bike. Dotted legs join the sample point and the
       destination to the network and count at face value. Selected network route is highlighted and displayed on the map; &ldquo;—&rdquo; = not reachable.</div>
-    <fieldset><legend>2.1 Does each route look plausible here?</legend>
-      ${scales}
-      <div class="lk-ends"><span>1 — not at all</span><span>5 — completely</span></div>
+    <div class="q">
+      <b>Under the assumptions of the selected &ldquo;${measLabel(assessMeasure)}&rdquo;
+      network scenario &mdash; <span class="assume">${measAssume(assessMeasure)}</span>
+      &mdash; do these routes provide a good representation of access to the closest
+      destination up to ${limit} m?</b>
+      <div class="yn">
+        <label><input type="radio" name="ok" value="no"${a.ok === 'no' ? ' checked' : ''}> No</label>
+        <label><input type="radio" name="ok" value="yes"${a.ok === 'yes' ? ' checked' : ''}> Yes</label>
+      </div>
+    </div>
+    <fieldset id="issueBox" class="${needIssues(a.ok === 'no', a) ? 'need' : ''}"
+      style="display:${a.ok === 'no' ? 'block' : 'none'}">
+      <legend>Please select one or more issues</legend>${issuesHTML(a)}</fieldset>
+    <fieldset id="commentBox"><legend>Comment (optional)</legend>
+      <textarea id="assessComment" rows="2">${attr(a.comment || '')}</textarea>
     </fieldset>
-    <fieldset><legend>2.2 If not, what is wrong?</legend>${issues}</fieldset>
-    <fieldset><legend>2.3 Comments</legend>
-      <textarea id="assessComment" rows="2" placeholder="Optional">${r.comment || ''}</textarea>
-    </fieldset>
+    <div class="nudge" id="nudge"></div>
     <div class="nav">
       <button class="small" id="prevBtn"${assessIdx === 0 ? ' disabled' : ''}>Back</button>
-      <button class="small" id="nextBtn">${assessIdx === routeData.points.length - 1 ? 'Finish' : 'Next'}</button>
-    </div>
-    <div class="nav"><button class="small" id="exitBtn">Exit assessment</button></div>`;
+      <button class="small" id="nextBtn">${assessIdx === routeData.points.length - 1 ? 'Go to Part B' : 'Next point'}</button>
+    </div>`;
 }
 
+// The response unit is the point *and* the network scenario: the same point is
+// judged once under each of the four, so the measures are compared within point.
 function captureResponse() {
+  if (!routeData || !assessMeasure) return;
   const pt = routeData.points[assessIdx];
-  const g = n => document.querySelector(`input[name="${n}"]:checked`);
-  const plaus = {};
-  for (const c of routeData.categories) {
-    const el = document.querySelector(`input[name="plaus_${c.key}"]:checked`);
-    if (el) plaus[c.key] = Number(el.value);
-  }
+  if (!pt || !document.querySelector('input[name="ok"]')) return;
+  const okEl = document.querySelector('input[name="ok"]:checked');
+  const ok = okEl ? okEl.value : '';
+  // reasons belong to a "No": a Yes must not carry them, or the exported row
+  // would contradict itself
+  const why = ok === 'no' ? collectReasons() : { issues: [], dests: [] };
   const rec = {
-    plaus,
-    issues: [...document.querySelectorAll('input[name="issue"]:checked')].map(e => e.value),
+    ok,
+    issues: why.issues,
+    dests: why.dests,
     comment: ($('assessComment') || {}).value || '',
   };
-  if (Object.keys(plaus).length || rec.issues.length || rec.comment) {
-    responses[pt.id] = rec;
-    saveResponses();
-  }
+  const cell = resp.points[pt.id] || (resp.points[pt.id] = {});
+  if (rec.ok || rec.issues.length || rec.dests.length || rec.comment) cell[assessMeasure] = rec;
+  else delete cell[assessMeasure];
+  saveResponses();
+}
+
+function stepProgress(pt) {
+  $('assessProg').textContent =
+    `Point ${assessIdx + 1} of ${nPoints()} (${pt.q}) · ` +
+    `${pointAnswers(pt.id)} of ${nMeasures()} networks answered · ` +
+    `${countA()} of ${nPoints() * nMeasures()} overall`;
 }
 
 function renderStep() {
+  if (!routeData) return;
+  nudged = false;
   const pt = routeData.points[assessIdx];
-  const done = Object.keys(responses).length;
-  $('assessProg').textContent =
-    `Point ${assessIdx + 1} of ${routeData.points.length} · ${done} answered`;
+  stepProgress(pt);
   $('assessBody').innerHTML = stepHTML();
   drawStep();
+  markProgress(donePoint(pt.id), assessMeasure);
   $('measCtl').onclick = e => {
     const b = e.target.closest('button[data-meas]');
     if (!b) return;
@@ -1734,89 +2176,459 @@ function renderStep() {
     syncDashboardNetwork();
     renderStep();
   };
-  $('prevBtn').onclick = () => { captureResponse(); assessIdx--; renderStep(); };
+  // Progressive disclosure: the reasons appear only on "No", without a re-render
+  // so a part-typed comment is never lost. Answering also banks the response, so
+  // the scenario shades complete and the ring moves on at the moment of the click
+  // rather than waiting for the rater to navigate away — and a "No" only counts
+  // once a reason is ticked, so the reasons are live too.
+  const syncStep = () => {
+    captureResponse();
+    const rec = (resp.points[pt.id] || {})[assessMeasure] || {};
+    $('issueBox').classList.toggle('need', needIssues(rec.ok === 'no', rec));
+    markCommentNeed(rec.ok === 'no' ? rec : {});
+    markProgress(donePoint(pt.id), assessMeasure);
+    stepProgress(pt);
+  };
+  const cur = (resp.points[pt.id] || {})[assessMeasure] || {};
+  markCommentNeed(cur.ok === 'no' ? cur : {});
+  for (const el of document.querySelectorAll('input[name="ok"]'))
+    el.onchange = () => {
+      const isNo = el.value === 'no';
+      if (!isNo) clearIssueTicks();
+      $('issueBox').style.display = isNo ? 'block' : 'none';
+      syncStep();
+    };
+  for (const el of document.querySelectorAll('input[name="issue"], input[name="dest"]'))
+    el.onchange = syncStep;
+  // the comment completes an "Other", so it is banked as it is typed
+  $('assessComment').oninput = debounce(syncStep, 250);
+  $('prevBtn').onclick = () => { captureResponse(); assessIdx--; goPoint(); };
   $('nextBtn').onclick = () => {
     captureResponse();
-    if (assessIdx === routeData.points.length - 1) finishAssessment();
-    else { assessIdx++; renderStep(); }
+    const n = pointAnswers(pt.id);
+    // soft nudge: say what is missing once, then let them go anyway
+    if (n < nMeasures() && !nudged) {
+      nudged = true;
+      $('nudge').textContent = `Only ${n} of ${nMeasures()} network scenarios answered ` +
+        'for this point — press again to continue anyway.';
+      $('assessProg').textContent =
+        `Point ${assessIdx + 1} of ${nPoints()} (${pt.q}) · ${n} of ${nMeasures()} ` +
+        `networks answered · ${countA()} of ${nPoints() * nMeasures()} overall`;
+      return;
+    }
+    if (assessIdx === nPoints() - 1) goStage('B');
+    else { assessIdx++; goPoint(); }
   };
-  $('exitBtn').onclick = () => { captureResponse(); exitAssessment(); };
 }
 
-function assessmentCSV() {
-  const head = ['city', 'slug', 'seed', 'point_id', 'quadrant', 'lon', 'lat'];
-  for (const c of routeData.categories) head.push(`plausible_${c.key}_1_5`);
-  head.push('issues', 'comment');
-  // the indicator value shown in the table (net), and the raw geometric path length
-  // it is made from (m) — reported separately so the download matches the screen
-  for (const m of routeData.measures)
-    for (const c of routeData.categories)
-      head.push(`${m.key}__${c.key}_m`, `${m.key}__${c.key}_path_m`);
-  const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
-  const lines = [head.join(',')];
-  for (const pt of routeData.points) {
-    const r = responses[pt.id] || {};
-    const row = [routeData.name, routeData.slug, routeData.seed, pt.id, pt.q,
-                 pt.lon, pt.lat];
-    for (const c of routeData.categories) row.push((r.plaus || {})[c.key] || '');
-    row.push((r.issues || []).join('|'), r.comment || '');
-    for (const m of routeData.measures)
-      for (const c of routeData.categories) {
-        const rt = routeFor(pt.id, m.key, c.key);
-        row.push(rt && rt.ok ? Math.round(rt.net) : '',
-                 rt && rt.ok ? Math.round(rt.m) : '');
+// move to the point at assessIdx, starting on its leftmost unanswered scenario
+function goPoint() {
+  resetMeasure(donePoint(routeData.points[assessIdx].id));
+  renderStep();
+}
+
+// ---- export -----------------------------------------------------------------
+// One tidy long-format table: one row per recorded judgement, tagged by `section`.
+// Every rater x city file appends straight into a single master table, and the
+// paired point x network design falls out of a filter on section = route_point.
+const CSV_CATS = ['fresh_food_market', 'pt_frequent', 'public_open_space_large'];
+const CSV_HEAD = ['rater', 'city', 'slug', 'codename', 'seed', 'generated', 'exported_at',
+  'section', 'point_id', 'quadrant', 'lon', 'lat', 'pop',
+  'network_key', 'network_label', 'item_group', 'item_key', 'item_label',
+  'response', 'response_code', 'validity_code', 'applicability_code', 'importance_rank',
+  'issues', 'dest_types', 'comment'].concat(
+  CSV_CATS.flatMap(c => [`${c}_m`, `${c}_path_m`]));
+
+// rd may be null when a city's routes JSON could not be re-read (export-all): the
+// answers still export, without the distance columns.
+function csvRows(r, rd, stamp) {
+  const rows = [];
+  const base = { rater: r.rater || '', city: rd ? rd.name : (r.name || ''),
+                 slug: r.slug, codename: rd ? rd.codename : '',
+                 seed: rd ? rd.seed : '', generated: rd ? rd.generated : '',
+                 exported_at: stamp };
+  const measKeys = rd ? rd.measures.map(m => m.key) : Object.keys(MEASURE_UI);
+
+  const pts = rd ? rd.points
+    : Object.keys(r.points).map(id => ({ id: isNaN(id) ? id : Number(id) }));
+  for (const pt of pts)
+    for (const mk of measKeys) {
+      const a = (r.points[pt.id] || {})[mk] || {};
+      const row = Object.assign({}, base, {
+        section: 'route_point', point_id: pt.id, quadrant: pt.q, lon: pt.lon,
+        lat: pt.lat, pop: pt.pop, network_key: mk, network_label: measLabel(mk),
+        response: a.ok || '',
+        response_code: a.ok === 'yes' ? 1 : a.ok === 'no' ? -1 : '',
+        issues: (a.issues || []).join('|'), dest_types: (a.dests || []).join('|'),
+        comment: a.comment || '' });
+      for (const c of CSV_CATS) {
+        const rt = rd && (rd.routes || []).find(
+          x => x.p === pt.id && x.meas === mk && x.cat === c);
+        row[`${c}_m`] = rt && rt.ok ? Math.round(rt.net) : '';
+        row[`${c}_path_m`] = rt && rt.ok ? Math.round(rt.m) : '';
       }
-    lines.push(row.map(esc).join(','));
+      rows.push(row);
+    }
+
+  for (const mk of measKeys) {
+    const o = r.overall[mk] || {};
+    const code = o.r === undefined || o.r === '' ? '' : Number(o.r);
+    rows.push(Object.assign({}, base, {
+      section: 'network_overall', network_key: mk, network_label: measLabel(mk),
+      response: code === '' ? '' : (TRI.find(t => t[0] === code) || ['', ''])[1].toLowerCase(),
+      response_code: code,
+      issues: (o.issues || []).join('|'), dest_types: (o.dests || []).join('|'),
+      comment: o.comment || '' }));
   }
-  return lines.join('\n');
+
+  for (const g of CHECKLIST) {
+    const st = r.checklist[g.key] || { order: g.items.map(i => i.key), items: {} };
+    st.order.forEach((ik, i) => {
+      const it = g.items.find(x => x.key === ik) || { key: ik, label: ik };
+      const v = (st.items || {})[ik] || {};
+      rows.push(Object.assign({}, base, {
+        section: 'checklist', item_group: g.key, item_key: ik, item_label: it.label,
+        validity_code: g.rate && !it.other && v.v !== undefined && v.v !== '' ? Number(v.v) : '',
+        applicability_code: g.rate && !it.other && v.a !== undefined && v.a !== '' ? Number(v.a) : '',
+        importance_rank: i + 1, comment: v.comment || '' }));
+    });
+  }
+
+  for (const [k, label] of FREE_TEXT)
+    rows.push(Object.assign({}, base, {
+      section: 'free_text', item_key: k, item_label: label,
+      comment: (r.freeText || {})[k] || '' }));
+
+  return rows;
 }
 
-function finishAssessment() {
-  const n = Object.keys(responses).length;
-  // mean plausibility rating per destination, so the pattern is visible at a glance
-  const summary = routeData.categories.map(c => {
-    const vals = Object.values(responses)
-      .map(r => (r.plaus || {})[c.key]).filter(v => typeof v === 'number');
-    const mean = vals.length
-      ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '–';
-    return `<tr><td class="l"><span class="dot" style="background:${
-      CAT_COLORS[c.key] || '#888'}"></span>${c.label}</td>` +
-      `<td>${vals.length}</td><td>${mean}</td></tr>`;
-  }).join('');
-  $('assessProg').textContent = `Complete — ${n} of ${routeData.points.length} points answered`;
-  $('assessBody').innerHTML = `
-    <p style="font-size:12px">Thank you. Download your responses and email the file
-    to the research team, or copy them to paste into a message.</p>
-    <table class="rt"><thead><tr><th class="l">Destination</th><th>Rated</th>
-      <th>Mean 1–5</th></tr></thead>
-    <tbody>${summary || '<tr><td class="l">no responses</td><td>0</td><td>–</td></tr>'}</tbody></table>
-    <div class="nav">
-      <button class="small" id="dlBtn">Download CSV</button>
-      <button class="small" id="copyBtn">Copy</button>
-    </div>
-    <div class="nav">
-      <button class="small" id="backBtn">Back to points</button>
-      <button class="small" id="exitBtn2">Exit assessment</button>
-    </div>`;
-  $('dlBtn').onclick = () => {
-    const blob = new Blob([assessmentCSV()], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `cycling_route_assessment_${routeData.slug}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+function rowsToCSV(rows) {
+  const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  return [CSV_HEAD.join(',')]
+    .concat(rows.map(r => CSV_HEAD.map(h => esc(r[h])).join(',')))
+    .join('\n');
+}
+function assessmentCSV() {
+  return rowsToCSV(csvRows(resp, routeData, new Date().toISOString()));
+}
+function downloadCSV(text, name) {
+  const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function raterSlug() {
+  return (resp.rater || 'anon').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'anon';
+}
+
+// ================= stages =====================================================
+// Every part lives in the side panel, so the map is available throughout. The parts
+// are freely navigable — someone who only wants the checklist is not marched
+// through twenty points to reach it.
+const STAGES = [['start', 'Start'], ['A', 'A · Points'], ['B', 'B · Overall'],
+                ['C', 'C · Aspects'], ['finish', 'Finish']];
+function renderNav() {
+  $('assessNav').innerHTML = STAGES.map(([k, l]) =>
+    `<button data-stage="${k}"${k === assessStage ? ' class="on"' : ''}>${l}</button>`).join('');
+  $('assessNav').onclick = e => {
+    const b = e.target.closest('button[data-stage]');
+    if (!b || b.dataset.stage === assessStage) return;
+    captureStage();
+    goStage(b.dataset.stage);
   };
+}
+// whatever the stage on screen holds, saved before leaving it
+function captureStage() {
+  if (assessStage === 'A') captureResponse();
+  else if (assessStage === 'B') captureOverall();
+  else if (assessStage === 'start') captureRater();
+}
+function goStage(s) {
+  assessStage = s;
+  nudged = false;
+  renderNav();
+  if (s === 'start') renderIntro();
+  else if (s === 'A') goPoint();
+  else if (s === 'B') { resetMeasure(doneOverall()); renderOverall(); }
+  else if (s === 'C') renderChecklist();
+  else renderFinish();
+}
+
+// ---- start ----
+function firstUnanswered() {
+  const i = routeData.points.findIndex(p => pointAnswers(p.id) < nMeasures());
+  return i < 0 ? 0 : i;
+}
+function renderIntro() {
+  const nA = nPoints() * nMeasures();
+  $('assessProg').textContent = 'Answers are saved in this browser as you go';
+  $('assessBody').innerHTML = `
+    <div class="intro">
+      <p><b>Part A — sample points.</b> For each of the ${nPoints()} sample points, select
+      <b>each of the four network scenarios</b> in turn and answer the question below it.
+      Toggle destinations, dismount priority links and the Level of Traffic Stress network
+      in the left panel as you need. Four answers per point is a complete response
+      (${nA} in all).</p>
+      <p><b>Part B — overall.</b> One overall judgement per network scenario.</p>
+      <p><b>Part C — aspects.</b> Rate the parts of the method against your city's context.</p>
+      <p>Download the file at the end and email it to the research team.</p>
+    </div>
+    <fieldset><legend>Your name or initials</legend>
+      <input type="text" id="raterName" value="${attr(resp.rater || '')}"
+             placeholder="recorded against every response"></fieldset>
+    <table class="rt"><thead><tr><th class="l">Progress</th><th>Done</th><th>Of</th></tr></thead>
+      <tbody>
+        <tr><td class="l">A · point × network</td><td>${countA()}</td><td>${nA}</td></tr>
+        <tr><td class="l">B · overall by network</td><td>${countB()}</td><td>${nMeasures()}</td></tr>
+        <tr><td class="l">C · aspects rated</td><td>${countC()}</td><td>${totalC()}</td></tr>
+      </tbody></table>
+    <div class="nav">
+      <button class="small" id="beginBtn">${countA() ? 'Resume Part A' : 'Begin Part A'}</button>
+    </div>
+    <div class="nav"><button class="small" id="exitBtn">Exit activity</button></div>`;
+  $('raterName').oninput = captureRater;
+  $('beginBtn').onclick = () => {
+    captureRater();
+    if (countA()) assessIdx = firstUnanswered();
+    goStage('A');
+  };
+  $('exitBtn').onclick = () => { captureRater(); exitAssessment(); };
+}
+function captureRater() {
+  const el = $('raterName');
+  if (el) { resp.rater = el.value.trim(); saveResponses(); }
+}
+
+// ---- Part B: one verdict per network for the city as a whole ----
+// The same scenario buttons as Part A, one question at a time. The question and
+// the options are identical across the four, so asking them four times down the
+// panel only made the part longer; answering advances to the next unanswered one.
+function renderOverall() {
+  const done = doneOverall();
+  if (!assessMeasure || !routeData.measures.some(m => m.key === assessMeasure))
+    assessMeasure = (routeData.measures.find(m => !done.has(m.key))
+      || routeData.measures[0]).key;
+  const o = resp.overall[assessMeasure] || {};
+  const isNo = Number(o.r) === -1;
+  const opts = YN.map(([v, l]) =>
+    `<label><input type="radio" name="ov_${assessMeasure}" value="${v}"` +
+    `${String(o.r) === String(v) ? ' checked' : ''}> ${l}</label>`).join('');
+  $('assessProg').textContent =
+    `Part B — ${countB()} of ${nMeasures()} network scenarios answered`;
+  $('assessBody').innerHTML = `
+    <p class="hintline">Having looked at the sample points, give one judgement per network
+    scenario for the city as a whole.</p>
+    ${netBtnsHTML(assessMeasure)}
+    <div class="q"><b>Overall, is the representation of access to all destinations under
+      the &ldquo;${measLabel(assessMeasure)}&rdquo; scenario &mdash;
+      <span class="assume">${measAssume(assessMeasure)}</span> &mdash;
+      sufficiently accurate?</b>
+      <div class="yn">${opts}</div></div>
+    <fieldset id="issueBox" class="${needIssues(isNo, o) ? 'need' : ''}"
+      style="display:${isNo ? 'block' : 'none'}">
+      <legend>Please select one or more reasons</legend>${issuesHTML(o)}</fieldset>
+    <fieldset id="commentBox"><legend>Comment (optional)</legend>
+      <textarea rows="2" name="ovc_${assessMeasure}">${attr(o.comment || '')}</textarea>
+    </fieldset>
+    <div class="nav">
+      <button class="small" id="prevBtn">Back to Part A</button>
+      <button class="small" id="nextBtn">Go to Part C</button>
+    </div>`;
+  markProgress(done, assessMeasure);
+  $('measCtl').onclick = e => {
+    const b = e.target.closest('button[data-meas]');
+    if (!b) return;
+    captureOverall();
+    assessMeasure = b.dataset.meas;
+    syncDashboardNetwork();
+    renderOverall();
+  };
+  // A complete answer moves on to the next unanswered scenario; a "No" waits
+  // where it is until a reason is ticked, exactly as Part A does.
+  const syncOverall = advance => {
+    captureOverall();
+    const rec = resp.overall[assessMeasure] || {};
+    $('issueBox').classList.toggle('need', needIssues(Number(rec.r) === -1, rec));
+    markCommentNeed(Number(rec.r) === -1 ? rec : {});
+    const state = doneOverall();
+    $('assessProg').textContent =
+      `Part B — ${countB()} of ${nMeasures()} network scenarios answered`;
+    if (advance && state.has(assessMeasure)) {
+      const left = routeData.measures.find(m => !state.has(m.key));
+      if (left) { assessMeasure = left.key; syncDashboardNetwork(); }
+      renderOverall();
+      return;
+    }
+    markProgress(state, assessMeasure);
+  };
+  for (const el of document.querySelectorAll(`input[name="ov_${assessMeasure}"]`))
+    el.onchange = () => {
+      const isNo = Number(el.value) === -1;
+      if (!isNo) clearIssueTicks();
+      $('issueBox').style.display = isNo ? 'block' : 'none';
+      syncOverall(true);
+    };
+  for (const el of document.querySelectorAll('input[name="issue"], input[name="dest"]'))
+    el.onchange = () => syncOverall(false);
+  markCommentNeed(isNo ? o : {});
+  document.querySelector(`textarea[name="ovc_${assessMeasure}"]`).oninput =
+    debounce(() => syncOverall(false), 250);
+  $('prevBtn').onclick = () => { captureOverall(); goStage('A'); };
+  $('nextBtn').onclick = () => { captureOverall(); goStage('C'); };
+}
+function captureOverall() {
+  if (!routeData) return;
+  for (const m of routeData.measures) {
+    const el = document.querySelector(`input[name="ov_${m.key}"]:checked`);
+    const ta = document.querySelector(`textarea[name="ovc_${m.key}"]`);
+    if (!el && !ta) continue;
+    // only one scenario is ever on screen, so the ticked reasons are its own;
+    // as in Part A, they are kept only for a "No"
+    const r = el ? Number(el.value) : '';
+    const why = r === -1 ? collectReasons() : { issues: [], dests: [] };
+    const rec = { r, issues: why.issues, dests: why.dests, comment: ta ? ta.value : '' };
+    if (rec.r !== '' || rec.comment || rec.issues.length) resp.overall[m.key] = rec;
+    else delete resp.overall[m.key];
+  }
+  saveResponses();
+}
+
+// ---- Part C: validity, applicability and importance ----
+// In the side panel like Parts A and B, so the map stays available while a rater
+// judges whether the method suits their city. Each scale is a three-way switch
+// rather than a dropdown: one click instead of two, and narrow enough that both
+// scales fit beside the label at 330px.
+function checkProgress() {
+  $('assessProg').textContent = `Part C — ${countC()} of ${totalC()} aspects rated`;
+}
+
+// the hover sentence on each scale heading, echoing the instructions at the top
+const SCALE_HELP = {
+  v: 'Considering your city\'s context and the needs of bike users, rate the validity ' +
+     'for policy, practice and research of each aspect.',
+  a: 'Considering your city\'s context and the needs of bike users, rate the applicability ' +
+     'for policy, practice and research of each aspect.',
+};
+
+function renderChecklist() {
+  const scaleHead = (t, f, second) =>
+    `<span class="ck-sc${second ? ' ck-c2' : ''}" title="${attr(SCALE_HELP[f])}">${t}</span>`;
+  const groups = CHECKLIST.map(g => {
+    const st = resp.checklist[g.key];
+    const rows = st.order.map((ik, i) => {
+      const it = g.items.find(x => x.key === ik) || { key: ik, label: ik, help: '' };
+      const v = (st.items || {})[ik] || {};
+      const sw = (f, second) => `<span class="ck-sw${second ? ' ck-c2' : ''}" data-f="${f}">` +
+        TRI.map(([c, l]) =>
+          `<button data-v="${c}"${String(v[f]) === String(c) ? ' class="sel"' : ''}` +
+          `${c === 0 ? ' title="Unsure"' : ''}>${c === 0 ? '?' : l}</button>`).join('') +
+        '</span>';
+      // the "other" row is ranked like the rest, but has nothing to rate: its
+      // comment is the group's comment box below the rows
+      const cells = !g.rate ? ''
+        : it.other ? '<span class="ck-na">&ndash;</span><span class="ck-na ck-c2">&ndash;</span>'
+        : sw('v') + sw('a', true);
+      return `<div class="ck-row" data-i="${ik}">` +
+        `<span class="rk-n">${i + 1}</span>` +
+        '<span class="ck-grip" title="Drag to reorder">&#10303;</span>' +
+        `<span class="ck-lab ck-help" title="${attr(it.help)}">${it.label}</span>` +
+        cells + '</div>';
+    }).join('');
+    const head = '<div class="ck-head"><span class="ck-rank-h">Rank</span>' +
+      `<span class="ck-lab">${g.rate ? 'Aspect' : 'Format'}</span>` +
+      (g.rate ? scaleHead('Valid?', 'v') + scaleHead('Applicable?', 'a', true) : '') + '</div>';
+    const comment = ((st.items || {}).other || {}).comment || '';
+    return `<h3>${g.title}</h3><p class="ghint">${g.hint}</p>${head}` +
+      `<div class="ck-rows" data-g="${g.key}">${rows}</div>` +
+      `<textarea class="ck-other" rows="2" data-g="${g.key}" data-i="other" data-f="comment"` +
+      ` placeholder="Comment on ${g.title.toLowerCase()}">${attr(comment)}</textarea>`;
+  }).join('');
+  const free = FREE_TEXT.map(([k, label]) =>
+    `<h3>${label}</h3><textarea class="ck-other" rows="3" data-free="${k}"` +
+    `>${attr((resp.freeText || {})[k] || '')}</textarea>`).join('');
+  $('assessBody').innerHTML = `
+    <p class="hintline">Considering your city's context and the needs of bike users, rate the
+    <b>validity</b> and <b>applicability</b> for policy, practice and research of each aspect,
+    and rank them by <b>importance</b> for safe cycling policy, advocacy and research in
+    your city.</p>
+    <p class="ghint">Importance is ranked within each heading &mdash; <b>drag a row</b> up or
+    down, most important first. Hover any item for what it means in this analysis.</p>
+    ${groups}${free}
+    <div class="nav">
+      <button class="small" id="prevBtn">Back to Part B</button>
+      <button class="small" id="nextBtn">Finish</button>
+    </div>`;
+  $('prevBtn').onclick = () => goStage('B');
+  $('nextBtn').onclick = () => goStage('finish');
+  checkProgress();
+}
+
+// ---- finish ----
+function renderFinish() {
+  const nA = nPoints() * nMeasures();
+  const per = routeData.measures.map(m => {
+    let ans = 0, yes = 0;
+    for (const pt of routeData.points) {
+      const a = (resp.points[pt.id] || {})[m.key];
+      if (answered(a)) { ans++; if (a.ok === 'yes') yes++; }
+    }
+    const o = resp.overall[m.key] || {};
+    const ov = o.r === undefined || o.r === '' ? '–'
+      : (TRI.find(t => t[0] === Number(o.r)) || ['', '–'])[1];
+    return `<tr><td class="l">${measLabel(m.key)}</td><td>${ans}</td>` +
+      `<td>${ans ? Math.round(100 * yes / ans) + '%' : '–'}</td><td>${ov}</td></tr>`;
+  }).join('');
+  // most-cited issues: a first read on where the method fails
+  const tally = {};
+  for (const p of Object.values(resp.points))
+    for (const a of Object.values(p))
+      for (const k of a.issues || []) tally[k] = (tally[k] || 0) + 1;
+  for (const o of Object.values(resp.overall))
+    for (const k of o.issues || []) tally[k] = (tally[k] || 0) + 1;
+  const top = Object.entries(tally).sort((a, b) => b[1] - a[1]).slice(0, 4)
+    .map(([k, n]) => `<li>${(ISSUE_OPTIONS.find(o => o[0] === k) || ['', k])[1]} — ${n}</li>`)
+    .join('');
+  // the export is held back until every part is answered: a partial file read as
+  // a complete one would silently weaken the paired comparison
+  const done = activityComplete();
+  $('assessProg').textContent =
+    `A ${countA()}/${nA} · B ${countB()}/${nMeasures()} · C ${countC()}/${totalC()}`;
+  $('assessBody').innerHTML = `
+    <p class="hintline">${done ? 'Thank you &mdash; that is everything.' : 'Almost there.'}
+    Download your responses and email the file to the research team, or copy them to
+    paste into a message.</p>
+    <table class="rt"><thead><tr><th class="l">Network scenario</th><th>Part A</th>
+      <th>Good</th><th>Part B</th></tr></thead><tbody>${per}</tbody></table>
+    <div class="hintline">Part A: points answered, and the share judged a good
+      representation. Part B: your overall verdict.</div>
+    ${top ? `<fieldset><legend>Most-cited issues</legend>
+      <ul style="margin:2px 0 0 14px;padding:0;font-size:11.5px">${top}</ul></fieldset>` : ''}
+    <div class="nav"${done ? '' : ` title="${attr(outstandingText())}"`}>
+      <button class="small" id="dlBtn"${done ? '' : ' disabled'}>Download CSV</button>
+      <button class="small" id="copyBtn"${done ? '' : ' disabled'}>Copy</button>
+    </div>
+    ${done ? '' : `<div class="nudge">${outstandingText()}</div>`}
+    <div class="nav">
+      <button class="small" id="backBtn">Back to Part A</button>
+      <button class="small" id="exitBtn2">Exit activity</button>
+    </div>`;
+  $('dlBtn').onclick = () =>
+    downloadCSV(assessmentCSV(), `cycling_validation_${resp.slug}_${raterSlug()}.csv`);
   $('copyBtn').onclick = async () => {
-    try { await navigator.clipboard.writeText(assessmentCSV()); }
+    const text = assessmentCSV();
+    try { await navigator.clipboard.writeText(text); }
     catch {
       const ta = document.createElement('textarea');
-      ta.value = assessmentCSV(); document.body.appendChild(ta); ta.select();
+      ta.value = text; document.body.appendChild(ta); ta.select();
       document.execCommand('copy'); ta.remove();
     }
     $('copyBtn').textContent = 'Copied ✓';
     setTimeout(() => { $('copyBtn').textContent = 'Copy'; }, 1500);
   };
-  $('backBtn').onclick = () => { assessIdx = 0; renderStep(); };
+  $('backBtn').onclick = () => { assessIdx = 0; goStage('A'); };
   $('exitBtn2').onclick = exitAssessment;
 }
 
@@ -1830,24 +2642,30 @@ function startAssessment() {
   }
   loadResponses(slug);
   assessIdx = 0;
-  // start on whatever network the dashboard is showing, so the two agree from
-  // the outset; fall back to the low-stress headline measure
-  const fromDash = Object.entries(MEASURE_TO_NET)
-    .find(([, n]) => n === $('network').value);
-  assessMeasure = (fromDash && routeData.measures.some(m => m.key === fromDash[0]))
-    ? fromDash[0]
-    : (routeData.measures.find(m => m.key === 'low_stress') || routeData.measures[0]).key;
-  syncDashboardNetwork();
-  $('assessTitle').textContent = `${routeData.name}: route assessment`;
+  // each part sets the scenario as it opens (leftmost unanswered); this is only
+  // the seed for the start screen
+  assessMeasure = routeData.measures[0].key;
+  $('assessTitle').textContent = `${routeData.name}: validation activity`;
   document.body.classList.add('assessing');
   // the vertical collapse control always sits in the top-right of the whole
   // panel, so it moves into the assessment half while that is open
   $('assessHeader').appendChild($('panelToggle'));
   ensureAssessLayers();
-  // hide the grid choropleth so routes read clearly; destinations follow destChk
+  // hide the grid choropleth so routes read clearly
   if (map.getLayer('grid')) map.setLayoutProperty('grid', 'visibility', 'none');
+  // Two layers are the standing context for judging a route: the destinations show
+  // where the closest ones actually are, and the dismount priority links explain a
+  // continuous route that includes walking. Turn both on, remembering what the rater
+  // had so exiting puts it back. Setting .checked does not fire the change handlers,
+  // so the map state is applied directly.
+  preAssessLayers = { dest: $('destChk').checked, dismount: $('dismountChk').checked };
+  $('destChk').checked = true;
+  if ((manifests[slug].layers || {}).dismount && map.getLayer('dismount')) {
+    $('dismountChk').checked = true;
+    map.setLayoutProperty('dismount', 'visibility', 'visible');
+  }
   updateOverlays();
-  renderStep();
+  goStage('start');
 }
 
 function exitAssessment() {
@@ -1857,10 +2675,19 @@ function exitAssessment() {
     $('panelHeader').appendChild($('panelToggle'));
   assessLabels.forEach(mk => mk.remove());
   assessLabels = [];
+  assessStage = 'start';
   if (!map) return;
   if (map.getSource('assess'))
     map.getSource('assess').setData({ type: 'FeatureCollection', features: [] });
-  // restore the layers the assessment hid, per their checkboxes
+  // restore the layers the assessment hid or switched on
+  if (preAssessLayers) {
+    $('destChk').checked = preAssessLayers.dest;
+    $('dismountChk').checked = preAssessLayers.dismount;
+    if (map.getLayer('dismount'))
+      map.setLayoutProperty('dismount', 'visibility',
+        preAssessLayers.dismount ? 'visible' : 'none');
+    preAssessLayers = null;
+  }
   if (map.getLayer('grid'))
     map.setLayoutProperty('grid', 'visibility',
       $('gridChk').checked ? 'visible' : 'none');
@@ -1973,22 +2800,21 @@ function clearMeasure() {
 }
 
 // ---- guided validation tour (driver.js) ----
-// Steps mirror the Round 2 worksheet of the CyclingValidation workbook:
-// 1.1/1.2 (accuracy of access at 2 km / 5 km), 1.3 (relevance ratings for the
-// indicator permutations this panel exposes), 1.4 (destination completeness).
+// Steps introduce the dashboard controls, then hand over to the Validation
+// activity, which now carries the whole Round 2 response (Parts A, B and C) —
+// the workbook is no longer filled in by raters.
 const TOUR_STEPS = [
   { popover: {
       title: 'GOHSC Cycling Indicators — Round 2 validation',
       description: 'This dashboard supports Round 2 validation of the Global Observatory of Healthy and Sustainable Cities (GOHSC) cycling ' +
         'accessibility indicators, as calculated within the GHSCI tool. Explore your city\'s results against your local ' +
-        'knowledge, then record your assessment in your city\'s row of the ' +
-        '<b>Round 2</b> worksheet (questions 1.1–1.4) of the CyclingValidation ' +
-        'workbook. This short tour shows the tools — reopen it any time with the ' +
-        '<b>Tour</b> button.' } },
+        'knowledge, then record everything in the <b>Validation activity</b> — no ' +
+        'separate workbook to fill in. This short tour shows the tools — reopen it ' +
+        'any time with the <b>Tour</b> button.' } },
   { element: '#city', popover: {
       title: 'Choose your city',
-      description: 'The map zooms to the study region. Each city has one row to ' +
-        'complete in the Round 2 worksheet.' } },
+      description: 'The map zooms to the study region. Responses are kept per city, ' +
+        'so you can assess more than one and export them together.' } },
   { element: '#threshold', popover: {
       title: 'Three views of access',
       description: '<b>Access within distance/time</b> colours each 100 m cell by the ' +
@@ -1998,21 +2824,23 @@ const TOUR_STEPS = [
         '<b>Dismount dependence</b> maps how much of the access relies on getting off ' +
         'and walking the bike, by comparing the low-stress route with the same route ' +
         'ridden throughout. ' +
-        'Form question <b>1.3</b> asks how relevant each framing is for your city.' } },
+        '<b>Part C</b> of the activity asks how valid and applicable each framing is ' +
+        'for your city.' } },
   { element: '#concept', popover: {
       title: 'Destination & definition',
       description: 'Pick the destination type, and <b>Strict</b> vs <b>Lenient</b> ' +
         'definitions (e.g. fresh-food markets only, vs also convenience stores). ' +
-        'These correspond to the <i>Variations</i> columns of question 1.3 — and ' +
-        'question <b>1.4</b> asks whether key destinations are missing.' } },
+        'The <i>Destinations</i> section of <b>Part C</b> rates these, and asks ' +
+        'whether any key destinations are missing.' } },
   { element: '#network', popover: {
       title: 'Routing assumption',
-      description: '<b>LTS 1 only</b> (streets suitable for all ages and abilities), ' +
-        '<b>LTS 1–2</b> (low stress), <b>LTS 1–2, no dismount</b> (the same, but ' +
-        'ridden the whole way — no walking the bike along footways), or ' +
-        '<b>stress penalty</b> (whole network, ' +
-        'stress penalised). Rate their local relevance in question 1.3. The ' +
-        '<b>ⓘ</b> button explains the current combination in plain language.' } },
+      description: 'The four network scenarios the activity asks you to judge: ' +
+        '<b>Low stress (LTS 1)</b> — streets most children could ride; ' +
+        '<b>LTS 1–2 without dismount</b> — low stress and ridden the whole way; ' +
+        '<b>LTS 1–2 allowing dismount</b> — the same, but the rider may get off and ' +
+        'push along a footway link; and <b>stress penalty</b> — the whole cycleable ' +
+        'network, with higher-stress length counted at 1.25×. The <b>ⓘ</b> button ' +
+        'explains the current combination in plain language.' } },
   { element: '#showing', popover: {
       title: 'What the map shows',
       description: 'A plain-language summary of the current view, including the ' +
@@ -2021,10 +2849,11 @@ const TOUR_STEPS = [
       title: 'Toggle layers',
       description: 'Turn the <b>LTS street network</b>, the <b>access choropleth</b>, ' +
         'the <b>destinations being measured</b>, and region context (boundary and ' +
-        '5 km analysis buffer) on and off as you judge questions <b>1.1</b> (2 km) ' +
-        'and <b>1.2</b> (5 km) accuracy, and 1.4 (destinations). Where available, ' +
-        '<b>Dismount priority links</b> highlights the footways riders must walk, ' +
-        'drawn thicker the more residents’ access depends on them.' } },
+        '5 km analysis buffer) on and off as you work. <b>Dismount priority links</b> ' +
+        'highlights the footways riders must walk, drawn thicker the more residents’ ' +
+        'access depends on them. Destinations and dismount links are switched on ' +
+        'automatically while you are assessing routes, and put back as you had them ' +
+        'when you exit.' } },
   { element: '#basemap', popover: {
       title: 'Ground truth with satellite',
       description: 'Switch to the grayscale <b>satellite</b> basemap to check streets ' +
@@ -2040,9 +2869,25 @@ const TOUR_STEPS = [
       title: 'Report & sharing',
       description: '<b>View validation report</b> opens your city\'s full written ' +
         'report (statistics, maps, case studies) — the companion document for the ' +
-        'form. <b>Copy share link</b> captures your exact view (city, indicator, ' +
-        'layers, zoom); paste links into your workbook comments so a specific ' +
-        'location or issue can be reproduced exactly.' } },
+        'activity. The <b>&#128279;</b> button copies a link to your exact view (city, ' +
+        'indicator, layers, zoom); paste one into a comment box so a specific location ' +
+        'or issue can be reproduced exactly. <b>Measure distance</b> is a scratch ruler ' +
+        'for reading map scale.' } },
+  { element: '#assessBtn', popover: {
+      title: 'Where you record your answers',
+      description: '<b>Validation activity</b> is the form itself, in three parts. ' +
+        '<b>Part A</b> reviews the routes for 20 sample points — five in each quadrant of the region — ' +
+        'demonstrating how routing works on each network type both without and with dismount. At each point, select ' +
+        '<b>each of the four network scenarios</b> in turn and say whether it looks ' +
+        'like a good representation of access. <b>Part B</b> reviews each network scenario overall, and ' +
+        '<b>Part C</b> asks you to rate each facet of the method and the proposed means of sharing this for your city. Answers are saved ' +
+        ' as you go; downloaded the file at the end and email it to us.' } },
+  { element: '#tourBtn', popover: {
+      title: 'That is the tour',
+      description: 'The green <b>Tour</b> button replays ' +
+        'these steps whenever you want them, and the <b>i</b> button beside the title ' +
+        'holds a longer note on what is being measured and how. Whenever you are ' +
+        'ready, the pink <b>Validation activity</b> button will prompt with questions and allow you to answer.' } },
 ];
 const tour = (window.driver && window.driver.js)
   ? window.driver.js.driver({
@@ -2053,6 +2898,80 @@ const tour = (window.driver && window.driver.js)
   : null;
 $('tourBtn').onclick = () => { if (tour) tour.drive(); };
 $('assessBtn').onclick = startAssessment;
+// Part C saves as you go, by delegation. These are bound once, to #assessBody
+// itself — only its innerHTML is ever replaced — so a re-render cannot lose an
+// answer or a handler. Both are keyed on the Part C data attributes, so nothing
+// here fires for the Part A/B fields that share the container.
+$('assessBody').addEventListener('change', e => {
+  const d = e.target.dataset || {};
+  if (d.free !== undefined) { resp.freeText[d.free] = e.target.value; saveResponses(); }
+  else if (d.g) {
+    const st = resp.checklist[d.g];
+    if (!st) return;
+    (st.items[d.i] || (st.items[d.i] = {}))[d.f] = e.target.value;
+    saveResponses();
+  }
+});
+// the three-way switches: clicking the selected cell again clears it, so an
+// answer given by accident can be taken back without a "–" option to aim at
+$('assessBody').addEventListener('click', e => {
+  const b = e.target.closest('.ck-sw button');
+  if (!b) return;
+  const sw = b.parentElement;
+  const row = sw.closest('.ck-row');
+  const st = resp.checklist[row.parentElement.dataset.g];
+  if (!st) return;
+  const it = st.items[row.dataset.i] || (st.items[row.dataset.i] = {});
+  const f = sw.dataset.f;
+  it[f] = String(it[f] === undefined ? '' : it[f]) === b.dataset.v ? '' : b.dataset.v;
+  saveResponses();
+  for (const o of sw.children) o.classList.toggle('sel', o.dataset.v === it[f]);
+  checkProgress();
+});
+// Importance is ranked by dragging a row within its own heading. Pointer events
+// rather than HTML5 drag and drop, so it works the same under touch; the list is
+// reordered live and the record is written once, on drop.
+(function initRankDrag() {
+  let drag = null;
+  const body = $('assessBody');
+  body.addEventListener('pointerdown', e => {
+    const row = e.target.closest('.ck-row');
+    if (!row || e.target.closest('.ck-sw')) return;
+    drag = { row, list: row.parentElement, moved: false };
+    row.setPointerCapture(e.pointerId);
+    row.classList.add('dragging');
+  });
+  // the rank number stays with its position while the rest of the row moves past
+  const renumber = list =>
+    [...list.children].forEach((r, i) => { r.querySelector('.rk-n').textContent = i + 1; });
+  body.addEventListener('pointermove', e => {
+    if (!drag) return;
+    for (const r of drag.list.children) {
+      if (r === drag.row) continue;
+      const box = r.getBoundingClientRect();
+      const mid = box.top + box.height / 2;
+      const after = r.compareDocumentPosition(drag.row) & Node.DOCUMENT_POSITION_FOLLOWING;
+      if (e.clientY < mid && after) { drag.list.insertBefore(drag.row, r); drag.moved = true; }
+      else if (e.clientY > mid && !after) { drag.list.insertBefore(drag.row, r.nextSibling); drag.moved = true; }
+      else continue;
+      renumber(drag.list);
+      break;
+    }
+  });
+  const drop = () => {
+    if (!drag) return;
+    drag.row.classList.remove('dragging');
+    if (drag.moved) {
+      const st = resp.checklist[drag.list.dataset.g];
+      st.order = [...drag.list.children].map(r => r.dataset.i);
+      saveResponses();
+      renderChecklist();
+    }
+    drag = null;
+  };
+  body.addEventListener('pointerup', drop);
+  body.addEventListener('pointercancel', drop);
+})();
 $('measureBtn').onclick = () => { setMeasuring(!measuring); renderMeasure(); };
 $('mDone').onclick = () => { setMeasuring(!measuring); renderMeasure(); };
 $('mUndo').onclick = () => { measurePts.pop(); renderMeasure(); };
@@ -2070,15 +2989,27 @@ if (tour && !localStorage.getItem('cyclingValidationTourSeen')) {
   setTimeout(() => tour.drive(), 1500);
 }
 
+// Three vertical steps rather than a toggle, so the panel can be got out of the
+// way by degrees: everything -> indicator controls hidden -> header only.
 (function initPanelCollapse() {
   const panel  = document.getElementById('panel');
   const toggle = document.getElementById('panelToggle');
 
   if (!panel || !toggle) return;
 
+  const STEPS = [
+    { cls: [],                        glyph: '⭫', tip: 'Hide the indicator selection details' },
+    { cls: ['collapsed'],             glyph: '◀', tip: 'Hide the legend and buttons too' },
+    { cls: ['collapsed', 'collapsed2'], glyph: '⭱', tip: 'Show the whole panel again' },
+  ];
+  let level = 0;
+
   toggle.addEventListener('click', () => {
-    const collapsed = panel.classList.toggle('collapsed');
-    toggle.textContent = collapsed ? '⤓' : '⭫';
+    level = (level + 1) % STEPS.length;
+    panel.classList.remove('collapsed', 'collapsed2');
+    panel.classList.add(...STEPS[level].cls);
+    toggle.textContent = STEPS[level].glyph;
+    toggle.title = STEPS[level].tip;
   });
 })();
 
