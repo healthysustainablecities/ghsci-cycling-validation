@@ -1128,17 +1128,57 @@ function gapPopupHTML(p, sel) {
     '</div>';
 }
 
+// Nearest Street View panorama to a point (Google Maps URLs API, no key needed).
+// The same link the written report puts beside each priority link, so a reviewer
+// meets the same tool in both places.
+function streetViewUrl(lng, lat, heading) {
+  return 'https://www.google.com/maps/@?api=1&map_action=pano' +
+    `&viewpoint=${lat.toFixed(5)},${lng.toFixed(5)}` +
+    (heading == null ? '' : `&heading=${Math.round(heading)}`);
+}
+// initial bearing in degrees clockwise from north; null if the points coincide
+function bearingBetween([lng1, lat1], [lng2, lat2]) {
+  if (lng1 === lng2 && lat1 === lat2) return null;
+  const r = Math.PI / 180;
+  const p1 = lat1 * r, p2 = lat2 * r, dl = (lng2 - lng1) * r;
+  const y = Math.sin(dl) * Math.cos(p2);
+  const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+  return (Math.atan2(y, x) / r + 360) % 360;
+}
+// The segment the click landed on gives a truer heading than the link's overall
+// direction: on a curved or L-shaped path the two can point nowhere near each
+// other, and the panorama should face along the bit that was clicked.
+function segmentBearing(geometry, at) {
+  const g = geometry || {};
+  const lines = g.type === 'MultiLineString' ? g.coordinates
+    : g.type === 'LineString' ? [g.coordinates] : [];
+  let best = null, bestD = Infinity;
+  for (const line of lines)
+    for (let i = 0; i < line.length - 1; i++) {
+      const mx = (line[i][0] + line[i + 1][0]) / 2;
+      const my = (line[i][1] + line[i + 1][1]) / 2;
+      const d = (mx - at.lng) ** 2 + (my - at.lat) ** 2;
+      if (d < bestD) { bestD = d; best = [line[i], line[i + 1]]; }
+    }
+  return best ? bearingBetween(best[0], best[1]) : null;
+}
+
 // a link riders must dismount and walk, scored by how much of the population's
 // nearest-destination routing leans on it
-function dismountPopupHTML(p) {
+function dismountPopupHTML(f, at) {
+  const p = f.properties;
   const n = v => Math.round(v || 0).toLocaleString();
+  const sv = streetViewUrl(at.lng, at.lat, segmentBearing(f.geometry, at));
   return `<div class="popup"><h4>${p.name || 'Unnamed footway'}</h4>` +
     `<p class="sub"><span class="swatch" style="background:${DISMOUNT_COLOR}"></span>` +
     `Dismount required — ${p.highway || 'path'}, ${n(p.length_m)} m</p><table>` +
     `<tr><td>Journeys walking it</td><td class="v">${n(p.dm_pop_served)}</td></tr>` +
     `<tr><td>…that depend on it</td><td class="v"><b>${n(p.dm_pop_dependent)}</b></td></tr>` +
     `<tr><td>Destination types</td><td class="v">${p.dm_specs || 0}</td></tr>` +
-    '</table><p class="sub" style="margin-top:6px">Resident–destination journeys whose ' +
+    `</table><p class="sub" style="margin-top:6px"><a href="${sv}" target="_blank"` +
+    ' rel="noopener" title="Nearest Street View panorama — coverage varies by city">' +
+    'Street View</a> — is this really unridable, or a mapping artefact?</p>' +
+    '<p class="sub" style="margin-top:6px">Resident–destination journeys whose ' +
     'nearest-destination low-stress route walks this link, and the subset with no ridden ' +
     'low-stress route to that destination type at all. Summed over the destination types ' +
     'in the last row, so a resident heading to two of them counts twice. Scores rank ' +
@@ -1372,7 +1412,7 @@ async function loadCity(s) {
         layers.unshift('dismount');
       const f = map.queryRenderedFeatures(e.point, { layers })[0];
       if (!f) return;
-      const html = f.layer.id === 'dismount' ? dismountPopupHTML(f.properties)
+      const html = f.layer.id === 'dismount' ? dismountPopupHTML(f, e.lngLat)
         : f.layer.id === 'lts' ? ltsPopupHTML(f.properties)
         : gridPopupHTML(f.properties);
       new maplibregl.Popup({ maxWidth: '340px' }).setLngLat(e.lngLat).setHTML(html).addTo(map);
@@ -1604,6 +1644,8 @@ const CHECKLIST = [
         help: 'Each grid cell is coloured by the closest of 500 m, 1000 m, 2000 m or 5000 m at which at least half its sample points can reach a destination.' },
       { key: 'avg_summary', label: '“Average distance” (continuous) summary',
         help: 'The average network distance from a cell’s sample points to the nearest destination, averaged only over the points that can reach one at all — so sparse areas show few reachable points and long distances.' },
+      { key: 'sub_area', label: 'Sub-area results (official reporting geographies)',
+        help: 'The same measures summarised to your city’s official areas — wards, districts or similar — population-weighted, rather than only city-wide or cell by cell.' },
       { key: 'other', label: 'Other (leave a comment)', other: true,
         help: 'Any other distance, time or summary that would matter in your city.' },
     ] },
@@ -1614,6 +1656,8 @@ const CHECKLIST = [
         help: 'Access reported separately for each category: a fresh food market or supermarket, a frequent public transport stop, and an entry to a large (>1.5 ha) public open space.' },
       { key: 'co_located', label: 'Accessibility to a walkable catchment (400 m) of co-located destinations',
         help: 'Access to ' + IND_DESCS.activity_centre_complete },
+      { key: 'combined', label: 'Combined access (all destination types reachable)',
+        help: 'A single measure counting access only where every destination category can be reached within the threshold, rather than reporting each category separately.' },
       { key: 'lenient', label: 'Lenient destination variants (e.g. any public transport, any public open space)',
         help: 'The same measures computed with broader definitions — fresh food pooled with convenience stores, any public transport stop, any public open space — which together with the strict definitions brackets the plausible range for access.' },
       { key: 'other', label: 'Other (leave a comment)', other: true,

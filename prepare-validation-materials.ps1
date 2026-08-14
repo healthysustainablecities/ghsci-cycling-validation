@@ -27,18 +27,30 @@
   skipping the report, the layer export and the tile build. Use this when only the
   route export has changed - the tiles and report take far longer and are unaffected.
 
+.PARAMETER ReportOnly
+  Re-generate only the written report (step 1) and copy it into the site, skipping
+  the layer export, the route export and the tile build. Use this when only the
+  report wording has changed. The city must already be published, since the slug is
+  read from its existing manifest rather than from the layer export.
+
 .EXAMPLE
   .\prepare-validation-materials.ps1 Minneapolis
 .EXAMPLE
   .\prepare-validation-materials.ps1 "data/Cycling/Dar es Salaam/DarEsSalaam.yml"
 .EXAMPLE
   .\prepare-validation-materials.ps1 MexicoCityProper -RoutesOnly
+.EXAMPLE
+  .\prepare-validation-materials.ps1 Wurzburg -ReportOnly
 #>
 param(
   [Parameter(Mandatory = $true)]
   [string]$Config,
-  [switch]$RoutesOnly
+  [switch]$RoutesOnly,
+  [switch]$ReportOnly
 )
+if ($RoutesOnly -and $ReportOnly) {
+  throw 'Use one of -RoutesOnly or -ReportOnly, not both.'
+}
 
 $ErrorActionPreference = 'Stop'
 $SiteDir = $PSScriptRoot
@@ -89,11 +101,30 @@ if (-not $GitBash) { throw 'Git Bash not found (install Git for Windows).' }
 $slug = $null
 if (-not $RoutesOnly) {
   # -------------------------------------------------------------- 1. report
-  Step "1/4 Generating validation report (this can take several minutes)"
+  Step "$(if ($ReportOnly) { '1/1' } else { '1/4' }) Generating validation report (this can take several minutes)"
   docker exec ghsci /env/bin/python /home/ghsci/process/_validation_report.py $cfgRel
   $reportOk = ($LASTEXITCODE -eq 0)
   if (-not $reportOk) { Warn 'Report generation failed - continuing with tiles; report will be skipped.' }
+}
 
+if ($ReportOnly) {
+  # the layer export normally names the city; with only the report rebuilt, take
+  # the slug from the manifest already published for this config
+  foreach ($dir in Get-ChildItem (Join-Path $SiteDir 'tiles') -Directory) {
+    $mf = Join-Path $dir.FullName 'manifest.json'
+    if (-not (Test-Path $mf)) { continue }
+    $cn = (Get-Content $mf -Raw | ConvertFrom-Json).codename
+    $cnStem = [IO.Path]::GetFileNameWithoutExtension(($cn -replace '\\', '/').Split('/')[-1])
+    if ($cnStem -eq $stem) { $slug = $dir.Name; break }
+  }
+  if (-not $slug) {
+    throw "No published city found for config '$stem' - run the full script once before using -ReportOnly."
+  }
+  Write-Host "   slug: $slug (report only: skipping the layer export, route export and tile build)"
+  $routesOk = $false
+}
+
+if (-not ($RoutesOnly -or $ReportOnly)) {
   # -------------------------------------------------------------- 2. export layers
   Step "2/4 Exporting validation map layers"
   $exportOut = docker exec ghsci /env/bin/python /home/ghsci/process/_export_validation_tiles.py $cfgRel
@@ -116,27 +147,29 @@ if (-not $RoutesOnly) {
       throw "Slug '$slug' is already published for config '$existingStem' - refusing to overwrite it with '$stem'. Set a distinct cycling_indicators.validation.site_slug in $stem.yml."
     }
   }
-} else {
+} elseif ($RoutesOnly) {
   $reportOk = $false
   Write-Host "   routes only: skipping the report, layer export and tile build"
 }
 
 # ------------------------------------------------------------- 3. route sample
-Step "$(if ($RoutesOnly) { '1/1' } else { '3/5' }) Exporting route assessment sample"
-$routesOut = docker exec ghsci /env/bin/python /home/ghsci/process/_export_validation_routes.py $cfgRel
-$routesOk = ($LASTEXITCODE -eq 0)
-$routesOut | Write-Host
-if (-not $routesOk) { Warn 'Route export failed - the route assessment will be unavailable for this city.' }
-if ($RoutesOnly) {
-  # no tile export to name the city, so take the slug from the routes file path
-  foreach ($line in $routesOut) {
-    if ($line -match 'wrote /tmp/validation_tiles/([^/]+)/') { $slug = $Matches[1]; break }
+if (-not $ReportOnly) {
+  Step "$(if ($RoutesOnly) { '1/1' } else { '3/5' }) Exporting route assessment sample"
+  $routesOut = docker exec ghsci /env/bin/python /home/ghsci/process/_export_validation_routes.py $cfgRel
+  $routesOk = ($LASTEXITCODE -eq 0)
+  $routesOut | Write-Host
+  if (-not $routesOk) { Warn 'Route export failed - the route assessment will be unavailable for this city.' }
+  if ($RoutesOnly) {
+    # no tile export to name the city, so take the slug from the routes file path
+    foreach ($line in $routesOut) {
+      if ($line -match 'wrote /tmp/validation_tiles/([^/]+)/') { $slug = $Matches[1]; break }
+    }
+    if (-not $slug) { throw 'Could not determine city slug from the route export output.' }
+    Write-Host "   slug: $slug"
   }
-  if (-not $slug) { throw 'Could not determine city slug from the route export output.' }
-  Write-Host "   slug: $slug"
 }
 
-if (-not $RoutesOnly) {
+if (-not ($RoutesOnly -or $ReportOnly)) {
   # -------------------------------------------------------------- 4. build tiles
   Step "4/5 Building PMTiles archives"
   # clear any stale copy so build_tiles.sh re-pulls the fresh export from the container
@@ -174,6 +207,7 @@ if ($RoutesOnly) {
 } elseif ($reportOk -and (Test-Path $reportSrc)) {
   Copy-Item $reportSrc (Join-Path $SiteDir "reports\$slug.html") -Force
   Write-Host "   reports/$slug.html"
+  if ($ReportOnly) { Write-Host "   (tiles and routes left as they are)" }
 } else {
   Warn "No validation report found at $reportSrc - the dashboard's report button will stay hidden for this city."
 }
