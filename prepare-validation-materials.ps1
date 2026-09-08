@@ -7,8 +7,8 @@
   that city has already been run, with the ghsci + ghscic_postgis containers
   up), this script:
 
-    1. generates the written validation report  (_validation_report.py)
-    2. exports the validation map layers        (_export_validation_tiles.py)
+    1. generates the written validation report  (subprocesses/_cycling_validation_report.py)
+    2. exports the validation map layers        (subprocesses/_export_validation_tiles.py)
     3. builds the three PMTiles archives        (build/build_tiles.sh)
     4. copies tiles + manifest + report into this validation-site folder
        under the city's slug, and registers the slug in index.html
@@ -102,7 +102,7 @@ $slug = $null
 if (-not $RoutesOnly) {
   # -------------------------------------------------------------- 1. report
   Step "$(if ($ReportOnly) { '1/1' } else { '1/4' }) Generating validation report (this can take several minutes)"
-  docker exec ghsci /env/bin/python /home/ghsci/process/_validation_report.py $cfgRel
+  docker exec ghsci /env/bin/python /home/ghsci/process/subprocesses/_cycling_validation_report.py $cfgRel
   $reportOk = ($LASTEXITCODE -eq 0)
   if (-not $reportOk) { Warn 'Report generation failed - continuing with tiles; report will be skipped.' }
 }
@@ -127,7 +127,7 @@ if ($ReportOnly) {
 if (-not ($RoutesOnly -or $ReportOnly)) {
   # -------------------------------------------------------------- 2. export layers
   Step "2/4 Exporting validation map layers"
-  $exportOut = docker exec ghsci /env/bin/python /home/ghsci/process/_export_validation_tiles.py $cfgRel
+  $exportOut = docker exec ghsci /env/bin/python /home/ghsci/process/subprocesses/_export_validation_tiles.py $cfgRel
   if ($LASTEXITCODE -ne 0) { $exportOut | Write-Host; throw 'Layer export failed.' }
   $exportOut | Write-Host
   foreach ($line in $exportOut) {
@@ -155,7 +155,7 @@ if (-not ($RoutesOnly -or $ReportOnly)) {
 # ------------------------------------------------------------- 3. route sample
 if (-not $ReportOnly) {
   Step "$(if ($RoutesOnly) { '1/1' } else { '3/5' }) Exporting route assessment sample"
-  $routesOut = docker exec ghsci /env/bin/python /home/ghsci/process/_export_validation_routes.py $cfgRel
+  $routesOut = docker exec ghsci /env/bin/python /home/ghsci/process/subprocesses/_export_validation_routes.py $cfgRel
   $routesOk = ($LASTEXITCODE -eq 0)
   $routesOut | Write-Host
   if (-not $routesOk) { Warn 'Route export failed - the route assessment will be unavailable for this city.' }
@@ -229,10 +229,36 @@ if ($html -match "const CITY_SLUGS = \[([^\]]*)\]") {
 }
 
 Step "Done"
-Write-Host @"
-$stem is ready as '$slug'. Test locally (e.g. npx http-server . -p 8123), then publish:
+Write-Host "$stem is ready as '$slug'. Test locally (e.g. npx http-server . -p 8123)."
 
-  git add index.html "tiles/$slug*" "reports/$slug.html"
-  git commit -m "Add/update $stem validation materials"
-  git push origin main
-"@
+# Report what git has yet to see.  Publishing is left to the user, but a file that is
+# built, copied into place and then never committed is invisible on the deployed site
+# while looking perfectly fine locally -- so name those files explicitly rather than
+# printing a fixed command that may not cover them.
+$published = @('index.html') + @(
+  Get-ChildItem -Path $SiteDir -Filter "$slug*" -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '\\_rerun_logs\\' } |
+    ForEach-Object { (Resolve-Path -Relative -Path $_.FullName) -replace '^\.\\', '' -replace '\\', '/' }
+)
+Push-Location $SiteDir
+try {
+  $pending = @()
+  foreach ($f in ($published | Sort-Object -Unique)) {
+    $status = & git status --porcelain -- $f 2>$null
+    if ($status) { $pending += $f }
+  }
+  if ($pending.Count) {
+    Write-Host ''
+    Write-Host "These files are not yet committed, so they will NOT appear on the published site:" -ForegroundColor Yellow
+    $pending | ForEach-Object { Write-Host "    $_" }
+    Write-Host ''
+    Write-Host 'To publish:'
+    Write-Host ("  git add " + (($pending | ForEach-Object { '"' + $_ + '"' }) -join ' '))
+    Write-Host "  git commit -m `"Add/update $stem validation materials`""
+    Write-Host '  git push origin main'
+  } else {
+    Write-Host "All of $slug's files are already committed; nothing to publish." -ForegroundColor Green
+  }
+} finally {
+  Pop-Location
+}

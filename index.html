@@ -125,6 +125,14 @@
   .leg-item .patch { display:block; height:12px; border-radius:2px; margin-bottom:1px; }
   .leg-item.static { cursor:default; }
   .leg-item.selected { outline:2px solid #222; outline-offset:1px; }
+  /* categories that sit outside the LTS scale: their labels are too long for the
+     equal width cells of .leg-row, so they stack beneath it */
+  .leg-col { display:flex; flex-direction:column; gap:1px; margin-top:3px; }
+  .leg-cat { display:flex; align-items:center; gap:5px; font-size:11px;
+             cursor:pointer; border-radius:3px; padding:1px 2px; }
+  .leg-cat .cat-patch { width:14px; height:10px; border-radius:2px; flex:none; }
+  .leg-cat.selected { outline:2px solid #222; outline-offset:1px; }
+  .leg-cat:hover .cat-patch { filter:brightness(0.92); }
   .leg-item:not(.static):hover .patch { filter:brightness(0.92); }
   .histo-bars { display:flex; align-items:flex-end; gap:2px; height:58px;
                 margin-top:14px; }
@@ -382,7 +390,7 @@
     <label class="row">Basemap</label>
     <select id="basemap">
       <option value="sat">Satellite (grayscale)</option>
-      <option value="positron" selected>Positron</option>
+      <option value="positron" selected>Light grayscale</option>
     </select>
   </div>
   <div id="panelFooter">
@@ -390,6 +398,7 @@
     <div class="leg">
       <span class="leg-title">Level of Traffic Stress (LTS)</span>
       <div id="ltsLegend" class="leg-row"></div>
+      <div id="ltsCatLegend" class="leg-col"></div>
     </div>
 
     <div class="leg">
@@ -577,7 +586,52 @@ const BATLOW = ['#011959', '#10505f', '#3c7156', '#a8963c', '#f9a380', '#fdb4c7'
 const LTS_COLOURS = { 1: '#1a9850', 2: '#a6d96a', 3: '#fdae61', 4: '#d73027' };
 const LTS_LABELS = { 1: 'lowest stress, suitable for all', 2: 'low stress',
                      3: 'moderate stress', 4: 'high stress' };
+// Level of Traffic Stress rates how stressful a street is *to ride*, so it is shown
+// only for links a rider may ride.  Two kinds of link are not on that scale and get
+// their own category rather than being drawn as LTS 1: footways where cycling is not
+// permitted but pushing the bike is, and links closed to bicycles altogether
+// (staircases, corridors, ways tagged bicycle=no).  Both still carry an LTS value
+// internally so that routing can treat the whole network consistently -- see the
+// "Walking the bike" note in the info panel.  A footway signed for cycling
+// (bicycle=yes/designated) is rideable, so it keeps its LTS colour.
+// Footways take a lighter tint of the dismount purple used by the priority-links
+// layer, which picks out the most load-bearing of them on top.
+const FOOTWAY_COLOUR = '#9e9ac8';
+const EXCLUDED_COLOUR = '#bdbdbd';
+const LTS_CATEGORIES = [
+  { value: 'dismount', colour: FOOTWAY_COLOUR, label: 'Footway (dismount required)' },
+  { value: 'excluded', colour: EXCLUDED_COLOUR, label: 'Not available for cycling' },
+];
+const IS_DISMOUNT = ['==', ['get', 'foot_dismount'], true];
+const IS_EXCLUDED = ['!=', ['get', 'bike_permitted'], true];
 const DIM_COLOR = '#999999';
+
+// Colour and opacity for the LTS line layer.  `isolate` is null for the full legend,
+// or the selected legend entry: an LTS class 1-4, or 'dismount' / 'excluded'.
+// Dismount is tested before excluded, because a walkable-only footway satisfies both
+// (foot_dismount is defined as the complement of bike_permitted on the footway, path
+// and pedestrian classes).
+function ltsPaint(isolate, prop) {
+  const colour = prop === 'line-color';
+  const dim = colour ? DIM_COLOR : 0.2;
+  const lit = v => (colour ? v : 0.95);
+  const plain = colour
+    ? ['match', ['get', 'lvl_traf_stress'],
+       1, LTS_COLOURS[1], 2, LTS_COLOURS[2], 3, LTS_COLOURS[3], 4, LTS_COLOURS[4], '#888']
+    : 0.85;
+  if (isolate === null || isolate === undefined) {
+    return ['case', IS_DISMOUNT, colour ? FOOTWAY_COLOUR : 0.85,
+                    IS_EXCLUDED, colour ? EXCLUDED_COLOUR : 0.85, plain];
+  }
+  if (isolate === 'dismount') {
+    return ['case', IS_DISMOUNT, lit(FOOTWAY_COLOUR), dim];
+  }
+  if (isolate === 'excluded') {
+    return ['case', IS_DISMOUNT, dim, IS_EXCLUDED, lit(EXCLUDED_COLOUR), dim];
+  }
+  return ['case', IS_DISMOUNT, dim, IS_EXCLUDED, dim,
+    ['match', ['get', 'lvl_traf_stress'], isolate, lit(LTS_COLOURS[isolate]), dim]];
+}
 
 const protocol = new pmtiles.Protocol();
 maplibregl.addProtocol('pmtiles', protocol.tile);
@@ -909,16 +963,30 @@ function renderLegends() {
   const isGap = mode === 'dmgap';
 
   // ---- LTS ----
+  const ltsSelected = v =>
+    (isolated && isolated.kind === 'lts' && isolated.value === v ? 'selected' : '');
   const ltsValues = [1, 2, 3, 4];
   $('ltsLegend').innerHTML = ltsValues.map(k => `
     <div
-      class="leg-item ${isolated && isolated.kind === 'lts' && isolated.value === k ? 'selected' : ''}"
+      class="leg-item ${ltsSelected(k)}"
       data-kind="lts"
       data-value="${k}"
       onclick="toggleIsolate('lts', ${k})"
     >
       <span class="patch" style="background:${LTS_COLOURS[k]}"></span>
       <span>${k}</span>
+    </div>
+  `).join('');
+  // the two categories the LTS scale does not apply to
+  $('ltsCatLegend').innerHTML = LTS_CATEGORIES.map(c => `
+    <div
+      class="leg-cat ${ltsSelected(c.value)}"
+      data-kind="lts"
+      data-value="${c.value}"
+      onclick="toggleIsolate('lts', '${c.value}')"
+    >
+      <span class="cat-patch" style="background:${c.colour}"></span>
+      <span>${c.label}</span>
     </div>
   `).join('');
 
@@ -1004,14 +1072,11 @@ function applyIsolation() {
 
   if (map.getLayer('lts')) {
     if (isolated && isolated.kind === 'lts') {
-      map.setPaintProperty('lts', 'line-color',
-        ['match', ['get', 'lvl_traf_stress'], isolated.value, LTS_COLOURS[isolated.value], DIM_COLOR]);
-      map.setPaintProperty('lts', 'line-opacity',
-        ['match', ['get', 'lvl_traf_stress'], isolated.value, 0.95, 0.2]);
+      map.setPaintProperty('lts', 'line-color', ltsPaint(isolated.value, 'line-color'));
+      map.setPaintProperty('lts', 'line-opacity', ltsPaint(isolated.value, 'line-opacity'));
     } else {
-      map.setPaintProperty('lts', 'line-color', ['match', ['get', 'lvl_traf_stress'],
-        1, LTS_COLOURS[1], 2, LTS_COLOURS[2], 3, LTS_COLOURS[3], 4, LTS_COLOURS[4], '#888']);
-      map.setPaintProperty('lts', 'line-opacity', isolated ? 0.2 : 0.85);
+      map.setPaintProperty('lts', 'line-color', ltsPaint(null, 'line-color'));
+      map.setPaintProperty('lts', 'line-opacity', isolated ? 0.2 : ltsPaint(null, 'line-opacity'));
     }
   }
 
@@ -1189,9 +1254,21 @@ function ltsPopupHTML(p) {
   const lts = p.lvl_traf_stress;
   const row = (k, v) => (v === null || v === undefined || v === '') ? ''
     : `<tr><td>${k}</td><td class="v">${v}</td></tr>`;
+  // an LTS class is quoted only where the rider may ride: the other two categories
+  // are off that scale, so naming one here would be the conflation the category
+  // exists to avoid
+  let swatch = LTS_COLOURS[lts] || '#888';
+  let heading = `LTS ${lts} — ${LTS_LABELS[lts] || ''}`;
+  if (p.foot_dismount === true) {
+    swatch = FOOTWAY_COLOUR;
+    heading = 'Footway — cycling not permitted, dismount and walk the bike';
+  } else if (p.bike_permitted !== true) {
+    swatch = EXCLUDED_COLOUR;
+    heading = 'Not available for cycling — the bike cannot be ridden or pushed here';
+  }
   return `<div class="popup"><h4>${p.name || 'Unnamed way'}</h4>` +
-    `<p class="sub"><span class="swatch" style="background:${LTS_COLOURS[lts] || '#888'}"></span>` +
-    `LTS ${lts} — ${LTS_LABELS[lts] || ''}</p><table>` +
+    `<p class="sub"><span class="swatch" style="background:${swatch}"></span>` +
+    `${heading}</p><table>` +
     row('Highway type', p.highway) +
     row('Speed limit', p.maxspeed_kmh ? `${p.maxspeed_kmh} km/h` : null) +
     row('Traffic (assumed ADT)', p.adt ? Math.round(p.adt).toLocaleString() : null) +
@@ -1270,23 +1347,40 @@ function infoHTML() {
     (≥ 50%) of its sample points have access — pale pink/yellow = very close (500 m),
     shading through to dark blue = only reachable at 5000 m, grey = not reachable within
     any configured distance. This mirrors the isochrone maps in the full validation
-    report. Click a swatch in the legend to isolate that band on the map.</p>`;
+    report. Click a swatch in the legend to isolate that band on the map.</p>
+    <p><b>Cells with no colour at all</b> are not part of the analysis: the grid is
+    only sampled where people live, so a cell with no estimated resident population,
+    or one lying inside a park or other open space, carries no sample point and no
+    result. Gaps therefore cluster around open space and undeveloped land, next to
+    the very destinations being measured &mdash; that is expected, not missing data.
+    Clicking such a cell gives nothing, which distinguishes it from a cell that is
+    genuinely <i>not reachable</i> and is shaded grey.</p>`;
   return `<h2>How to read this indicator</h2>
     <p><b>${IND_LABELS[ind]}</b> — for each 100 m population grid cell, the map shows ${what}.</p>
     <h3>Destination</h3><p>Access is counted to ${IND_DESCS[ind]}.</p>
     ${isoSection}${gapSection}
     <h3>Routing (${mode === 'dmgap' ? 'LTS 1–2, with vs without dismount' : NETWORKS[net].label})</h3>
     <p>Routes are computed over ${mode === 'dmgap' ? NETWORKS.safe_.desc + ', compared with ' + NETWORKS.ride_.desc : NETWORKS[net].desc}. Level of Traffic Stress (LTS) grades each
-    street segment from 1 (lowest stress, suitable for all riders) to 4 (high stress), based on
-    cycling infrastructure, street class, speed limit and assumed traffic volumes derived from
-    OpenStreetMap.</p>
+    rideable street segment from 1 (lowest stress, suitable for all riders) to 4 (high
+    stress), based on cycling infrastructure, street class, speed limit and assumed traffic
+    volumes derived from OpenStreetMap. Links that cannot be ridden are not on that scale:
+    they are shown as <b>Footway (dismount required)</b> or <b>Not available for
+    cycling</b>.</p>
     <h3>Walking the bike (dismount links)</h3>
     <p>Footways, paths and pedestrian areas where riding is not permitted are still part of
-    the routable network: a rider may dismount and walk the bike along them, and they are
-    graded LTS 1 since they are traffic-free. Each metre walked counts as <b>3 m</b> of the
-    distance threshold, reflecting walking pace (~5 km/h) against cycling (~15 km/h).
-    Stairs and indoor corridors are excluded as impractical with a bike. On the map, such
-    segments show “Dismount required: yes” when clicked.</p>
+    the routable network: a rider may dismount and walk the bike along them. Each metre
+    walked counts as <b>3 m</b> of the distance threshold, reflecting walking pace
+    (~5 km/h) against cycling (~15 km/h). Stairs and indoor corridors are excluded as
+    impractical with a bike.</p>
+    <p>Level of Traffic Stress rates how stressful a street is <em>to ride</em>, so these
+    links are drawn as their own category, <b>Footway (dismount required)</b>, rather than
+    as LTS 1 — being told to get off and walk is not a low-stress ride, and in many
+    places riding the footpath is not permitted at all. Links a bike can neither be ridden
+    nor pushed along, such as staircases and indoor corridors, are shown as <b>Not
+    available for cycling</b>. A footway signed for shared use (<code>bicycle=yes</code>)
+    <em>is</em> rideable, so it keeps its LTS rating. Internally every link still carries
+    an LTS value, which is what lets routing treat the whole network consistently; click
+    any segment on the map to see its category and inputs.</p>
     <p>Because that allowance can carry a lot of weight, the same low-stress measure is
     also computed <b>without</b> it (Network: “LTS 1–2, no dismount”), and the
     <b>Dismount dependence</b> indicator maps the difference between the two.</p>
@@ -1342,9 +1436,14 @@ async function loadCity(s) {
       sat: { type: 'raster',
         tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
         tileSize: 256, attribution: 'Esri' },
+      // Esri WorldGrayCanvas, not CartoDB Positron: CARTO began serving
+      // "API KEY REQUIRED" watermarked tiles to callers without a key (noticed
+      // 8 Sep 2026), and serves them with HTTP 200, so nothing errors -- the
+      // watermark just appears across the map.  The source keeps the id
+      // 'positron' because that value is carried in share links (#b=positron).
       positron: { type: 'raster',
-        tiles: ['https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
-        tileSize: 256, attribution: 'CARTO / OSM' },
+        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'],
+        tileSize: 256, attribution: 'Esri, DeLorme, NAVTEQ' },
       city: { type: 'vector', url: `pmtiles://${new URL(`tiles/${s}.pmtiles`, location.href).href}` },
       city_lts: { type: 'vector', url: `pmtiles://${new URL(`tiles/${s}_lts.pmtiles`, location.href).href}` },
       city_grid: { type: 'vector', url: `pmtiles://${new URL(`tiles/${s}_grid.pmtiles`, location.href).href}` },
@@ -1365,8 +1464,7 @@ async function loadCity(s) {
         paint: { 'line-color': '#000', 'line-width': 2, 'line-dasharray': [3, 2] } },
       { id: 'lts', type: 'line', source: 'city_lts', 'source-layer': 'lts',
         layout: { visibility: $('ltsChk').checked ? 'visible' : 'none' },
-        paint: { 'line-color': ['match', ['get', 'lvl_traf_stress'],
-                   1, LTS_COLOURS[1], 2, LTS_COLOURS[2], 3, LTS_COLOURS[3], 4, LTS_COLOURS[4], '#888'],
+        paint: { 'line-color': ltsPaint(null, 'line-color'),
                  'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.4, 13, 1.6, 16, 3.5] } },
       // links riders must dismount and walk, weighted by the population routed
       // over them: candidate locations for cycling infrastructure.  Only present
@@ -2893,7 +2991,10 @@ const TOUR_STEPS = [
       title: 'Toggle layers',
       description: 'Turn the <b>LTS street network</b>, the <b>access choropleth</b>, ' +
         'the <b>destinations being measured</b>, and region context (boundary and ' +
-        '5 km analysis buffer) on and off as you work. <b>Dismount priority links</b> ' +
+        '5 km analysis buffer) on and off as you work. The LTS legend colours only the ' +
+        'streets a rider may ride; footways where the bike must be pushed, and links ' +
+        'closed to bikes altogether, have their own entries beneath it, and clicking any ' +
+        'legend entry isolates that category on the map. <b>Dismount priority links</b> ' +
         'highlights the footways riders must walk, drawn thicker the more residents’ ' +
         'access depends on them. Destinations and dismount links are switched on ' +
         'automatically while you are assessing routes, and put back as you had them ' +
