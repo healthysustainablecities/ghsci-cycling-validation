@@ -1441,9 +1441,15 @@ async function loadCity(s) {
       // 8 Sep 2026), and serves them with HTTP 200, so nothing errors -- the
       // watermark just appears across the map.  The source keeps the id
       // 'positron' because that value is carried in share links (#b=positron).
+      // maxzoom 16: the service advertises 23 zoom levels but only has imagery to
+      // z16 -- above that it serves a 2.5 KB "Map data not yet available" placeholder
+      // rather than a 404, so MapLibre has no way to know.  Capping it makes MapLibre
+      // upscale the z16 tiles instead, which is blurry when zoomed right in but keeps
+      // the street context.  (With tileSize 256 MapLibre requests one zoom above the
+      // map zoom, so without this the placeholder appeared from map zoom ~16.)
       positron: { type: 'raster',
         tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'],
-        tileSize: 256, attribution: 'Esri, DeLorme, NAVTEQ' },
+        tileSize: 256, maxzoom: 16, attribution: 'Esri, DeLorme, NAVTEQ' },
       city: { type: 'vector', url: `pmtiles://${new URL(`tiles/${s}.pmtiles`, location.href).href}` },
       city_lts: { type: 'vector', url: `pmtiles://${new URL(`tiles/${s}_lts.pmtiles`, location.href).href}` },
       city_grid: { type: 'vector', url: `pmtiles://${new URL(`tiles/${s}_grid.pmtiles`, location.href).href}` },
