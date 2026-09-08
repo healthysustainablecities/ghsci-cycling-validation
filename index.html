@@ -880,7 +880,7 @@ function renderHisto() {
   const iso = mode === 'iso' ? isoBars() : null;
   if (mode === 'iso' && iso) {
     const colors = [...ISO_COLORS, ISO_NO_ACCESS];
-    const labels = ['500 m', '1000 m', '2000 m', '5000 m', 'None'];
+    const labels = ['500 m', '1000 m', '2000 m', '5000 m', '&lt;50%'];
     const peak = Math.max(...iso.bars, 1);
     $('histoTitle').textContent = 'Share of population by access band';
     $('histoBars').innerHTML = iso.bars.map((v, i) =>
@@ -1020,8 +1020,10 @@ function renderLegends() {
     `).join('');
   } else if (!isAvg) {
     const swatchColors = [...ISO_COLORS, ISO_NO_ACCESS];
-    const distLabels   = ['500 m', '1000 m', '2000 m', '5000 m', 'None'];
-    const timeLabels   = ['~3 min', '~5 min', '~10 min', '~25 min', ''];
+    // not "None": the band is "no distance reached half this cell's sample points",
+    // which includes cells where a substantial minority can reach a destination
+    const distLabels   = ['500 m', '1000 m', '2000 m', '5000 m', '&lt;50%'];
+    const timeLabels   = ['~3 min', '~5 min', '~10 min', '~25 min', 'of points'];
 
     $('accLegend').innerHTML = swatchColors.map((c, i) => `
       <div
@@ -1037,7 +1039,7 @@ function renderLegends() {
     `).join('');
     } else {
     const swatchColors = [...ISO_COLORS, ISO_NO_ACCESS];
-    const labels = ['500', '1000', '2000', '5000', 'None'];
+    const labels = ['500', '1000', '2000', '5000', '&lt;50%'];
 
     $('accLegend').innerHTML = swatchColors.map((c, i) => `
       <div
@@ -1151,7 +1153,15 @@ function gridPopupHTML(p) {
       if (v !== undefined && v !== null && v >= 50) { band = i; break; }
     }
     const color = band < 4 ? ISO_COLORS[band] : ISO_NO_ACCESS;
-    const label = band < 4 ? `Within ${ISO_DISTANCES[band].replace('m', ' m')}` : 'No access within 5000 m';
+    // the last band is "no distance reached half the cell's sample points", which is
+    // not the same as no access: report the share that does reach one, so a cell at
+    // 48% is not read as an absence
+    const widest = p[c[3]];
+    const label = band < 4
+      ? `Within ${ISO_DISTANCES[band].replace('m', ' m')}`
+      : (widest > 0
+          ? `${Math.round(widest)}% of points within 5000 m (under half)`
+          : 'No access within 5000 m');
     return `<tr class="${ind === sel ? 'sel' : ''}"><td><span class="swatch" style="background:${color}"></span>${IND_LABELS[ind]}</td>` +
            `<td class="v">${label}</td></tr>`;
   }).join('');
@@ -1345,9 +1355,14 @@ function infoHTML() {
     <h3>Reading the colour bands</h3>
     <p>Each grid cell is coloured by the <b>closest</b> distance at which the majority
     (≥ 50%) of its sample points have access — pale pink/yellow = very close (500 m),
-    shading through to dark blue = only reachable at 5000 m, grey = not reachable within
-    any configured distance. This mirrors the isochrone maps in the full validation
-    report. Click a swatch in the legend to isolate that band on the map.</p>
+    shading through to dark blue = only reachable at 5000 m. The grey band is
+    <b>not</b> &ldquo;no access&rdquo;: it means no distance reached half the cell's
+    sample points, so a cell where 48&nbsp;% of points reach a destination 140&nbsp;m
+    away is shaded the same as one where nobody reaches anything. Click any cell to
+    see the actual share. The region-wide figures below are population-weighted
+    averages of those shares, so they do not have this threshold effect. This mirrors
+    the isochrone maps in the full validation report. Click a swatch in the legend to
+    isolate that band on the map.</p>
     <p><b>Cells with no colour at all</b> are not part of the analysis: the grid is
     only sampled where people live, so a cell with no estimated resident population,
     or one lying inside a park or other open space, carries no sample point and no
