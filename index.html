@@ -119,12 +119,17 @@
   }
   .leg { margin-top:8px; }
   .leg-title { display:block; font-size:11.5px; color:#444; margin-bottom:2px; }
-  .leg-row { display:flex; gap:2px; }
+  .leg-row { display:flex; gap:2px; flex-wrap:wrap; }
   .leg-item { flex:1; text-align:center; font-size:11px; cursor:pointer;
               border-radius:3px; padding:1px 0 0; }
   .leg-item .patch { display:block; height:12px; border-radius:2px; margin-bottom:1px; }
   .leg-item.static { cursor:default; }
   .leg-item.selected { outline:2px solid #222; outline-offset:1px; }
+  /* sits on its own line beneath the swatch row, which is a wrapping flex row */
+  .leg-unsampled { flex:0 0 100%; display:flex; align-items:center; gap:5px;
+                   font-size:10.5px; color:#666; margin-top:3px; cursor:help; }
+  .leg-unsampled .patch-empty { width:14px; height:10px; border-radius:2px; flex:none;
+                                border:1px dashed #aaa; background:transparent; }
   /* categories that sit outside the LTS scale: their labels are too long for the
      equal width cells of .leg-row, so they stack beneath it */
   .leg-col { display:flex; flex-direction:column; gap:1px; margin-top:3px; }
@@ -606,6 +611,17 @@ const IS_DISMOUNT = ['==', ['get', 'foot_dismount'], true];
 const IS_EXCLUDED = ['!=', ['get', 'bike_permitted'], true];
 const DIM_COLOR = '#999999';
 
+// Grid cells with no modelled resident population carry no sample points and so are
+// absent from the results entirely -- there is no polygon to shade or to click.  The
+// gap reads as poor access unless it is named, so it gets a legend entry of its own,
+// drawn as an outline because it marks the absence of a cell rather than a value.
+const UNSAMPLED_LEGEND =
+  '<div class="leg-unsampled" title="No modelled resident population, so no sample ' +
+  'points and no result. Population comes from the GHS-POP 100 m grid, which models ' +
+  'few or no residents on commercial, industrial and civic blocks; sample points ' +
+  'inside parks and other open space are excluded as well.">' +
+  '<span class="patch-empty"></span><span>not sampled &mdash; no residents</span></div>';
+
 // Colour and opacity for the LTS line layer.  `isolate` is null for the full legend,
 // or the selected legend entry: an LTS class 1-4, or 'dismount' / 'excluded'.
 // Dismount is tested before excluded, because a walkable-only footway satisfies both
@@ -693,7 +709,7 @@ function applyInitialControls() {
 // validation report quotes.  This is the *mean share*: each cell contributes the
 // share of its sample points with access, weighted by its population.  It is not
 // the same as summing the mapped bands, which classify a whole cell by whether
-// >= 50% of its sample points have access and so round every partially-served
+// the mean band over its sample points rather than a majority, so partially-served
 // cell up or down (up to ~4 pp apart in Wurzburg).  Always quote this for
 // "N% of residents ..."; the bands describe the map, not the population.
 function regionValue(col) {
@@ -790,7 +806,7 @@ function showingText() {
   } else if (mode === 'avg') {
     body = `Average network distance (m) from each grid cell’s sample points to the nearest destination — ${NETWORKS[net].label} routing.`;
   } else {
-    body = `Each grid cell is coloured by the closest distance band (500 m / 1000 m / 2000 m / 5000 m) at which at least half its sample points have access — ${NETWORKS[net].label} routing.`;
+    body = `Each grid cell is coloured by the mean distance band (500 m / 1000 m / 2000 m / 5000 m / none) over its sample points — ${NETWORKS[net].label} routing.`;
   }
   return `<b>${IND_LABELS[ind]}</b><br>${body}`;
 }
@@ -880,7 +896,7 @@ function renderHisto() {
   const iso = mode === 'iso' ? isoBars() : null;
   if (mode === 'iso' && iso) {
     const colors = [...ISO_COLORS, ISO_NO_ACCESS];
-    const labels = ['500 m', '1000 m', '2000 m', '5000 m', '&lt;50%'];
+    const labels = ['500 m', '1000 m', '2000 m', '5000 m', 'none'];
     const peak = Math.max(...iso.bars, 1);
     $('histoTitle').textContent = 'Share of population by access band';
     $('histoBars').innerHTML = iso.bars.map((v, i) =>
@@ -918,15 +934,32 @@ function renderHisto() {
   }
 }
 
-function isoExpression(net, ind) {
+// Mean band index over a cell's sample points: 0 = all reach within 500 m,
+// 4 = none reaches within 5000 m.  See meanBandOf() for the derivation; each point
+// carries an equal share of the cell's population, so this is the cell's
+// population-weighted mean.  Cells with no value for this indicator sum to 0 and so
+// fall at 4, as they did under the old rule.
+function meanBandExpression(net, ind) {
   const c = ISO_DISTANCES.map(d => pctCol(net, ind, d));
-  return ['case',
-    ['>=', ['coalesce', ['get', c[0]], -1], 50], ISO_COLORS[0],
-    ['>=', ['coalesce', ['get', c[1]], -1], 50], ISO_COLORS[1],
-    ['>=', ['coalesce', ['get', c[2]], -1], 50], ISO_COLORS[2],
-    ['>=', ['coalesce', ['get', c[3]], -1], 50], ISO_COLORS[3],
-    ISO_NO_ACCESS,
-  ];
+  return ['-', 4, ['/', ['+',
+    ['coalesce', ['get', c[0]], 0], ['coalesce', ['get', c[1]], 0],
+    ['coalesce', ['get', c[2]], 0], ['coalesce', ['get', c[3]], 0],
+  ], 100]];
+}
+
+// the same quantity for a plain properties object (popups, isolation read-back)
+function meanBandOf(p, net, ind) {
+  const c = ISO_DISTANCES.map(d => pctCol(net, ind, d));
+  if (!c.some(col => p[col] !== undefined && p[col] !== null)) return null;
+  const sum = c.reduce((a, col) => a + (p[col] ?? 0), 0);
+  return 4 - sum / 100;
+}
+
+function isoExpression(net, ind) {
+  const ramp = [...ISO_COLORS, ISO_NO_ACCESS];
+  const expr = ['interpolate', ['linear'], meanBandExpression(net, ind)];
+  ramp.forEach((colour, i) => expr.push(i, colour));
+  return expr;
 }
 
 // dismount dependence: % of a cell's sample points whose access at the selected
@@ -1017,13 +1050,13 @@ function renderLegends() {
         <span class="dist-label">${distLabels[i]}</span>
         <span class="time-label">${timeLabels[i]}</span>
       </div>
-    `).join('');
+    `).join('') + UNSAMPLED_LEGEND;
   } else if (!isAvg) {
     const swatchColors = [...ISO_COLORS, ISO_NO_ACCESS];
     // not "None": the band is "no distance reached half this cell's sample points",
     // which includes cells where a substantial minority can reach a destination
-    const distLabels   = ['500 m', '1000 m', '2000 m', '5000 m', '&lt;50%'];
-    const timeLabels   = ['~3 min', '~5 min', '~10 min', '~25 min', 'of points'];
+    const distLabels   = ['500 m', '1000 m', '2000 m', '5000 m', 'none'];
+    const timeLabels   = ['~3 min', '~5 min', '~10 min', '~25 min', ''];
 
     $('accLegend').innerHTML = swatchColors.map((c, i) => `
       <div
@@ -1036,10 +1069,10 @@ function renderLegends() {
         <span class="dist-label">${distLabels[i]}</span>
         <span class="time-label">${timeLabels[i]}</span>
       </div>
-    `).join('');
+    `).join('') + UNSAMPLED_LEGEND;
     } else {
     const swatchColors = [...ISO_COLORS, ISO_NO_ACCESS];
-    const labels = ['500', '1000', '2000', '5000', '&lt;50%'];
+    const labels = ['500', '1000', '2000', '5000', 'none'];
 
     $('accLegend').innerHTML = swatchColors.map((c, i) => `
       <div
@@ -1051,7 +1084,7 @@ function renderLegends() {
         <span class="patch" style="background:${c}"></span>
         <span>${labels[i]}</span>
       </div>
-    `).join('');
+    `).join('') + UNSAMPLED_LEGEND;
   }
 }
 
@@ -1085,11 +1118,14 @@ function applyIsolation() {
   if (map.getLayer('grid')) {
     if (!isAvg && isolated && isolated.kind === 'iso') {
       const net = $('network').value, ind = currentIndicator();
-      const c = ISO_DISTANCES.map(d => pctCol(net, ind, d));
-      const matchExpr = isolated.value < 4
-        ? ['>=', ['coalesce', ['get', c[isolated.value]], -1], 50]
-        : ['all', ...c.map(col => ['<', ['coalesce', ['get', col], -1], 50])];
-      const selColor = isolated.value < 4 ? ISO_COLORS[isolated.value] : ISO_NO_ACCESS;
+      // isolate the cells whose mean band rounds to the chosen one
+      const m = meanBandExpression(net, ind);
+      const v = isolated.value;
+      const matchExpr = ['all',
+        ['>=', m, v - 0.5],
+        v === 4 ? ['<=', m, 4] : ['<', m, v + 0.5],
+      ];
+      const selColor = v < 4 ? ISO_COLORS[v] : ISO_NO_ACCESS;
       map.setPaintProperty('grid', 'fill-color', ['case', matchExpr, selColor, DIM_COLOR]);
       map.setPaintProperty('grid', 'fill-opacity', ['case', matchExpr, 0.8, 0.15]);
     } else {
@@ -1147,21 +1183,20 @@ function gridPopupHTML(p) {
   const bandRows = IND_ORDER.map(ind => {
     const c = ISO_DISTANCES.map(d => pctCol(net, ind, d));
     if (!c.some(col => cols.has(col))) return '';
-    let band = 4;
-    for (let i = 0; i < 4; i++) {
-      const v = p[c[i]];
-      if (v !== undefined && v !== null && v >= 50) { band = i; break; }
-    }
-    const color = band < 4 ? ISO_COLORS[band] : ISO_NO_ACCESS;
-    // the last band is "no distance reached half the cell's sample points", which is
-    // not the same as no access: report the share that does reach one, so a cell at
-    // 48% is not read as an absence
+    // the cell's mean band over its sample points, and the share reaching at all
+    const mean = meanBandOf(p, net, ind);
     const widest = p[c[3]];
-    const label = band < 4
-      ? `Within ${ISO_DISTANCES[band].replace('m', ' m')}`
+    const ramp = [...ISO_COLORS, ISO_NO_ACCESS];
+    const color = mean === null ? ISO_NO_ACCESS : ramp[Math.round(mean)];
+    // the share of the cell's points that reach one at all.  The colour carries the
+    // mean band; naming a band here would overclaim, because a cell where a quarter
+    // of points are very close and the rest reach nothing averages to a middle band
+    // that describes neither group.
+    const label = mean === null
+      ? '&ndash;'
       : (widest > 0
-          ? `${Math.round(widest)}% of points within 5000 m (under half)`
-          : 'No access within 5000 m');
+          ? `${Math.round(widest)}% of points, within 5000 m`
+          : 'none within 5000 m');
     return `<tr class="${ind === sel ? 'sel' : ''}"><td><span class="swatch" style="background:${color}"></span>${IND_LABELS[ind]}</td>` +
            `<td class="v">${label}</td></tr>`;
   }).join('');
@@ -1172,7 +1207,7 @@ function gridPopupHTML(p) {
   }).join('');
   let html = `<div class="popup"><h4>${IND_LABELS[sel]}</h4>` +
              `<p class="sub">${NETWORKS[net].label} routing</p>`;
-  if (bandRows) html += `<h5>Access band (closest distance with ≥50% of sample points reached)…</h5><table>${bandRows}</table>`;
+  if (bandRows) html += '<h5>Access band (mean over this cell\'s sample points)…</h5>' + `<table>${bandRows}</table>`;
   if (avgRows) html += `<h5>Average distance to nearest…</h5><table>${avgRows}</table>`;
   return html + '</div>';
 }
@@ -1337,7 +1372,7 @@ function infoHTML() {
     ? `the <b>share of the cell’s sample points whose access depends on dismounting</b>: they reach such a destination within ${gapBand().replace('m', ' m')} on the low-stress (LTS 1–2) network when the rider may get off and walk the bike, but not when the same route must be ridden throughout`
     : mode === 'avg'
     ? `the <b>average network distance</b> (metres) from the cell’s sample points to the nearest such destination, averaged only over sample points that can reach one at all — so sparse areas can show few reachable points <i>and</i> long distances`
-    : `an <b>isochrone-style distance band</b>: the closest of 500 m, 1000 m, 2000 m or 5000 m at which at least half the cell’s sample points can reach such a destination (neutral grey = no band within 5000 m has majority access)`;
+    : `an <b>isochrone-style distance band</b>: the mean, over the cell’s sample points, of the band (500 m, 1000 m, 2000 m, 5000 m) in which each point’s nearest such destination falls, counting a point with none within 5000 m as one step beyond (neutral grey = on average none is reachable)`;
   const gapSection = mode !== 'dmgap' ? '' : `
     <h3>Why this comparison</h3>
     <p>A low-stress route that only exists because part of it is walked along a footpath —
@@ -1355,21 +1390,21 @@ function infoHTML() {
     <h3>Reading the colour bands</h3>
     <p>Each grid cell is coloured by the <b>closest</b> distance at which the majority
     (≥ 50%) of its sample points have access — pale pink/yellow = very close (500 m),
-    shading through to dark blue = only reachable at 5000 m. The grey band is
-    <b>not</b> &ldquo;no access&rdquo;: it means no distance reached half the cell's
-    sample points, so a cell where 48&nbsp;% of points reach a destination 140&nbsp;m
-    away is shaded the same as one where nobody reaches anything. Click any cell to
-    see the actual share. The region-wide figures below are population-weighted
-    averages of those shares, so they do not have this threshold effect. This mirrors
-    the isochrone maps in the full validation report. Click a swatch in the legend to
-    isolate that band on the map.</p>
-    <p><b>Cells with no colour at all</b> are not part of the analysis: the grid is
-    only sampled where people live, so a cell with no estimated resident population,
-    or one lying inside a park or other open space, carries no sample point and no
-    result. Gaps therefore cluster around open space and undeveloped land, next to
-    the very destinations being measured &mdash; that is expected, not missing data.
-    Clicking such a cell gives nothing, which distinguishes it from a cell that is
-    genuinely <i>not reachable</i> and is shaded grey.</p>`;
+    shading through to dark blue = only reachable at 5000 m, grey = not reachable
+    within any configured distance. The colour is the <b>mean</b> over the cell's
+    sample points, not a majority: a cell where half its points reach a destination
+    within 500&nbsp;m and half reach none shades midway, rather than falling to one
+    side of a threshold. Click any cell for the share that reaches one at all. The
+    region-wide figures below are population-weighted means of those shares, so map
+    and summary agree. Click a swatch in the legend to isolate cells whose mean falls
+    in that band.</p>
+    <p><b>Cells with no colour at all</b> are not part of the analysis, and clicking
+    one says so: the grid is sampled only where people are modelled as living, so a
+    cell with no estimated residents, or one inside a park or other open space,
+    carries no sample point and no result. Gaps therefore cluster around open space,
+    undeveloped land and commercial blocks &mdash; next to the very destinations being
+    measured &mdash; which is expected, not missing data.</p>
+`;
   return `<h2>How to read this indicator</h2>
     <p><b>${IND_LABELS[ind]}</b> — for each 100 m population grid cell, the map shows ${what}.</p>
     <h3>Destination</h3><p>Access is counted to ${IND_DESCS[ind]}.</p>
@@ -1530,7 +1565,27 @@ async function loadCity(s) {
           && map.getLayoutProperty('dismount', 'visibility') === 'visible')
         layers.unshift('dismount');
       const f = map.queryRenderedFeatures(e.point, { layers })[0];
-      if (!f) return;
+      if (!f) {
+        // an empty spot while the choropleth is on is almost always a cell that was
+        // never sampled -- say so, rather than leaving the gap to be read as an
+        // absence of access
+        if (map.getLayoutProperty('grid', 'visibility') === 'visible'
+            && !map.queryRenderedFeatures(e.point, { layers: ['grid'] }).length) {
+          new maplibregl.Popup({ closeButton: true, maxWidth: '280px' })
+            .setLngLat(e.lngLat)
+            .setHTML(
+              '<div class="popup"><h4>Not sampled</h4>' +
+              '<p class="sub">No result for this location</p>' +
+              '<p style="font-size:11.5px;line-height:1.35">The population grid is ' +
+              'sampled only where people are modelled as living. This cell has no ' +
+              'estimated residents &mdash; GHS-POP models few or none on commercial, ' +
+              'industrial and civic blocks &mdash; or it lies inside a park or other ' +
+              'open space, where sample points are excluded. It is <b>not</b> a ' +
+              'finding of poor access.</p></div>')
+            .addTo(map);
+        }
+        return;
+      }
       const html = f.layer.id === 'dismount' ? dismountPopupHTML(f, e.lngLat)
         : f.layer.id === 'lts' ? ltsPopupHTML(f.properties)
         : gridPopupHTML(f.properties);
@@ -1760,7 +1815,7 @@ const CHECKLIST = [
       { key: 'd5000', label: '5000 m threshold',
         help: 'Access counted within 5000 m of counted network distance — on the order of twenty minutes riding, and the outer limit used in this analysis.' },
       { key: 'iso_summary', label: 'Isochrone summary (distance bands)',
-        help: 'Each grid cell is coloured by the closest of 500 m, 1000 m, 2000 m or 5000 m at which at least half its sample points can reach a destination.' },
+        help: "Each grid cell is coloured by the mean, over its sample points, of the distance band (500 m, 1000 m, 2000 m, 5000 m, or none within 5000 m) in which each point’s nearest destination falls. Every point in a cell carries an equal share of its population, so this is the cell’s population-weighted mean." },
       { key: 'avg_summary', label: '“Average distance” (continuous) summary',
         help: 'The average network distance from a cell’s sample points to the nearest destination, averaged only over the points that can reach one at all — so sparse areas show few reachable points and long distances.' },
       { key: 'sub_area', label: 'Sub-area results (official reporting geographies)',
