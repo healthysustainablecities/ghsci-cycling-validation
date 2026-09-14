@@ -1,0 +1,1851 @@
+{
+ "name": "Valencia",
+ "codename": "data/Cycling/Valencia/Valencia.yml",
+ "slug": "valencia",
+ "layers": {
+  "lts": {
+   "file": "lts.geojsonl",
+   "features": 129562
+  },
+  "grid": {
+   "file": "grid.geojsonl",
+   "features": 6421
+  },
+  "dismount": {
+   "file": "dismount.geojsonl",
+   "features": 19949
+  },
+  "destinations": {
+   "file": "destinations.geojsonl",
+   "features": 4226
+  },
+  "pt_frequent": {
+   "file": "pt_frequent.geojsonl",
+   "features": 1049
+  },
+  "ac_local": {
+   "file": "ac_local.geojsonl",
+   "features": 50443
+  },
+  "ac_complete": {
+   "file": "ac_complete.geojsonl",
+   "features": 15966
+  },
+  "pos_any": {
+   "file": "pos_any.geojsonl",
+   "features": 24527
+  },
+  "pos_large": {
+   "file": "pos_large.geojsonl",
+   "features": 5654
+  },
+  "boundary": {
+   "file": "boundary.geojsonl",
+   "features": 1
+  },
+  "buffer": {
+   "file": "buffer.geojsonl",
+   "features": 1
+  }
+ },
+ "bbox": [
+  -0.43199,
+  39.41584,
+  -0.28574,
+  39.54966
+ ],
+ "grid_columns": [
+  "pct_access_cycle_fresh_food_market_500m",
+  "pct_access_cycle_fresh_food_market_1000m",
+  "pct_access_cycle_fresh_food_market_2000m",
+  "pct_access_cycle_fresh_food_market_5000m",
+  "pct_access_cycle_fresh_food_pooled_500m",
+  "pct_access_cycle_fresh_food_pooled_1000m",
+  "pct_access_cycle_fresh_food_pooled_2000m",
+  "pct_access_cycle_fresh_food_pooled_5000m",
+  "pct_access_cycle_pt_any_500m",
+  "pct_access_cycle_pt_any_1000m",
+  "pct_access_cycle_pt_any_2000m",
+  "pct_access_cycle_pt_any_5000m",
+  "pct_access_cycle_pt_frequent_500m",
+  "pct_access_cycle_pt_frequent_1000m",
+  "pct_access_cycle_pt_frequent_2000m",
+  "pct_access_cycle_pt_frequent_5000m",
+  "pct_access_cycle_public_open_space_any_500m",
+  "pct_access_cycle_public_open_space_any_1000m",
+  "pct_access_cycle_public_open_space_any_2000m",
+  "pct_access_cycle_public_open_space_any_5000m",
+  "pct_access_cycle_public_open_space_large_500m",
+  "pct_access_cycle_public_open_space_large_1000m",
+  "pct_access_cycle_public_open_space_large_2000m",
+  "pct_access_cycle_public_open_space_large_5000m",
+  "pct_access_cycle_activity_centre_local_500m",
+  "pct_access_cycle_activity_centre_local_1000m",
+  "pct_access_cycle_activity_centre_local_2000m",
+  "pct_access_cycle_activity_centre_local_5000m",
+  "pct_access_cycle_activity_centre_complete_500m",
+  "pct_access_cycle_activity_centre_complete_1000m",
+  "pct_access_cycle_activity_centre_complete_2000m",
+  "pct_access_cycle_activity_centre_complete_5000m",
+  "pct_access_cycle_all_strict_500m",
+  "pct_access_cycle_all_strict_1000m",
+  "pct_access_cycle_all_strict_2000m",
+  "pct_access_cycle_all_strict_5000m",
+  "pct_access_cycle_all_lenient_500m",
+  "pct_access_cycle_all_lenient_1000m",
+  "pct_access_cycle_all_lenient_2000m",
+  "pct_access_cycle_all_lenient_5000m",
+  "avg_cycle_dist_fresh_food_market",
+  "avg_cycle_dist_fresh_food_pooled",
+  "avg_cycle_dist_pt_any",
+  "avg_cycle_dist_pt_frequent",
+  "avg_cycle_dist_public_open_space_any",
+  "avg_cycle_dist_public_open_space_large",
+  "avg_cycle_dist_activity_centre_local",
+  "avg_cycle_dist_activity_centre_complete",
+  "pct_access_cycle_safe_fresh_food_market_500m",
+  "pct_access_cycle_safe_fresh_food_market_1000m",
+  "pct_access_cycle_safe_fresh_food_market_2000m",
+  "pct_access_cycle_safe_fresh_food_market_5000m",
+  "pct_access_cycle_safe_fresh_food_pooled_500m",
+  "pct_access_cycle_safe_fresh_food_pooled_1000m",
+  "pct_access_cycle_safe_fresh_food_pooled_2000m",
+  "pct_access_cycle_safe_fresh_food_pooled_5000m",
+  "pct_access_cycle_safe_pt_any_500m",
+  "pct_access_cycle_safe_pt_any_1000m",
+  "pct_access_cycle_safe_pt_any_2000m",
+  "pct_access_cycle_safe_pt_any_5000m",
+  "pct_access_cycle_safe_pt_frequent_500m",
+  "pct_access_cycle_safe_pt_frequent_1000m",
+  "pct_access_cycle_safe_pt_frequent_2000m",
+  "pct_access_cycle_safe_pt_frequent_5000m",
+  "pct_access_cycle_safe_public_open_space_any_500m",
+  "pct_access_cycle_safe_public_open_space_any_1000m",
+  "pct_access_cycle_safe_public_open_space_any_2000m",
+  "pct_access_cycle_safe_public_open_space_any_5000m",
+  "pct_access_cycle_safe_public_open_space_large_500m",
+  "pct_access_cycle_safe_public_open_space_large_1000m",
+  "pct_access_cycle_safe_public_open_space_large_2000m",
+  "pct_access_cycle_safe_public_open_space_large_5000m",
+  "pct_access_cycle_safe_activity_centre_local_500m",
+  "pct_access_cycle_safe_activity_centre_local_1000m",
+  "pct_access_cycle_safe_activity_centre_local_2000m",
+  "pct_access_cycle_safe_activity_centre_local_5000m",
+  "pct_access_cycle_safe_activity_centre_complete_500m",
+  "pct_access_cycle_safe_activity_centre_complete_1000m",
+  "pct_access_cycle_safe_activity_centre_complete_2000m",
+  "pct_access_cycle_safe_activity_centre_complete_5000m",
+  "pct_access_cycle_safe_all_strict_500m",
+  "pct_access_cycle_safe_all_strict_1000m",
+  "pct_access_cycle_safe_all_strict_2000m",
+  "pct_access_cycle_safe_all_strict_5000m",
+  "pct_access_cycle_safe_all_lenient_500m",
+  "pct_access_cycle_safe_all_lenient_1000m",
+  "pct_access_cycle_safe_all_lenient_2000m",
+  "pct_access_cycle_safe_all_lenient_5000m",
+  "avg_cycle_dist_safe_fresh_food_market",
+  "avg_cycle_dist_safe_fresh_food_pooled",
+  "avg_cycle_dist_safe_pt_any",
+  "avg_cycle_dist_safe_pt_frequent",
+  "avg_cycle_dist_safe_public_open_space_any",
+  "avg_cycle_dist_safe_public_open_space_large",
+  "avg_cycle_dist_safe_activity_centre_local",
+  "avg_cycle_dist_safe_activity_centre_complete",
+  "pct_access_cycle_lts1_fresh_food_market_500m",
+  "pct_access_cycle_lts1_fresh_food_market_1000m",
+  "pct_access_cycle_lts1_fresh_food_market_2000m",
+  "pct_access_cycle_lts1_fresh_food_market_5000m",
+  "pct_access_cycle_lts1_fresh_food_pooled_500m",
+  "pct_access_cycle_lts1_fresh_food_pooled_1000m",
+  "pct_access_cycle_lts1_fresh_food_pooled_2000m",
+  "pct_access_cycle_lts1_fresh_food_pooled_5000m",
+  "pct_access_cycle_lts1_pt_any_500m",
+  "pct_access_cycle_lts1_pt_any_1000m",
+  "pct_access_cycle_lts1_pt_any_2000m",
+  "pct_access_cycle_lts1_pt_any_5000m",
+  "pct_access_cycle_lts1_pt_frequent_500m",
+  "pct_access_cycle_lts1_pt_frequent_1000m",
+  "pct_access_cycle_lts1_pt_frequent_2000m",
+  "pct_access_cycle_lts1_pt_frequent_5000m",
+  "pct_access_cycle_lts1_public_open_space_any_500m",
+  "pct_access_cycle_lts1_public_open_space_any_1000m",
+  "pct_access_cycle_lts1_public_open_space_any_2000m",
+  "pct_access_cycle_lts1_public_open_space_any_5000m",
+  "pct_access_cycle_lts1_public_open_space_large_500m",
+  "pct_access_cycle_lts1_public_open_space_large_1000m",
+  "pct_access_cycle_lts1_public_open_space_large_2000m",
+  "pct_access_cycle_lts1_public_open_space_large_5000m",
+  "pct_access_cycle_lts1_activity_centre_local_500m",
+  "pct_access_cycle_lts1_activity_centre_local_1000m",
+  "pct_access_cycle_lts1_activity_centre_local_2000m",
+  "pct_access_cycle_lts1_activity_centre_local_5000m",
+  "pct_access_cycle_lts1_activity_centre_complete_500m",
+  "pct_access_cycle_lts1_activity_centre_complete_1000m",
+  "pct_access_cycle_lts1_activity_centre_complete_2000m",
+  "pct_access_cycle_lts1_activity_centre_complete_5000m",
+  "pct_access_cycle_lts1_all_strict_500m",
+  "pct_access_cycle_lts1_all_strict_1000m",
+  "pct_access_cycle_lts1_all_strict_2000m",
+  "pct_access_cycle_lts1_all_strict_5000m",
+  "pct_access_cycle_lts1_all_lenient_500m",
+  "pct_access_cycle_lts1_all_lenient_1000m",
+  "pct_access_cycle_lts1_all_lenient_2000m",
+  "pct_access_cycle_lts1_all_lenient_5000m",
+  "avg_cycle_dist_lts1_fresh_food_market",
+  "avg_cycle_dist_lts1_fresh_food_pooled",
+  "avg_cycle_dist_lts1_pt_any",
+  "avg_cycle_dist_lts1_pt_frequent",
+  "avg_cycle_dist_lts1_public_open_space_any",
+  "avg_cycle_dist_lts1_public_open_space_large",
+  "avg_cycle_dist_lts1_activity_centre_local",
+  "avg_cycle_dist_lts1_activity_centre_complete",
+  "pct_access_cycle_ride_fresh_food_market_500m",
+  "pct_access_cycle_ride_fresh_food_market_1000m",
+  "pct_access_cycle_ride_fresh_food_market_2000m",
+  "pct_access_cycle_ride_fresh_food_market_5000m",
+  "pct_access_cycle_ride_fresh_food_pooled_500m",
+  "pct_access_cycle_ride_fresh_food_pooled_1000m",
+  "pct_access_cycle_ride_fresh_food_pooled_2000m",
+  "pct_access_cycle_ride_fresh_food_pooled_5000m",
+  "pct_access_cycle_ride_pt_any_500m",
+  "pct_access_cycle_ride_pt_any_1000m",
+  "pct_access_cycle_ride_pt_any_2000m",
+  "pct_access_cycle_ride_pt_any_5000m",
+  "pct_access_cycle_ride_pt_frequent_500m",
+  "pct_access_cycle_ride_pt_frequent_1000m",
+  "pct_access_cycle_ride_pt_frequent_2000m",
+  "pct_access_cycle_ride_pt_frequent_5000m",
+  "pct_access_cycle_ride_public_open_space_any_500m",
+  "pct_access_cycle_ride_public_open_space_any_1000m",
+  "pct_access_cycle_ride_public_open_space_any_2000m",
+  "pct_access_cycle_ride_public_open_space_any_5000m",
+  "pct_access_cycle_ride_public_open_space_large_500m",
+  "pct_access_cycle_ride_public_open_space_large_1000m",
+  "pct_access_cycle_ride_public_open_space_large_2000m",
+  "pct_access_cycle_ride_public_open_space_large_5000m",
+  "pct_access_cycle_ride_activity_centre_local_500m",
+  "pct_access_cycle_ride_activity_centre_local_1000m",
+  "pct_access_cycle_ride_activity_centre_local_2000m",
+  "pct_access_cycle_ride_activity_centre_local_5000m",
+  "pct_access_cycle_ride_activity_centre_complete_500m",
+  "pct_access_cycle_ride_activity_centre_complete_1000m",
+  "pct_access_cycle_ride_activity_centre_complete_2000m",
+  "pct_access_cycle_ride_activity_centre_complete_5000m",
+  "pct_access_cycle_ride_all_strict_500m",
+  "pct_access_cycle_ride_all_strict_1000m",
+  "pct_access_cycle_ride_all_strict_2000m",
+  "pct_access_cycle_ride_all_strict_5000m",
+  "pct_access_cycle_ride_all_lenient_500m",
+  "pct_access_cycle_ride_all_lenient_1000m",
+  "pct_access_cycle_ride_all_lenient_2000m",
+  "pct_access_cycle_ride_all_lenient_5000m",
+  "avg_cycle_dist_ride_fresh_food_market",
+  "avg_cycle_dist_ride_fresh_food_pooled",
+  "avg_cycle_dist_ride_pt_any",
+  "avg_cycle_dist_ride_pt_frequent",
+  "avg_cycle_dist_ride_public_open_space_any",
+  "avg_cycle_dist_ride_public_open_space_large",
+  "avg_cycle_dist_ride_activity_centre_local",
+  "avg_cycle_dist_ride_activity_centre_complete",
+  "pct_access_cycle_dmgap_fresh_food_market_500m",
+  "pct_access_cycle_dmgap_fresh_food_market_1000m",
+  "pct_access_cycle_dmgap_fresh_food_market_2000m",
+  "pct_access_cycle_dmgap_fresh_food_market_5000m",
+  "avg_cycle_extra_dmgap_fresh_food_market",
+  "pct_access_cycle_dmgap_fresh_food_pooled_500m",
+  "pct_access_cycle_dmgap_fresh_food_pooled_1000m",
+  "pct_access_cycle_dmgap_fresh_food_pooled_2000m",
+  "pct_access_cycle_dmgap_fresh_food_pooled_5000m",
+  "avg_cycle_extra_dmgap_fresh_food_pooled",
+  "pct_access_cycle_dmgap_pt_any_500m",
+  "pct_access_cycle_dmgap_pt_any_1000m",
+  "pct_access_cycle_dmgap_pt_any_2000m",
+  "pct_access_cycle_dmgap_pt_any_5000m",
+  "avg_cycle_extra_dmgap_pt_any",
+  "pct_access_cycle_dmgap_pt_frequent_500m",
+  "pct_access_cycle_dmgap_pt_frequent_1000m",
+  "pct_access_cycle_dmgap_pt_frequent_2000m",
+  "pct_access_cycle_dmgap_pt_frequent_5000m",
+  "avg_cycle_extra_dmgap_pt_frequent",
+  "pct_access_cycle_dmgap_public_open_space_any_500m",
+  "pct_access_cycle_dmgap_public_open_space_any_1000m",
+  "pct_access_cycle_dmgap_public_open_space_any_2000m",
+  "pct_access_cycle_dmgap_public_open_space_any_5000m",
+  "avg_cycle_extra_dmgap_public_open_space_any",
+  "pct_access_cycle_dmgap_public_open_space_large_500m",
+  "pct_access_cycle_dmgap_public_open_space_large_1000m",
+  "pct_access_cycle_dmgap_public_open_space_large_2000m",
+  "pct_access_cycle_dmgap_public_open_space_large_5000m",
+  "avg_cycle_extra_dmgap_public_open_space_large",
+  "pct_access_cycle_dmgap_activity_centre_local_500m",
+  "pct_access_cycle_dmgap_activity_centre_local_1000m",
+  "pct_access_cycle_dmgap_activity_centre_local_2000m",
+  "pct_access_cycle_dmgap_activity_centre_local_5000m",
+  "avg_cycle_extra_dmgap_activity_centre_local",
+  "pct_access_cycle_dmgap_activity_centre_complete_500m",
+  "pct_access_cycle_dmgap_activity_centre_complete_1000m",
+  "pct_access_cycle_dmgap_activity_centre_complete_2000m",
+  "pct_access_cycle_dmgap_activity_centre_complete_5000m",
+  "avg_cycle_extra_dmgap_activity_centre_complete",
+  "pct_access_cycle_dmgap_all_strict_500m",
+  "pct_access_cycle_dmgap_all_strict_1000m",
+  "pct_access_cycle_dmgap_all_strict_2000m",
+  "pct_access_cycle_dmgap_all_strict_5000m",
+  "pct_access_cycle_dmgap_all_lenient_500m",
+  "pct_access_cycle_dmgap_all_lenient_1000m",
+  "pct_access_cycle_dmgap_all_lenient_2000m",
+  "pct_access_cycle_dmgap_all_lenient_5000m"
+ ],
+ "region_values": {
+  "pct_access_cycle_fresh_food_market_500m": 86.3,
+  "pct_access_cycle_fresh_food_market_1000m": 94.8,
+  "pct_access_cycle_fresh_food_market_2000m": 98,
+  "pct_access_cycle_fresh_food_market_5000m": 99.9,
+  "pct_access_cycle_fresh_food_pooled_500m": 89,
+  "pct_access_cycle_fresh_food_pooled_1000m": 96.1,
+  "pct_access_cycle_fresh_food_pooled_2000m": 98.9,
+  "pct_access_cycle_fresh_food_pooled_5000m": 99.9,
+  "pct_access_cycle_pt_any_500m": 95,
+  "pct_access_cycle_pt_any_1000m": 98.2,
+  "pct_access_cycle_pt_any_2000m": 99.2,
+  "pct_access_cycle_pt_any_5000m": 99.9,
+  "pct_access_cycle_pt_frequent_500m": 93.2,
+  "pct_access_cycle_pt_frequent_1000m": 97.1,
+  "pct_access_cycle_pt_frequent_2000m": 98.5,
+  "pct_access_cycle_pt_frequent_5000m": 99.9,
+  "pct_access_cycle_public_open_space_any_500m": 94.7,
+  "pct_access_cycle_public_open_space_any_1000m": 97.4,
+  "pct_access_cycle_public_open_space_any_2000m": 98.9,
+  "pct_access_cycle_public_open_space_any_5000m": 99.9,
+  "pct_access_cycle_public_open_space_large_500m": 46.5,
+  "pct_access_cycle_public_open_space_large_1000m": 86.6,
+  "pct_access_cycle_public_open_space_large_2000m": 96.3,
+  "pct_access_cycle_public_open_space_large_5000m": 99.9,
+  "pct_access_cycle_activity_centre_local_500m": 95.1,
+  "pct_access_cycle_activity_centre_local_1000m": 96.9,
+  "pct_access_cycle_activity_centre_local_2000m": 98.8,
+  "pct_access_cycle_activity_centre_local_5000m": 99.9,
+  "pct_access_cycle_activity_centre_complete_500m": 82,
+  "pct_access_cycle_activity_centre_complete_1000m": 91.9,
+  "pct_access_cycle_activity_centre_complete_2000m": 95.1,
+  "pct_access_cycle_activity_centre_complete_5000m": 99.5,
+  "pct_access_cycle_all_strict_500m": 41.5,
+  "pct_access_cycle_all_strict_1000m": 85,
+  "pct_access_cycle_all_strict_2000m": 95.2,
+  "pct_access_cycle_all_strict_5000m": 99.8,
+  "pct_access_cycle_all_lenient_500m": 87.7,
+  "pct_access_cycle_all_lenient_1000m": 95.5,
+  "pct_access_cycle_all_lenient_2000m": 98.5,
+  "pct_access_cycle_all_lenient_5000m": 99.9,
+  "avg_cycle_dist_fresh_food_market": 335.1,
+  "avg_cycle_dist_fresh_food_pooled": 290.5,
+  "avg_cycle_dist_pt_any": 216.7,
+  "avg_cycle_dist_pt_frequent": 251.7,
+  "avg_cycle_dist_public_open_space_any": 209,
+  "avg_cycle_dist_public_open_space_large": 652,
+  "avg_cycle_dist_activity_centre_local": 108.2,
+  "avg_cycle_dist_activity_centre_complete": 374.2,
+  "pct_access_cycle_safe_fresh_food_market_500m": 82.2,
+  "pct_access_cycle_safe_fresh_food_market_1000m": 92.8,
+  "pct_access_cycle_safe_fresh_food_market_2000m": 95.8,
+  "pct_access_cycle_safe_fresh_food_market_5000m": 98,
+  "pct_access_cycle_safe_fresh_food_pooled_500m": 85.3,
+  "pct_access_cycle_safe_fresh_food_pooled_1000m": 94.2,
+  "pct_access_cycle_safe_fresh_food_pooled_2000m": 97,
+  "pct_access_cycle_safe_fresh_food_pooled_5000m": 98,
+  "pct_access_cycle_safe_pt_any_500m": 93.2,
+  "pct_access_cycle_safe_pt_any_1000m": 96.7,
+  "pct_access_cycle_safe_pt_any_2000m": 97.8,
+  "pct_access_cycle_safe_pt_any_5000m": 98.6,
+  "pct_access_cycle_safe_pt_frequent_500m": 91.2,
+  "pct_access_cycle_safe_pt_frequent_1000m": 95.5,
+  "pct_access_cycle_safe_pt_frequent_2000m": 97,
+  "pct_access_cycle_safe_pt_frequent_5000m": 98.5,
+  "pct_access_cycle_safe_public_open_space_any_500m": 92.3,
+  "pct_access_cycle_safe_public_open_space_any_1000m": 95.8,
+  "pct_access_cycle_safe_public_open_space_any_2000m": 96.8,
+  "pct_access_cycle_safe_public_open_space_any_5000m": 98.1,
+  "pct_access_cycle_safe_public_open_space_large_500m": 42.4,
+  "pct_access_cycle_safe_public_open_space_large_1000m": 82,
+  "pct_access_cycle_safe_public_open_space_large_2000m": 94.2,
+  "pct_access_cycle_safe_public_open_space_large_5000m": 97.8,
+  "pct_access_cycle_safe_activity_centre_local_500m": 94.8,
+  "pct_access_cycle_safe_activity_centre_local_1000m": 96.4,
+  "pct_access_cycle_safe_activity_centre_local_2000m": 98,
+  "pct_access_cycle_safe_activity_centre_local_5000m": 99.4,
+  "pct_access_cycle_safe_activity_centre_complete_500m": 79.3,
+  "pct_access_cycle_safe_activity_centre_complete_1000m": 90.2,
+  "pct_access_cycle_safe_activity_centre_complete_2000m": 93.9,
+  "pct_access_cycle_safe_activity_centre_complete_5000m": 97.5,
+  "pct_access_cycle_safe_all_strict_500m": 36.5,
+  "pct_access_cycle_safe_all_strict_1000m": 80.1,
+  "pct_access_cycle_safe_all_strict_2000m": 92.9,
+  "pct_access_cycle_safe_all_strict_5000m": 97.7,
+  "pct_access_cycle_safe_all_lenient_500m": 83.5,
+  "pct_access_cycle_safe_all_lenient_1000m": 93.4,
+  "pct_access_cycle_safe_all_lenient_2000m": 96.2,
+  "pct_access_cycle_safe_all_lenient_5000m": 97.9,
+  "avg_cycle_dist_safe_fresh_food_market": 361.8,
+  "avg_cycle_dist_safe_fresh_food_pooled": 305.4,
+  "avg_cycle_dist_safe_pt_any": 228.6,
+  "avg_cycle_dist_safe_pt_frequent": 271.1,
+  "avg_cycle_dist_safe_public_open_space_any": 218.9,
+  "avg_cycle_dist_safe_public_open_space_large": 696.2,
+  "avg_cycle_dist_safe_activity_centre_local": 114.4,
+  "avg_cycle_dist_safe_activity_centre_complete": 373.8,
+  "pct_access_cycle_lts1_fresh_food_market_500m": 60.4,
+  "pct_access_cycle_lts1_fresh_food_market_1000m": 75,
+  "pct_access_cycle_lts1_fresh_food_market_2000m": 80.3,
+  "pct_access_cycle_lts1_fresh_food_market_5000m": 81.9,
+  "pct_access_cycle_lts1_fresh_food_pooled_500m": 64.7,
+  "pct_access_cycle_lts1_fresh_food_pooled_1000m": 77.3,
+  "pct_access_cycle_lts1_fresh_food_pooled_2000m": 81.5,
+  "pct_access_cycle_lts1_fresh_food_pooled_5000m": 82.6,
+  "pct_access_cycle_lts1_pt_any_500m": 75,
+  "pct_access_cycle_lts1_pt_any_1000m": 82.2,
+  "pct_access_cycle_lts1_pt_any_2000m": 83.6,
+  "pct_access_cycle_lts1_pt_any_5000m": 83.8,
+  "pct_access_cycle_lts1_pt_frequent_500m": 71.9,
+  "pct_access_cycle_lts1_pt_frequent_1000m": 80.6,
+  "pct_access_cycle_lts1_pt_frequent_2000m": 82.2,
+  "pct_access_cycle_lts1_pt_frequent_5000m": 82.6,
+  "pct_access_cycle_lts1_public_open_space_any_500m": 76.1,
+  "pct_access_cycle_lts1_public_open_space_any_1000m": 81.7,
+  "pct_access_cycle_lts1_public_open_space_any_2000m": 83,
+  "pct_access_cycle_lts1_public_open_space_any_5000m": 83.2,
+  "pct_access_cycle_lts1_public_open_space_large_500m": 28.5,
+  "pct_access_cycle_lts1_public_open_space_large_1000m": 60.1,
+  "pct_access_cycle_lts1_public_open_space_large_2000m": 73.7,
+  "pct_access_cycle_lts1_public_open_space_large_5000m": 76.9,
+  "pct_access_cycle_lts1_activity_centre_local_500m": 93.2,
+  "pct_access_cycle_lts1_activity_centre_local_1000m": 94.8,
+  "pct_access_cycle_lts1_activity_centre_local_2000m": 95.8,
+  "pct_access_cycle_lts1_activity_centre_local_5000m": 95.9,
+  "pct_access_cycle_lts1_activity_centre_complete_500m": 66.2,
+  "pct_access_cycle_lts1_activity_centre_complete_1000m": 76.1,
+  "pct_access_cycle_lts1_activity_centre_complete_2000m": 81.1,
+  "pct_access_cycle_lts1_activity_centre_complete_5000m": 83.5,
+  "pct_access_cycle_lts1_all_strict_500m": 20.7,
+  "pct_access_cycle_lts1_all_strict_1000m": 57.3,
+  "pct_access_cycle_lts1_all_strict_2000m": 72.8,
+  "pct_access_cycle_lts1_all_strict_5000m": 76.6,
+  "pct_access_cycle_lts1_all_lenient_500m": 56.4,
+  "pct_access_cycle_lts1_all_lenient_1000m": 73.4,
+  "pct_access_cycle_lts1_all_lenient_2000m": 78,
+  "pct_access_cycle_lts1_all_lenient_5000m": 79.2,
+  "avg_cycle_dist_lts1_fresh_food_market": 432.1,
+  "avg_cycle_dist_lts1_fresh_food_pooled": 379.6,
+  "avg_cycle_dist_lts1_pt_any": 257.2,
+  "avg_cycle_dist_lts1_pt_frequent": 296.1,
+  "avg_cycle_dist_lts1_public_open_space_any": 222.5,
+  "avg_cycle_dist_lts1_public_open_space_large": 793.5,
+  "avg_cycle_dist_lts1_activity_centre_local": 65.7,
+  "avg_cycle_dist_lts1_activity_centre_complete": 383,
+  "pct_access_cycle_ride_fresh_food_market_500m": 47.4,
+  "pct_access_cycle_ride_fresh_food_market_1000m": 60.2,
+  "pct_access_cycle_ride_fresh_food_market_2000m": 64.7,
+  "pct_access_cycle_ride_fresh_food_market_5000m": 66.8,
+  "pct_access_cycle_ride_fresh_food_pooled_500m": 51.8,
+  "pct_access_cycle_ride_fresh_food_pooled_1000m": 63.3,
+  "pct_access_cycle_ride_fresh_food_pooled_2000m": 66.4,
+  "pct_access_cycle_ride_fresh_food_pooled_5000m": 67.4,
+  "pct_access_cycle_ride_pt_any_500m": 63.6,
+  "pct_access_cycle_ride_pt_any_1000m": 67.1,
+  "pct_access_cycle_ride_pt_any_2000m": 68.1,
+  "pct_access_cycle_ride_pt_any_5000m": 68.9,
+  "pct_access_cycle_ride_pt_frequent_500m": 60.5,
+  "pct_access_cycle_ride_pt_frequent_1000m": 64.3,
+  "pct_access_cycle_ride_pt_frequent_2000m": 65.6,
+  "pct_access_cycle_ride_pt_frequent_5000m": 67.3,
+  "pct_access_cycle_ride_public_open_space_any_500m": 64.3,
+  "pct_access_cycle_ride_public_open_space_any_1000m": 69.4,
+  "pct_access_cycle_ride_public_open_space_any_2000m": 70.7,
+  "pct_access_cycle_ride_public_open_space_any_5000m": 72.1,
+  "pct_access_cycle_ride_public_open_space_large_500m": 18.1,
+  "pct_access_cycle_ride_public_open_space_large_1000m": 42.6,
+  "pct_access_cycle_ride_public_open_space_large_2000m": 58.6,
+  "pct_access_cycle_ride_public_open_space_large_5000m": 65.6,
+  "pct_access_cycle_ride_activity_centre_local_500m": 92.8,
+  "pct_access_cycle_ride_activity_centre_local_1000m": 94,
+  "pct_access_cycle_ride_activity_centre_local_2000m": 95.4,
+  "pct_access_cycle_ride_activity_centre_local_5000m": 96.9,
+  "pct_access_cycle_ride_activity_centre_complete_500m": 66.9,
+  "pct_access_cycle_ride_activity_centre_complete_1000m": 74.7,
+  "pct_access_cycle_ride_activity_centre_complete_2000m": 77.4,
+  "pct_access_cycle_ride_activity_centre_complete_5000m": 80.9,
+  "pct_access_cycle_ride_all_strict_500m": 11.3,
+  "pct_access_cycle_ride_all_strict_1000m": 38.3,
+  "pct_access_cycle_ride_all_strict_2000m": 56,
+  "pct_access_cycle_ride_all_strict_5000m": 63.8,
+  "pct_access_cycle_ride_all_lenient_500m": 45.3,
+  "pct_access_cycle_ride_all_lenient_1000m": 59.2,
+  "pct_access_cycle_ride_all_lenient_2000m": 62.4,
+  "pct_access_cycle_ride_all_lenient_5000m": 64.1,
+  "avg_cycle_dist_ride_fresh_food_market": 489.3,
+  "avg_cycle_dist_ride_fresh_food_pooled": 393.3,
+  "avg_cycle_dist_ride_pt_any": 252.2,
+  "avg_cycle_dist_ride_pt_frequent": 291,
+  "avg_cycle_dist_ride_public_open_space_any": 276.4,
+  "avg_cycle_dist_ride_public_open_space_large": 941,
+  "avg_cycle_dist_ride_activity_centre_local": 110.8,
+  "avg_cycle_dist_ride_activity_centre_complete": 366.3,
+  "pct_access_cycle_dmgap_fresh_food_market_500m": 34.9,
+  "pct_access_cycle_dmgap_fresh_food_market_1000m": 32.6,
+  "pct_access_cycle_dmgap_fresh_food_market_2000m": 31.2,
+  "pct_access_cycle_dmgap_fresh_food_market_5000m": 31.2,
+  "avg_cycle_extra_dmgap_fresh_food_market": 157,
+  "pct_access_cycle_dmgap_fresh_food_pooled_500m": 33.5,
+  "pct_access_cycle_dmgap_fresh_food_pooled_1000m": 31,
+  "pct_access_cycle_dmgap_fresh_food_pooled_2000m": 30.7,
+  "pct_access_cycle_dmgap_fresh_food_pooled_5000m": 30.7,
+  "avg_cycle_extra_dmgap_fresh_food_pooled": 115.9,
+  "pct_access_cycle_dmgap_pt_any_500m": 29.6,
+  "pct_access_cycle_dmgap_pt_any_1000m": 29.6,
+  "pct_access_cycle_dmgap_pt_any_2000m": 29.7,
+  "pct_access_cycle_dmgap_pt_any_5000m": 29.7,
+  "avg_cycle_extra_dmgap_pt_any": 42.8,
+  "pct_access_cycle_dmgap_pt_frequent_500m": 30.7,
+  "pct_access_cycle_dmgap_pt_frequent_1000m": 31.2,
+  "pct_access_cycle_dmgap_pt_frequent_2000m": 31.4,
+  "pct_access_cycle_dmgap_pt_frequent_5000m": 31.3,
+  "avg_cycle_extra_dmgap_pt_frequent": 40.4,
+  "pct_access_cycle_dmgap_public_open_space_any_500m": 28,
+  "pct_access_cycle_dmgap_public_open_space_any_1000m": 26.4,
+  "pct_access_cycle_dmgap_public_open_space_any_2000m": 26.1,
+  "pct_access_cycle_dmgap_public_open_space_any_5000m": 26,
+  "avg_cycle_extra_dmgap_public_open_space_any": 75,
+  "pct_access_cycle_dmgap_public_open_space_large_500m": 24.3,
+  "pct_access_cycle_dmgap_public_open_space_large_1000m": 39.4,
+  "pct_access_cycle_dmgap_public_open_space_large_2000m": 35.5,
+  "pct_access_cycle_dmgap_public_open_space_large_5000m": 32.2,
+  "avg_cycle_extra_dmgap_public_open_space_large": 264.2,
+  "pct_access_cycle_dmgap_activity_centre_local_500m": 2,
+  "pct_access_cycle_dmgap_activity_centre_local_1000m": 2.4,
+  "pct_access_cycle_dmgap_activity_centre_local_2000m": 2.5,
+  "pct_access_cycle_dmgap_activity_centre_local_5000m": 2.5,
+  "avg_cycle_extra_dmgap_activity_centre_local": 3.2,
+  "pct_access_cycle_dmgap_activity_centre_complete_500m": 12.4,
+  "pct_access_cycle_dmgap_activity_centre_complete_1000m": 15.5,
+  "pct_access_cycle_dmgap_activity_centre_complete_2000m": 16.5,
+  "pct_access_cycle_dmgap_activity_centre_complete_5000m": 16.6,
+  "avg_cycle_extra_dmgap_activity_centre_complete": 11.5,
+  "pct_access_cycle_dmgap_all_strict_500m": 25.2,
+  "pct_access_cycle_dmgap_all_strict_1000m": 41.8,
+  "pct_access_cycle_dmgap_all_strict_2000m": 36.9,
+  "pct_access_cycle_dmgap_all_strict_5000m": 33.9,
+  "pct_access_cycle_dmgap_all_lenient_500m": 38.2,
+  "pct_access_cycle_dmgap_all_lenient_1000m": 34.1,
+  "pct_access_cycle_dmgap_all_lenient_2000m": 33.8,
+  "pct_access_cycle_dmgap_all_lenient_5000m": 33.8
+ },
+ "distributions": {
+  "fresh_food_market": {
+   "iso": [
+    87.1,
+    8,
+    3,
+    1.9,
+    0.1
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     86.8,
+     8.2,
+     2,
+     1.2,
+     0.9,
+     0.3,
+     0.2,
+     0.2,
+     0.1,
+     0.1
+    ],
+    "p25": 129,
+    "p50": 219,
+    "p75": 351
+   }
+  },
+  "fresh_food_pooled": {
+   "iso": [
+    89.8,
+    6.5,
+    2.7,
+    0.9,
+    0.1
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     89.5,
+     6.7,
+     1.7,
+     1.1,
+     0.3,
+     0.1,
+     0.2,
+     0.2,
+     0.1,
+     0.1
+    ],
+    "p25": 116,
+    "p50": 192,
+    "p75": 312
+   }
+  },
+  "pt_any": {
+   "iso": [
+    95.4,
+    2.9,
+    1,
+    0.7,
+    0
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     95.3,
+     3,
+     0.7,
+     0.3,
+     0.1,
+     0.2,
+     0.2,
+     0.1,
+     0.1,
+     0.1
+    ],
+    "p25": 99,
+    "p50": 154,
+    "p75": 232
+   }
+  },
+  "pt_frequent": {
+   "iso": [
+    93.7,
+    3.5,
+    1.4,
+    1.4,
+    0
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     93.6,
+     3.6,
+     0.7,
+     0.7,
+     0.3,
+     0.5,
+     0.2,
+     0.1,
+     0.1,
+     0.1
+    ],
+    "p25": 106,
+    "p50": 167,
+    "p75": 252
+   }
+  },
+  "public_open_space_any": {
+   "iso": [
+    95.1,
+    2.5,
+    1.4,
+    1,
+    0
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     94.9,
+     2.6,
+     0.8,
+     0.7,
+     0.3,
+     0.2,
+     0.2,
+     0.2,
+     0,
+     0.1
+    ],
+    "p25": 72,
+    "p50": 136,
+    "p75": 222
+   }
+  },
+  "public_open_space_large": {
+   "iso": [
+    47.6,
+    39.5,
+    9.4,
+    3.5,
+    0
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     46.5,
+     40.4,
+     7.7,
+     1.8,
+     1.1,
+     0.7,
+     0.7,
+     0.9,
+     0.2,
+     0.1
+    ],
+    "p25": 330,
+    "p50": 528,
+    "p75": 771
+   }
+  },
+  "activity_centre_local": {
+   "iso": [
+    95.2,
+    1.7,
+    1.9,
+    1.1,
+    0
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     95.1,
+     1.8,
+     1.2,
+     0.8,
+     0.4,
+     0.2,
+     0.2,
+     0.2,
+     0,
+     0.1
+    ],
+    "p25": 12,
+    "p50": 18,
+    "p75": 34
+   }
+  },
+  "activity_centre_complete": {
+   "iso": [
+    82.5,
+    9.6,
+    3.1,
+    4.3,
+    0.5
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     82.6,
+     9.8,
+     1.8,
+     1.4,
+     0.8,
+     0.8,
+     0.8,
+     0.8,
+     0.8,
+     0.5
+    ],
+    "p25": 22,
+    "p50": 128,
+    "p75": 377
+   }
+  },
+  "all_strict": {
+   "iso": [
+    42.6,
+    42.8,
+    9.9,
+    4.5,
+    0.1
+   ]
+  },
+  "all_lenient": {
+   "iso": [
+    88.7,
+    7,
+    2.9,
+    1.3,
+    0.1
+   ]
+  },
+  "safe_fresh_food_market": {
+   "iso": [
+    84.4,
+    9.7,
+    3,
+    2.1,
+    0.8
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     84.7,
+     10,
+     2.1,
+     1,
+     0.8,
+     0.5,
+     0.2,
+     0.2,
+     0.3,
+     0.2
+    ],
+    "p25": 138,
+    "p50": 231,
+    "p75": 376
+   }
+  },
+  "safe_fresh_food_pooled": {
+   "iso": [
+    87.5,
+    8,
+    2.8,
+    1,
+    0.7
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     88,
+     8.1,
+     1.8,
+     1.1,
+     0.3,
+     0.1,
+     0.2,
+     0.2,
+     0.1,
+     0.1
+    ],
+    "p25": 123,
+    "p50": 204,
+    "p75": 338
+   }
+  },
+  "safe_pt_any": {
+   "iso": [
+    94.9,
+    3,
+    1.1,
+    0.8,
+    0.3
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     95,
+     3.1,
+     0.8,
+     0.3,
+     0.1,
+     0.2,
+     0.2,
+     0.1,
+     0.1,
+     0
+    ],
+    "p25": 108,
+    "p50": 168,
+    "p75": 246
+   }
+  },
+  "safe_pt_frequent": {
+   "iso": [
+    93,
+    3.7,
+    1.4,
+    1.5,
+    0.4
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     93.1,
+     3.9,
+     0.9,
+     0.6,
+     0.4,
+     0.5,
+     0.3,
+     0.2,
+     0.1,
+     0.1
+    ],
+    "p25": 119,
+    "p50": 183,
+    "p75": 270
+   }
+  },
+  "safe_public_open_space_any": {
+   "iso": [
+    94.1,
+    3,
+    1,
+    1.3,
+    0.6
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     94.5,
+     3.1,
+     0.6,
+     0.5,
+     0.3,
+     0.4,
+     0.2,
+     0.1,
+     0.1,
+     0.1
+    ],
+    "p25": 75,
+    "p50": 141,
+    "p75": 234
+   }
+  },
+  "safe_public_open_space_large": {
+   "iso": [
+    43.9,
+    39.7,
+    11.9,
+    3.6,
+    0.9
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     43.3,
+     40.7,
+     10.1,
+     2.1,
+     1.2,
+     0.6,
+     0.4,
+     0.4,
+     0.8,
+     0.3
+    ],
+    "p25": 356,
+    "p50": 559,
+    "p75": 831
+   }
+  },
+  "safe_activity_centre_local": {
+   "iso": [
+    95,
+    1.5,
+    1.5,
+    1.4,
+    0.5
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     95.3,
+     1.6,
+     1,
+     0.7,
+     0.4,
+     0.3,
+     0.2,
+     0.4,
+     0.2,
+     0.1
+    ],
+    "p25": 12,
+    "p50": 18,
+    "p75": 34
+   }
+  },
+  "safe_activity_centre_complete": {
+   "iso": [
+    80.5,
+    10.6,
+    3.5,
+    3.6,
+    1.8
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     81.2,
+     11.2,
+     2.4,
+     1.3,
+     0.7,
+     0.7,
+     0.6,
+     0.6,
+     0.3,
+     1
+    ],
+    "p25": 22,
+    "p50": 132,
+    "p75": 397
+   }
+  },
+  "safe_all_strict": {
+   "iso": [
+    38,
+    43.8,
+    12.5,
+    4.8,
+    1
+   ]
+  },
+  "safe_all_lenient": {
+   "iso": [
+    85.9,
+    8.9,
+    2.8,
+    1.6,
+    0.8
+   ]
+  },
+  "lts1_fresh_food_market": {
+   "iso": [
+    64.2,
+    15.4,
+    5.8,
+    1.7,
+    12.8
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     73.7,
+     17.8,
+     4.6,
+     1.9,
+     1,
+     0.7,
+     0.2,
+     0.2,
+     0.1,
+     0
+    ],
+    "p25": 150,
+    "p50": 286,
+    "p75": 517
+   }
+  },
+  "lts1_fresh_food_pooled": {
+   "iso": [
+    69,
+    13.1,
+    4.7,
+    1.2,
+    12.1
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     78.1,
+     15.3,
+     3.7,
+     1.4,
+     0.7,
+     0.5,
+     0.1,
+     0.1,
+     0,
+     0
+    ],
+    "p25": 132,
+    "p50": 249,
+    "p75": 459
+   }
+  },
+  "lts1_pt_any": {
+   "iso": [
+    80.3,
+    7.2,
+    1.4,
+    0.2,
+    10.9
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     90.8,
+     7.4,
+     1.1,
+     0.5,
+     0.1,
+     0,
+     0.1,
+     0,
+     0,
+     0
+    ],
+    "p25": 115,
+    "p50": 190,
+    "p75": 317
+   }
+  },
+  "lts1_pt_frequent": {
+   "iso": [
+    76.3,
+    9.4,
+    1.7,
+    0.5,
+    12.2
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     87.5,
+     10.1,
+     1.3,
+     0.6,
+     0.3,
+     0,
+     0.1,
+     0.1,
+     0.1,
+     0
+    ],
+    "p25": 132,
+    "p50": 214,
+    "p75": 360
+   }
+  },
+  "lts1_public_open_space_any": {
+   "iso": [
+    80.8,
+    6,
+    1.4,
+    0.3,
+    11.6
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     91.6,
+     6.7,
+     1,
+     0.4,
+     0.2,
+     0.1,
+     0,
+     0,
+     0,
+     0
+    ],
+    "p25": 76,
+    "p50": 154,
+    "p75": 281
+   }
+  },
+  "lts1_public_open_space_large": {
+   "iso": [
+    29.6,
+    33.7,
+    14.9,
+    3.6,
+    18.2
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     34.8,
+     41.9,
+     13.5,
+     5.3,
+     1.3,
+     1.1,
+     0.9,
+     0.6,
+     0.6,
+     0.1
+    ],
+    "p25": 404,
+    "p50": 651,
+    "p75": 975
+   }
+  },
+  "lts1_activity_centre_local": {
+   "iso": [
+    93.6,
+    1.6,
+    1,
+    0.2,
+    3.6
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     96.8,
+     1.8,
+     0.8,
+     0.4,
+     0.1,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "p25": 11,
+    "p50": 18,
+    "p75": 32
+   }
+  },
+  "lts1_activity_centre_complete": {
+   "iso": [
+    67.5,
+    10.7,
+    6,
+    2.6,
+    13.3
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     76.1,
+     13.8,
+     5.2,
+     1.6,
+     1.1,
+     0.6,
+     0.4,
+     0.4,
+     0.4,
+     0.4
+    ],
+    "p25": 20,
+    "p50": 117,
+    "p75": 477
+   }
+  },
+  "lts1_all_strict": {
+   "iso": [
+    21.2,
+    39,
+    17,
+    4.3,
+    18.4
+   ]
+  },
+  "lts1_all_lenient": {
+   "iso": [
+    59.6,
+    18.1,
+    5.3,
+    1.3,
+    15.7
+   ]
+  },
+  "ride_fresh_food_market": {
+   "iso": [
+    49,
+    14.4,
+    4.6,
+    2.1,
+    29.8
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     67.1,
+     23,
+     5.9,
+     1.8,
+     0.8,
+     0.5,
+     0.3,
+     0.2,
+     0.3,
+     0.3
+    ],
+    "p25": 171,
+    "p50": 335,
+    "p75": 612
+   }
+  },
+  "ride_fresh_food_pooled": {
+   "iso": [
+    52.9,
+    13.8,
+    3.3,
+    1,
+    29
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     76.1,
+     18.6,
+     3.1,
+     1.2,
+     0.4,
+     0.1,
+     0.2,
+     0.2,
+     0.1,
+     0.1
+    ],
+    "p25": 152,
+    "p50": 287,
+    "p75": 488
+   }
+  },
+  "ride_pt_any": {
+   "iso": [
+    65.5,
+    4.1,
+    1,
+    0.8,
+    28.7
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     94,
+     4,
+     0.9,
+     0.3,
+     0.1,
+     0.2,
+     0.2,
+     0.1,
+     0.1,
+     0
+    ],
+    "p25": 118,
+    "p50": 190,
+    "p75": 291
+   }
+  },
+  "ride_pt_frequent": {
+   "iso": [
+    61.4,
+    4.6,
+    1.3,
+    1.7,
+    30.9
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     92.1,
+     4.7,
+     0.9,
+     0.6,
+     0.4,
+     0.5,
+     0.4,
+     0.2,
+     0.1,
+     0.1
+    ],
+    "p25": 125,
+    "p50": 196,
+    "p75": 302
+   }
+  },
+  "ride_public_open_space_any": {
+   "iso": [
+    68.3,
+    6.5,
+    1.4,
+    1.4,
+    22.5
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     90.8,
+     6.2,
+     1,
+     0.6,
+     0.4,
+     0.3,
+     0.2,
+     0.3,
+     0.2,
+     0.1
+    ],
+    "p25": 90,
+    "p50": 184,
+    "p75": 320
+   }
+  },
+  "ride_public_open_space_large": {
+   "iso": [
+    17,
+    25.1,
+    17,
+    7.4,
+    33.4
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     27.9,
+     39.7,
+     17.7,
+     5.6,
+     5.4,
+     1.4,
+     0.5,
+     0.4,
+     1,
+     0.4
+    ],
+    "p25": 472,
+    "p50": 749,
+    "p75": 1156
+   }
+  },
+  "ride_activity_centre_local": {
+   "iso": [
+    93.5,
+    1.2,
+    1.4,
+    1.4,
+    2.4
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     95.7,
+     1.2,
+     0.8,
+     0.8,
+     0.4,
+     0.3,
+     0.2,
+     0.4,
+     0.2,
+     0.1
+    ],
+    "p25": 11,
+    "p50": 18,
+    "p75": 32
+   }
+  },
+  "ride_activity_centre_complete": {
+   "iso": [
+    68.4,
+    8.8,
+    2.8,
+    3.6,
+    16.5
+   ],
+   "avg": {
+    "bin_m": 500,
+    "max_m": 5000,
+    "shares": [
+     81.9,
+     10.7,
+     2.2,
+     1.4,
+     0.6,
+     0.7,
+     0.6,
+     0.7,
+     0.3,
+     1
+    ],
+    "p25": 21,
+    "p50": 114,
+    "p75": 382
+   }
+  },
+  "ride_all_strict": {
+   "iso": [
+    11,
+    26.4,
+    18.4,
+    8.3,
+    35.9
+   ]
+  },
+  "ride_all_lenient": {
+   "iso": [
+    45.1,
+    14.4,
+    3.2,
+    1.7,
+    35.6
+   ]
+  },
+  "dmgap_fresh_food_market": {
+   "gap": {
+    "500m": [
+     37,
+     3.8,
+     10,
+     16.3,
+     32.9
+    ],
+    "1000m": [
+     31.7,
+     3.5,
+     11.5,
+     24.7,
+     28.5
+    ],
+    "2000m": [
+     31.5,
+     3.5,
+     12,
+     26.1,
+     26.9
+    ],
+    "5000m": [
+     31.5,
+     3.5,
+     12,
+     26.1,
+     27
+    ]
+   },
+   "extra_mean": 244,
+   "extra_pop_pct": 62.6
+  },
+  "dmgap_fresh_food_pooled": {
+   "gap": {
+    "500m": [
+     35.5,
+     4.2,
+     10.3,
+     18.4,
+     31.6
+    ],
+    "1000m": [
+     31.9,
+     3.7,
+     12.1,
+     25.6,
+     26.7
+    ],
+    "2000m": [
+     31.8,
+     3.7,
+     12.3,
+     25.9,
+     26.3
+    ],
+    "5000m": [
+     31.8,
+     3.7,
+     12.2,
+     26,
+     26.3
+    ]
+   },
+   "extra_mean": 183,
+   "extra_pop_pct": 61.7
+  },
+  "dmgap_pt_any": {
+   "gap": {
+    "500m": [
+     33.8,
+     3.5,
+     12.1,
+     23.8,
+     26.8
+    ],
+    "1000m": [
+     33.3,
+     3.4,
+     12.4,
+     24.6,
+     26.4
+    ],
+    "2000m": [
+     33.3,
+     3.5,
+     12.4,
+     24.4,
+     26.5
+    ],
+    "5000m": [
+     33.3,
+     3.5,
+     12.4,
+     24.4,
+     26.5
+    ]
+   },
+   "extra_mean": 74,
+   "extra_pop_pct": 56.4
+  },
+  "dmgap_pt_frequent": {
+   "gap": {
+    "500m": [
+     33.3,
+     3.1,
+     11.2,
+     23.8,
+     28.6
+    ],
+    "1000m": [
+     32.3,
+     3.2,
+     11.1,
+     24.8,
+     28.6
+    ],
+    "2000m": [
+     32.2,
+     3.2,
+     11.1,
+     24.9,
+     28.6
+    ],
+    "5000m": [
+     32.2,
+     3.3,
+     11.1,
+     24.8,
+     28.6
+    ]
+   },
+   "extra_mean": 75,
+   "extra_pop_pct": 52.8
+  },
+  "dmgap_public_open_space_any": {
+   "gap": {
+    "500m": [
+     34.8,
+     4.4,
+     14.2,
+     23.9,
+     22.7
+    ],
+    "1000m": [
+     35,
+     4.3,
+     14.9,
+     25.5,
+     20.3
+    ],
+    "2000m": [
+     35.1,
+     4.3,
+     15,
+     25.6,
+     19.9
+    ],
+    "5000m": [
+     35.2,
+     4.3,
+     15,
+     25.6,
+     19.8
+    ]
+   },
+   "extra_mean": 115,
+   "extra_pop_pct": 64.1
+  },
+  "dmgap_public_open_space_large": {
+   "gap": {
+    "500m": [
+     55.1,
+     3.3,
+     6.9,
+     11.4,
+     23.3
+    ],
+    "1000m": [
+     30.9,
+     2.7,
+     8.6,
+     18.9,
+     39
+    ],
+    "2000m": [
+     29.5,
+     3.2,
+     10.7,
+     22.5,
+     34
+    ],
+    "5000m": [
+     31.5,
+     3.3,
+     11.1,
+     23.8,
+     30.2
+    ]
+   },
+   "extra_mean": 329,
+   "extra_pop_pct": 78.2
+  },
+  "dmgap_activity_centre_local": {
+   "gap": {
+    "500m": [
+     93.7,
+     1.5,
+     1.9,
+     1.6,
+     1.3
+    ],
+    "1000m": [
+     93.3,
+     1.5,
+     1.9,
+     1.7,
+     1.7
+    ],
+    "2000m": [
+     93.1,
+     1.4,
+     1.9,
+     1.8,
+     1.8
+    ],
+    "5000m": [
+     93.1,
+     1.4,
+     1.9,
+     1.8,
+     1.8
+    ]
+   },
+   "extra_mean": 107,
+   "extra_pop_pct": 3
+  },
+  "dmgap_activity_centre_complete": {
+   "gap": {
+    "500m": [
+     66.8,
+     4.4,
+     7.6,
+     11.5,
+     9.7
+    ],
+    "1000m": [
+     61,
+     4.6,
+     9.1,
+     12.8,
+     12.6
+    ],
+    "2000m": [
+     59.2,
+     4.6,
+     9,
+     13.4,
+     13.7
+    ],
+    "5000m": [
+     59,
+     4.7,
+     9.1,
+     13.5,
+     13.8
+    ]
+   },
+   "extra_mean": 56,
+   "extra_pop_pct": 20
+  },
+  "dmgap_all_strict": {
+   "gap": {
+    "500m": [
+     58.2,
+     3.1,
+     5.8,
+     8.3,
+     24.6
+    ],
+    "1000m": [
+     30.3,
+     2.4,
+     7.5,
+     17.8,
+     42
+    ],
+    "2000m": [
+     28.8,
+     2.8,
+     10,
+     22.4,
+     36.1
+    ],
+    "5000m": [
+     30.4,
+     3,
+     10.3,
+     23.7,
+     32.7
+    ]
+   }
+  },
+  "dmgap_all_lenient": {
+   "gap": {
+    "500m": [
+     33.8,
+     3.3,
+     9,
+     16.3,
+     37.7
+    ],
+    "1000m": [
+     30.6,
+     2.9,
+     10.2,
+     23.3,
+     32.9
+    ],
+    "2000m": [
+     30.4,
+     3,
+     10.5,
+     23.6,
+     32.6
+    ],
+    "5000m": [
+     30.5,
+     3,
+     10.4,
+     23.6,
+     32.6
+    ]
+   }
+  }
+ },
+ "center": [
+  -0.3733,
+  39.47127
+ ]
+}
