@@ -102,8 +102,13 @@ $slug = $null
 if (-not $RoutesOnly) {
   # -------------------------------------------------------------- 1. report
   Step "$(if ($ReportOnly) { '1/1' } else { '1/4' }) Generating validation report (this can take several minutes)"
+  # Exit code only: under 'Stop', PS 5.1 makes a native command's stderr (a Python
+  # traceback, or any warning) terminating when output is redirected, which would abort
+  # the whole city instead of warning and carrying on as intended.
+  $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
   docker exec ghsci /env/bin/python /home/ghsci/process/subprocesses/_cycling_validation_report.py $cfgRel
   $reportOk = ($LASTEXITCODE -eq 0)
+  $ErrorActionPreference = $eap
   if (-not $reportOk) { Warn 'Report generation failed - continuing with tiles; report will be skipped.' }
 }
 
@@ -127,8 +132,11 @@ if ($ReportOnly) {
 if (-not ($RoutesOnly -or $ReportOnly)) {
   # -------------------------------------------------------------- 2. export layers
   Step "2/4 Exporting validation map layers"
+  $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
   $exportOut = docker exec ghsci /env/bin/python /home/ghsci/process/subprocesses/_export_validation_tiles.py $cfgRel
-  if ($LASTEXITCODE -ne 0) { $exportOut | Write-Host; throw 'Layer export failed.' }
+  $exportExit = $LASTEXITCODE
+  $ErrorActionPreference = $eap
+  if ($exportExit -ne 0) { $exportOut | Write-Host; throw 'Layer export failed.' }
   $exportOut | Write-Host
   foreach ($line in $exportOut) {
     if ($line -match '-> /tmp/validation_tiles/(\S+)') { $slug = $Matches[1]; break }
@@ -155,8 +163,10 @@ if (-not ($RoutesOnly -or $ReportOnly)) {
 # ------------------------------------------------------------- 3. route sample
 if (-not $ReportOnly) {
   Step "$(if ($RoutesOnly) { '1/1' } else { '3/5' }) Exporting route assessment sample"
+  $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
   $routesOut = docker exec ghsci /env/bin/python /home/ghsci/process/subprocesses/_export_validation_routes.py $cfgRel
   $routesOk = ($LASTEXITCODE -eq 0)
+  $ErrorActionPreference = $eap
   $routesOut | Write-Host
   if (-not $routesOk) { Warn 'Route export failed - the route assessment will be unavailable for this city.' }
   if ($RoutesOnly) {
@@ -176,10 +186,18 @@ if (-not ($RoutesOnly -or $ReportOnly)) {
   $work = Join-Path $SiteDir 'build\_work'
   if (Test-Path (Join-Path $work $slug)) { Remove-Item -Recurse -Force (Join-Path $work $slug) }
   Push-Location $SiteDir
+  # Judge the build by its exit code only.  Under 'Stop', Windows PowerShell 5.1 turns any
+  # stderr line from a native command into a terminating NativeCommandError when output is
+  # redirected (as in _rerun_all_site_cities.ps1), so a harmless tippecanoe warning -- e.g.
+  # "ignoring dimensions beyond two" for 3D coordinates in Mexico City's open space layer --
+  # aborted the script after a successful build.
+  $eap = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
   try {
     & $GitBash ./build/build_tiles.sh $slug
-    if ($LASTEXITCODE -ne 0) { throw 'Tile build failed.' }
-  } finally { Pop-Location }
+    $buildExit = $LASTEXITCODE
+  } finally { $ErrorActionPreference = $eap; Pop-Location }
+  if ($buildExit -ne 0) { throw 'Tile build failed.' }
 
   # -------------------------------------------------------------- 5. assemble site
   Step "5/5 Copying materials into the validation site"
@@ -235,12 +253,16 @@ Write-Host "$stem is ready as '$slug'. Test locally (e.g. npx http-server . -p 8
 # built, copied into place and then never committed is invisible on the deployed site
 # while looking perfectly fine locally -- so name those files explicitly rather than
 # printing a fixed command that may not cover them.
+# Paths are made relative only after moving into the site folder: resolved from the
+# caller's directory (e.g. process/, as _rerun_all_site_cities.ps1 may be launched from)
+# they point outside the repository, git exits "fatal: ... is outside repository", and
+# under 'Stop' that aborts the script after every material has already been copied.
+Push-Location $SiteDir
 $published = @('index.html') + @(
   Get-ChildItem -Path $SiteDir -Filter "$slug*" -Recurse -File -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\_rerun_logs\\' } |
+    Where-Object { $_.FullName -notmatch '\\(_rerun_logs|build)\\' } |
     ForEach-Object { (Resolve-Path -Relative -Path $_.FullName) -replace '^\.\\', '' -replace '\\', '/' }
 )
-Push-Location $SiteDir
 try {
   $pending = @()
   foreach ($f in ($published | Sort-Object -Unique)) {

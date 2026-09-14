@@ -10,9 +10,11 @@
   exists, so it could not be re-run, and it has been withdrawn from CITY_SLUGS.
   HelsinkiOsmDefault is also excluded: it is a sensitivity configuration that is not
   published on the site (running the driver for it would register a new slug).
-  Minneapolis-Urban is the 'Minneapolis (urban area)' entry (slug minneapolis_urban),
-  distinct from the metropolitan 'Minneapolis'.  It was omitted from this list when it
-  was first built by hand, which is how its report came to be copied into reports/ but
+  Minneapolis runs from Minneapolis.yml (slug minneapolis) as of 13 Sep 2026: every city
+  is now the urban portion of an administrative boundary under the shared GHSL UCDB R2024A
+  definition of urban, and Minneapolis-Urban (slug minneapolis_urban, whose boundary was a
+  Census urban area) is superseded.  Earlier, Minneapolis-Urban was omitted from this list
+  when first built by hand, which is how its report came to be copied into reports/ but
   never committed -- so the site showed no report for that city.
   DarEsSalaam is excluded as of 14 Aug 2026: its database was dropped and rebuilt on
   11 Aug under a changed no_cycle (pedestrian/footway/path re-added) and the run
@@ -31,12 +33,18 @@ param(
     # so Windows PowerShell 5.1 decodes it as ANSI and a literal 'ü' arrives as
     # 'Ã¼', which no longer matches the directory on disk.
     "data/Cycling/W$([char]0xFC)rzburg/W$([char]0xFC)rzburg.yml"
+    'data/Cycling/Turin/Turin.yml'
+    'data/Cycling/Suzhou/Suzhou.yml'
+    'data/Cycling/Curitiba/Curitiba.yml'
+    'data/Cycling/Chennai/Chennai.yml'
+    'data/Cycling/Barcelona/Barcelona.yml'
+    'data/Cycling/Tarragona/Tarragona.yml'
+    'data/Cycling/Valencia/Valencia.yml'
     'data/Cycling/Helsinki/Helsinki.yml'
-    'data/Cycling/Melbourne/Melbourne.yml'
-    'data/Cycling/MexicoCity/MexicoCity.yml'
     'data/Cycling/MexicoCity/MexicoCityProper.yml'
+    'data/Cycling/Melbourne/Melbourne.yml'
     'data/Cycling/Minneapolis/Minneapolis.yml'
-    'data/Cycling/Minneapolis/Minneapolis-Urban.yml'
+    'data/Cycling/Dar es Salaam/DarEsSalaam.yml'
   ),
   # Rebuild only the written report for each city (skips layer export, route export
   # and tile build).  Passed straight through to prepare-validation-materials.ps1.

@@ -33,7 +33,7 @@
   #sep { display:none; align-self:stretch; width:1px; background:#e3e3e3;
          margin:10px 0; flex:0 0 1px; }
   body.assessing #sep { display:block; }
-  #panel select#variation {width: 70%;}
+  #panel select#variation {width: 100%;}
   #panel h1 { font-size:14px; margin:0 0 8px; }
   #panel label.row { display:block; margin:5px 0 1px; color:#444; font-size:12px; }
   #panel select { width:100%; margin:0 0 2px; padding:2px; }
@@ -98,11 +98,12 @@
   .selrow > div { flex:1; }
   /* wrapper around Destination */
   .selrow > div:first-child {
-    flex: 0 0 70%;
+    flex: 0 0 52%;
   }
-  /* wrapper around Variation */
+  /* wrapper around Includes (the destination definition variant) */
   .selrow > div:last-child {
-    flex: 1 0 35%;
+    flex: 1 1 0;
+    min-width: 0;
   }
   .selrow > div.info-wrap {
     flex: 0 0 35%;
@@ -339,6 +340,19 @@
   .popup td.v { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;
                 padding-left:10px; }
   .popup tr.sel td { font-weight:700; }
+  /* the grid-cell popup carries a destinations x distances table, so it is wider
+     than the other popups and scrolls rather than running off a small screen */
+  .grid-popup .maplibregl-popup-content { max-width:430px; }
+  .grid-popup .popup { max-height:60vh; overflow-y:auto; }
+  .popup .def { font-style:italic; font-weight:400; color:#666; font-size:10.5px;
+                line-height:1.25; }
+  .popup table.acc td { padding:2px 0; vertical-align:top; }
+  .popup table.acc td.v { padding-left:9px; text-align:center; }
+  .popup .tick { color:#1a9850; font-size:13px; font-weight:700; }
+  .popup .cross { color:#b2182b; font-size:13px; font-weight:700; }
+  .popup table.acc tr.head td { color:#555; font-size:10.5px; line-height:1.2;
+                                vertical-align:bottom; border-bottom:1px solid #ddd; }
+  .popup table.acc tr + tr:not(.head) td { border-top:1px solid #f0f0f0; }
   .swatch { display:inline-block; width:11px; height:11px; border-radius:2px;
             vertical-align:-1px; margin-right:4px; }
 </style>
@@ -372,10 +386,11 @@
         <select id="concept"></select>
       </div>
       <div>
-        <label class="row">Variation</label>
+        <label class="row">Includes</label>
+        <!-- option text is set per destination by fillVariation() -->
         <select id="variation">
-          <option value="strict" selected>Strict</option>
-          <option value="lenient">Lenient</option>
+          <option value="strict" selected></option>
+          <option value="lenient"></option>
         </select>
       </div>
     </div>
@@ -468,33 +483,71 @@
     <iframe id="reportFrame"></iframe>
 </div>
 <script>
-// dar_es_salaam_custom withdrawn 2026-08-07: its study region database no longer
-// exists, so it could not be re-run for the staircase-routability correction
-// (steps/corridor excluded unless ramp:bicycle). Listing it alongside corrected
-// cities would invite comparisons across two different methods. Restore the slug
-// once that region has been re-analysed.
-const CITY_SLUGS = ['wurzburg', 'dar_es_salaam', 'melbourne', 'minneapolis', 'mexico_city', 'mexico_city_proper', 'helsinki', 'minneapolis_urban'].sort();
+const CITY_SLUGS = ['wurzburg', 'dar_es_salaam', 'melbourne', 'mexico_city_proper', 'helsinki', 'turin', 'suzhou', 'curitiba', 'chennai', 'barcelona', 'tarragona', 'valencia', 'minneapolis'].sort();
 
+// The strict / lenient keys are the analysis's variant names and stay as option
+// values and share-link state; what a reader sees instead is the destinations each
+// variant actually counts (`opts`, and destIncludes() below).
 const CONCEPTS = {
-  food: { label: 'Fresh food / market', strict: 'fresh_food_market', lenient: 'fresh_food_pooled' },
-  pt:   { label: 'Public transport', strict: 'pt_frequent', lenient: 'pt_any' },
-  pos:  { label: 'Public open space entry points', strict: 'public_open_space_large', lenient: 'public_open_space_any' },
-  ac:   { label: 'Activity centres', strict: 'activity_centre_complete', lenient: 'activity_centre_local' },
-  all:  { label: 'All destinations (combined)', strict: 'all_strict', lenient: 'all_lenient' },
+  food: { label: 'Fresh food', strict: 'fresh_food_market', lenient: 'fresh_food_pooled',
+          opts: { strict: 'Markets & supermarkets', lenient: '+ convenience stores' } },
+  pt:   { label: 'Public transport', strict: 'pt_frequent', lenient: 'pt_any',
+          opts: { strict: 'Frequent (≤ 20 min)', lenient: 'Any stop' } },
+  pos:  { label: 'Public open space', strict: 'public_open_space_large', lenient: 'public_open_space_any',
+          opts: { strict: 'Large (> 1.5 ha)', lenient: 'Any size' } },
+  ac:   { label: 'Activity centres', strict: 'activity_centre_complete', lenient: 'activity_centre_local',
+          opts: { strict: 'Fuller mix', lenient: 'Everyday mix' } },
+  all:  { label: 'All destinations (combined)', strict: 'all_strict', lenient: 'all_lenient',
+          opts: { strict: 'Fuller mix', lenient: 'Everyday mix' } },
 };
-const IND_LABELS = {
-  fresh_food_market: 'Fresh food / market',
-  fresh_food_pooled: 'Fresh food (incl. convenience)',
-  pt_frequent: 'Public transport (frequent)',
-  pt_any: 'Public transport (any)',
-  public_open_space_large: 'Public open space entries (large)',
-  public_open_space_any: 'Public open space entries (any)',
-  activity_centre_complete: 'Activity centres (complete)',
-  activity_centre_local: 'Activity centres (local)',
-  all_strict: 'All destinations (strict)',
-  all_lenient: 'All destinations (lenient)',
+const IND_NAMES = {
+  fresh_food_market: 'Fresh food',
+  fresh_food_pooled: 'Fresh food or convenience',
+  pt_frequent: 'Frequent public transport',
+  pt_any: 'Public transport',
+  public_open_space_large: 'Large public open space',
+  public_open_space_any: 'Public open space',
+  activity_centre_complete: 'Activity centres (fuller mix)',
+  activity_centre_local: 'Activity centres (everyday mix)',
+  all_strict: 'All destinations (fuller mix)',
+  all_lenient: 'All destinations (everyday mix)',
 };
-const IND_ORDER = Object.keys(IND_LABELS);
+let IND_ORDER = Object.keys(IND_NAMES);
+function destName(ind) { return IND_NAMES[ind] || ind; }
+
+// What each indicator counts, for the current city.  Contents follow GHSCI's
+// osm_destination_definitions.csv (custom-data cities map their sources onto the
+// same categories).  Two things vary by city:
+//  - frequent public transport needs a GTFS feed.  Where there is none the
+//    pt_frequent spec is dropped, and the fuller-mix composites and activity
+//    centres fall back to any stop (_resolve_member in _accessibility_spec.py);
+//    the published pt_frequent layer is the marker for which case applies.
+//  - Helsinki's pooled fresh food excludes fuel stations
+//    (data/Cycling/Helsinki/Helsinki.yml, fresh_food_pooled `where`).
+function destIncludes(ind) {
+  const m = manifests[slug] || {};
+  const freqPT = !!(m.layers && m.layers.pt_frequent);
+  const food = 'supermarkets & grocers, markets, greengrocers, butchers & fishmongers, bakeries, delis';
+  const conv = 'convenience stores, kiosks, newsagents' + (slug === 'helsinki' ? '' : ', fuel stations');
+  const strictPT = freqPT
+    ? 'frequent public transport (≤ 20 min)'
+    : 'any public transport stop (no service-frequency data for this city)';
+  switch (ind) {
+    case 'fresh_food_market': return food;
+    case 'fresh_food_pooled': return `${food}, plus ${conv}`;
+    case 'pt_frequent': return 'public transport stops with a service every 20 min or better (GTFS timetables)';
+    case 'pt_any': return 'any bus, tram, rail or ferry stop';
+    case 'public_open_space_large': return 'entry points to public open spaces larger than 1.5 ha';
+    case 'public_open_space_any': return 'entry points to any public open space';
+    case 'activity_centre_complete':
+      return `places with fresh food, a large public open space and ${strictPT}, all within a 400 m walk`;
+    case 'activity_centre_local':
+      return 'places with fresh food or a convenience store, any public open space and any public transport stop, all within a 400 m walk';
+    case 'all_strict': return `fresh food, a large public open space and ${strictPT}, each reachable`;
+    case 'all_lenient': return 'fresh food or a convenience store, any public open space and any public transport stop, each reachable';
+    default: return customIncludes[ind] || '';
+  }
+}
 const NETWORKS = {
   lts1_: { label: 'Low stress (LTS 1), allowing dismount',
            desc: 'routes restricted to the lowest-stress streets only (LTS 1) for their full length' },
@@ -556,15 +609,15 @@ const ISO_COLORS = ['#faccfa', '#d29343', '#3c6d56', '#011959'];
 const ISO_NO_ACCESS = '#888888';
 const IND_DESCS = {
   fresh_food_market: 'a fresh food market or supermarket',
-  fresh_food_pooled: 'any fresh food source — markets and supermarkets pooled with convenience stores (lenient definition)',
-  pt_frequent: 'a public transport stop with a scheduled service at least every 20 minutes (strict definition)',
+  fresh_food_pooled: 'any fresh food source — markets and supermarkets pooled with convenience stores',
+  pt_frequent: 'a public transport stop with a scheduled service at least every 20 minutes',
   pt_any: 'any public transport stop',
-  public_open_space_large: 'an entry point to a large (>1.5 ha) public open space (strict definition)',
+  public_open_space_large: 'an entry point to a large (>1.5 ha) public open space',
   public_open_space_any: 'an entry point to any public open space',
-  activity_centre_complete: 'a “complete” activity centre — a network location whose 400 m walking catchment contains a strict-definition destination of every category (fresh food, public open space, frequent public transport)',
-  activity_centre_local: 'a “local” activity centre — a network location whose 400 m walking catchment contains a lenient-definition destination of every category (fresh food incl. convenience, any public open space, any public transport)',
-  all_strict: 'at least one destination of every category (fresh food, public open space, public transport), each at its strict definition',
-  all_lenient: 'at least one destination of every category (fresh food, public open space, public transport), each at its lenient definition',
+  activity_centre_complete: 'an activity centre with a fuller mix — a network location whose 400 m walking catchment contains a fresh food market or supermarket, a large public open space and a frequent public transport stop',
+  activity_centre_local: 'an activity centre with an everyday mix — a network location whose 400 m walking catchment contains fresh food or a convenience store, any public open space and any public transport stop',
+  all_strict: 'at least one of each: a fresh food market or supermarket, a large public open space and a frequent public transport stop',
+  all_lenient: 'at least one of each: fresh food or a convenience store, any public open space and any public transport stop',
 };
 
 // which overlay layers + destination-point filters each indicator maps to
@@ -580,8 +633,51 @@ const DEST_OVERLAYS = {
   all_strict: { dest: ['fresh_food_market'], ptfreq: true, pos_large: true },
   all_lenient: { dest: ['fresh_food_market', 'convenience', 'pt_any'], pos_any: true },
 };
+// A city's own measures (custom destinations, combined-access sets, activity-centre
+// definitions) come from manifest.custom_indicators, written by
+// _export_validation_tiles.py from custom_indicators() in _accessibility_spec.py, and
+// join the standard menu for that city only.  Labels and descriptions are set in the
+// city's yml (optional `label` / `description` keys).
+const STANDARD_CONCEPTS = Object.keys(CONCEPTS);
+const STANDARD_INDS = Object.keys(IND_NAMES);
+let customIncludes = {};
+let customShareApplied = false;
+function applyCustomIndicators(manifest) {
+  for (const k of Object.keys(CONCEPTS))
+    if (!STANDARD_CONCEPTS.includes(k)) delete CONCEPTS[k];
+  for (const k of Object.keys(IND_NAMES)) {
+    if (STANDARD_INDS.includes(k)) continue;
+    delete IND_NAMES[k]; delete IND_DESCS[k]; delete DEST_OVERLAYS[k];
+  }
+  customIncludes = {};
+  for (const ci of (manifest.custom_indicators || [])) {
+    const single = ci.strict === ci.lenient;
+    CONCEPTS[`custom_${ci.name}`] = {
+      label: ci.label, strict: ci.strict, lenient: ci.lenient,
+      opts: single ? { strict: 'As configured', lenient: 'As configured' }
+                   : { strict: 'Fuller mix', lenient: 'Everyday mix' },
+    };
+    for (const v of ['strict', 'lenient']) {
+      const ind = ci[v];
+      IND_NAMES[ind] = single ? ci.label : (ci[`${v}_label`] || ci.label);
+      IND_DESCS[ind] = ci.description || ci.label.toLowerCase();
+      customIncludes[ind] = ci.description || '';
+      if ((ci.overlay || []).includes(ind)) DEST_OVERLAYS[ind] = { custom: [ind] };
+    }
+  }
+  IND_ORDER = Object.keys(IND_NAMES);
+  // keep the current destination if this city has it; a share link naming a custom
+  // measure is honoured once that city's measures are known
+  const wanted = !customShareApplied && initialState ? initialState.get('d') : null;
+  customShareApplied = true;
+  const current = wanted && wanted in CONCEPTS ? wanted : $('concept').value;
+  fillSelect($('concept'), Object.entries(CONCEPTS).map(([k, c]) => [k, c.label]));
+  $('concept').value = current in CONCEPTS ? current : 'all';
+  fillVariation();
+}
+
 const OVERLAY_COLORS = {
-  dest_pts: '#e6194b', ptfreq_pts: '#e6194b',
+  dest_pts: '#e6194b', ptfreq_pts: '#e6194b', custom_pts: '#e6194b',
   pos_any_pts: '#f032e6', pos_large_pts: '#f032e6',
   ac_local_pts: '#f032e6', ac_complete_pts: '#f032e6',
 };
@@ -808,7 +904,7 @@ function showingText() {
   } else {
     body = `Each grid cell is coloured by the mean distance band (500 m / 1000 m / 2000 m / 5000 m / none) over its sample points — ${NETWORKS[net].label} routing.`;
   }
-  return `<b>${IND_LABELS[ind]}</b><br>${body}`;
+  return `<b>${destName(ind)}</b><br><i style="color:#555">${destIncludes(ind)}</i><br>${body}`;
 }
 
 // ---- population-distribution histogram (replaces the "Region overall" line) ----
@@ -935,24 +1031,17 @@ function renderHisto() {
 }
 
 // Mean band index over a cell's sample points: 0 = all reach within 500 m,
-// 4 = none reaches within 5000 m.  See meanBandOf() for the derivation; each point
-// carries an equal share of the cell's population, so this is the cell's
-// population-weighted mean.  Cells with no value for this indicator sum to 0 and so
-// fall at 4, as they did under the old rule.
+// 4 = none reaches within 5000 m.  The shares are cumulative, so their sum over the
+// four bands / 100 is the mean number of bands a point reaches, and 4 minus that is
+// its mean band.  Each point carries an equal share of the cell's population, so
+// this is the cell's population-weighted mean.  Cells with no value for this
+// indicator sum to 0 and so fall at 4, as they did under the old rule.
 function meanBandExpression(net, ind) {
   const c = ISO_DISTANCES.map(d => pctCol(net, ind, d));
   return ['-', 4, ['/', ['+',
     ['coalesce', ['get', c[0]], 0], ['coalesce', ['get', c[1]], 0],
     ['coalesce', ['get', c[2]], 0], ['coalesce', ['get', c[3]], 0],
   ], 100]];
-}
-
-// the same quantity for a plain properties object (popups, isolation read-back)
-function meanBandOf(p, net, ind) {
-  const c = ISO_DISTANCES.map(d => pctCol(net, ind, d));
-  if (!c.some(col => p[col] !== undefined && p[col] !== null)) return null;
-  const sum = c.reduce((a, col) => a + (p[col] ?? 0), 0);
-  return 4 - sum / 100;
 }
 
 function isoExpression(net, ind) {
@@ -1141,8 +1230,17 @@ function applyIsolation() {
   }
 }
 
+function fillVariation() {
+  const opts = CONCEPTS[$('concept').value].opts;
+  for (const o of $('variation').options) {
+    o.textContent = opts[o.value];
+    o.title = destIncludes(CONCEPTS[$('concept').value][o.value]);
+  }
+}
+
 function updateIndicator() {
   isolated = null;
+  fillVariation();
   refreshAvailability();
   const ok = autofix();
   refreshAvailability();
@@ -1156,15 +1254,20 @@ function updateIndicator() {
 }
 
 const OVERLAY_LAYERS = ['dest_pts', 'ptfreq_pts', 'pos_any_pts', 'pos_large_pts',
-                        'ac_local_pts', 'ac_complete_pts'];
+                        'ac_local_pts', 'ac_complete_pts', 'custom_pts'];
 function updateOverlays() {
   if (!map || !map.getLayer('dest_pts')) return;
   const on = $('destChk').checked;
-  const spec = DEST_OVERLAYS[currentIndicator()] || {};
+  let spec = DEST_OVERLAYS[currentIndicator()] || {};
+  // without a GTFS feed the fuller-mix composite counts any stop (see
+  // destIncludes), so show those rather than an absent frequent-stop layer
+  if (spec.ptfreq && !map.getLayer('ptfreq_pts'))
+    spec = { ...spec, ptfreq: false, dest: [...(spec.dest || []), 'pt_any'] };
   const vis = {
     dest_pts: !!spec.dest, ptfreq_pts: !!spec.ptfreq,
     pos_any_pts: !!spec.pos_any, pos_large_pts: !!spec.pos_large,
     ac_local_pts: !!spec.ac_local, ac_complete_pts: !!spec.ac_complete,
+    custom_pts: !!spec.custom,
   };
   for (const l of OVERLAY_LAYERS) {
     if (!map.getLayer(l)) continue;
@@ -1172,6 +1275,8 @@ function updateOverlays() {
   }
   if (spec.dest)
     map.setFilter('dest_pts', ['match', ['get', 'dest_name'], spec.dest, true, false]);
+  if (spec.custom && map.getLayer('custom_pts'))
+    map.setFilter('custom_pts', ['match', ['get', 'ind'], spec.custom, true, false]);
 }
 
 function fmtDist(v) { return (v === null || v === undefined) ? '–' : `${Math.round(v).toLocaleString()} m`; }
@@ -1180,34 +1285,35 @@ function gridPopupHTML(p) {
   const net = $('network').value;
   const sel = currentIndicator();
   if ($('threshold').value === 'dmgap') return gapPopupHTML(p, sel);
-  const bandRows = IND_ORDER.map(ind => {
-    const c = ISO_DISTANCES.map(d => pctCol(net, ind, d));
+  // share of the cell's sample points reaching each destination within each
+  // distance.  500 m is left out: at the scale of a 100 m cell it mostly restates
+  // the map colour, while 1000-5000 m is where cities and destinations differ.
+  const accDist = [['1000m', '1000 m', '~5 min'], ['2000m', '2000 m', '~10 min'],
+                   ['5000m', '5000 m', '~25 min']];
+  // a cell has access when at least half of its sample points do: cells often hold
+  // only a few points, so a percentage would read as more precise than it is
+  const pct = v => (v === null || v === undefined) ? '&ndash;'
+    : (v >= 50 ? '<span class="tick" title="access">&#10003;</span>'
+               : '<span class="cross" title="no access">&#10007;</span>');
+  const accRows = IND_ORDER.map(ind => {
+    const c = accDist.map(([d]) => pctCol(net, ind, d));
     if (!c.some(col => cols.has(col))) return '';
-    // the cell's mean band over its sample points, and the share reaching at all
-    const mean = meanBandOf(p, net, ind);
-    const widest = p[c[3]];
-    const ramp = [...ISO_COLORS, ISO_NO_ACCESS];
-    const color = mean === null ? ISO_NO_ACCESS : ramp[Math.round(mean)];
-    // the share of the cell's points that reach one at all.  The colour carries the
-    // mean band; naming a band here would overclaim, because a cell where a quarter
-    // of points are very close and the rest reach nothing averages to a middle band
-    // that describes neither group.
-    const label = mean === null
-      ? '&ndash;'
-      : (widest > 0
-          ? `${Math.round(widest)}% of points, within 5000 m`
-          : 'none within 5000 m');
-    return `<tr class="${ind === sel ? 'sel' : ''}"><td><span class="swatch" style="background:${color}"></span>${IND_LABELS[ind]}</td>` +
-           `<td class="v">${label}</td></tr>`;
+    return `<tr class="${ind === sel ? 'sel' : ''}"><td>${destName(ind)}` +
+           `<div class="def">${destIncludes(ind)}</div></td>` +
+           c.map(col => `<td class="v">${pct(p[col])}</td>`).join('') + '</tr>';
   }).join('');
   const avgRows = IND_ORDER.map(ind => {
     const c = avgCol(net, ind);
     if (!cols.has(c)) return '';
-    return `<tr class="${ind === sel ? 'sel' : ''}"><td>${IND_LABELS[ind]}</td><td class="v">${fmtDist(p[c])}</td></tr>`;
+    return `<tr class="${ind === sel ? 'sel' : ''}"><td>${destName(ind)}</td><td class="v">${fmtDist(p[c])}</td></tr>`;
   }).join('');
-  let html = `<div class="popup"><h4>${IND_LABELS[sel]}</h4>` +
+  let html = `<div class="popup"><h4>${destName(sel)}</h4>` +
              `<p class="sub">${NETWORKS[net].label} routing</p>`;
-  if (bandRows) html += '<h5>Access band (mean over this cell\'s sample points)…</h5>' + `<table>${bandRows}</table>`;
+  if (accRows)
+    html += '<h5>Access within distance/time</h5>' +
+            '<table class="acc"><tr class="head"><td></td>' +
+            accDist.map(([, m, t]) => `<td class="v">${m}<br>${t}</td>`).join('') +
+            `</tr>${accRows}</table>`;
   if (avgRows) html += `<h5>Average distance to nearest…</h5><table>${avgRows}</table>`;
   return html + '</div>';
 }
@@ -1223,12 +1329,12 @@ function gapPopupHTML(p, sel) {
     const withD = p[pctCol('safe_', ind, band)];
     const ride = p[pctCol('ride_', ind, band)];
     const extra = p[extraCol(ind)];
-    return `<tr class="${ind === sel ? 'sel' : ''}"><td>${IND_LABELS[ind]}</td>` +
+    return `<tr class="${ind === sel ? 'sel' : ''}"><td>${destName(ind)}</td>` +
            `<td class="v">${pct(withD)}</td><td class="v">${pct(ride)}</td>` +
            `<td class="v"><b>${pct(g)}</b></td>` +
            `<td class="v">${extra === null || extra === undefined ? '–' : `+${Math.round(extra).toLocaleString()} m`}</td></tr>`;
   }).join('');
-  return `<div class="popup"><h4>${IND_LABELS[sel]}</h4>` +
+  return `<div class="popup"><h4>${destName(sel)}</h4>` +
     `<p class="sub">Sample points reaching the destination within ${band.replace('m', ' m')}</p>` +
     (rows
       ? '<table><tr><td></td><td class="v">with<br>dismount</td>' +
@@ -1341,9 +1447,9 @@ function hoverHTML(layerId, p) {
       return `<b>Public open space entry (${tier})</b>${ha}`;
     }
     case 'ac_local_pts':
-      return '<b>Local activity centre</b><br>lenient-definition destinations of every category within 400 m';
+      return `<b>${destName('activity_centre_local')}</b><br><i>${destIncludes('activity_centre_local')}</i>`;
     case 'ac_complete_pts':
-      return '<b>Complete activity centre</b><br>strict-definition destinations of every category within 400 m';
+      return `<b>${destName('activity_centre_complete')}</b><br><i>${destIncludes('activity_centre_complete')}</i>`;
     default:
       return '';
   }
@@ -1406,7 +1512,7 @@ function infoHTML() {
     measured &mdash; which is expected, not missing data.</p>
 `;
   return `<h2>How to read this indicator</h2>
-    <p><b>${IND_LABELS[ind]}</b> — for each 100 m population grid cell, the map shows ${what}.</p>
+    <p><b>${destName(ind)}</b> — for each 100 m population grid cell, the map shows ${what}.</p>
     <h3>Destination</h3><p>Access is counted to ${IND_DESCS[ind]}.</p>
     ${isoSection}${gapSection}
     <h3>Routing (${mode === 'dmgap' ? 'LTS 1–2, with vs without dismount' : NETWORKS[net].label})</h3>
@@ -1434,11 +1540,14 @@ function infoHTML() {
     <p>Because that allowance can carry a lot of weight, the same low-stress measure is
     also computed <b>without</b> it (Network: “LTS 1–2, no dismount”), and the
     <b>Dismount dependence</b> indicator maps the difference between the two.</p>
-    <h3>Strict vs lenient</h3>
-    <p>Each destination category has a <b>strict</b> definition (fresh food markets only;
-    frequent public transport; large open spaces; “complete” activity centres) and a
-    <b>lenient</b> one (pooled fresh food sources; any stop; any open space; “local”
-    activity centres). Comparing the two brackets the plausible range for access.</p>
+    <h3>Destination definitions</h3>
+    <p>Each destination category is measured with a narrower and a broader definition
+    (the <b>Includes</b> menu); comparing the two brackets the plausible range for
+    access. For this city they count:</p>
+    <ul style="margin:2px 0 0 16px;padding:0">
+      ${IND_ORDER.filter(i => cols.has(pctCol('safe_', i, '2000m')) || cols.has(pctCol('', i, '2000m')))
+        .map(i => `<li><b>${destName(i)}</b> — <i>${destIncludes(i)}</i></li>`).join('')}
+    </ul>
     <h3>The validation activity</h3>
     <p>The <b>Validation activity</b> button opens the structured feedback form, in three parts.
     <b>Part A</b> walks a stratified sample of points — five in each geographic quadrant of the
@@ -1462,6 +1571,8 @@ async function loadCity(s) {
   isolated = null;
   const manifest = manifests[s];
   cols = new Set(manifest.grid_columns || []);
+  applyCustomIndicators(manifest);
+  const hasCustom = !!(manifest.layers || {}).custom_dest;
   const b = manifest.bbox;
   hasReport = (await fetch(`./reports/${s}.html`, { method: 'HEAD' }).catch(() => ({ ok: false }))).ok;
   $('reportBtn').style.display = hasReport ? 'inline-block' : 'none';
@@ -1547,6 +1658,11 @@ async function loadCity(s) {
         layout: { visibility: 'none' }, paint: circle(OVERLAY_COLORS.dest_pts, 4.5) },
       { id: 'ptfreq_pts', type: 'circle', source: 'city', 'source-layer': 'pt_frequent',
         layout: { visibility: 'none' }, paint: circle(OVERLAY_COLORS.ptfreq_pts, 4.5) },
+      // destinations of the city's own measures, tagged by indicator (`ind`)
+      ...(hasCustom ? [{
+        id: 'custom_pts', type: 'circle', source: 'city', 'source-layer': 'custom_dest',
+        layout: { visibility: 'none' }, paint: circle(OVERLAY_COLORS.custom_pts, 4.5),
+      }] : []),
     ],
   };
   const bb = [[b[0], b[1]], [b[2], b[3]]];
@@ -1589,7 +1705,10 @@ async function loadCity(s) {
       const html = f.layer.id === 'dismount' ? dismountPopupHTML(f, e.lngLat)
         : f.layer.id === 'lts' ? ltsPopupHTML(f.properties)
         : gridPopupHTML(f.properties);
-      new maplibregl.Popup({ maxWidth: '340px' }).setLngLat(e.lngLat).setHTML(html).addTo(map);
+      const isGrid = f.layer.id === 'grid';
+      new maplibregl.Popup({ maxWidth: isGrid ? '430px' : '340px',
+                             className: isGrid ? 'grid-popup' : '' })
+        .setLngLat(e.lngLat).setHTML(html).addTo(map);
     });
     wireHover();
   }
@@ -1603,7 +1722,11 @@ async function loadCity(s) {
   // Floor of 9 because grid tiles below z9 are thinned even for large regions;
   // capped at the default so a compact region isn't clamped back out of it.
   map.setMinZoom(Math.max(9, Math.min(DEFAULT_ZOOM, fit.zoom - 0.1)));
-  if (!initialCameraPending) map.jumpTo({ center: fit.center, zoom: DEFAULT_ZOOM });
+  // open on where people live (manifest.center, the population-weighted centre of the
+  // grid) rather than the bbox midpoint, which small detached parts of an urban area
+  // can pull far off the city -- 35 km for Minneapolis
+  if (!initialCameraPending)
+    map.jumpTo({ center: manifest.center || fit.center, zoom: DEFAULT_ZOOM });
   if (initialCameraPending) {
     initialCameraPending = false;
     const [z, lat, lng] = (initialState.get('m') || '').split('/').map(Number);
@@ -1832,8 +1955,8 @@ const CHECKLIST = [
         help: 'Access to ' + IND_DESCS.activity_centre_complete },
       { key: 'combined', label: 'Combined access (all destination types reachable)',
         help: 'A single measure counting access only where every destination category can be reached within the threshold, rather than reporting each category separately.' },
-      { key: 'lenient', label: 'Lenient destination variants (e.g. any public transport, any public open space)',
-        help: 'The same measures computed with broader definitions — fresh food pooled with convenience stores, any public transport stop, any public open space — which together with the strict definitions brackets the plausible range for access.' },
+      { key: 'lenient', label: 'Broader destination definitions (e.g. any public transport, any public open space)',
+        help: 'The same measures computed with broader definitions — fresh food pooled with convenience stores, any public transport stop, any public open space — which together with the narrower definitions brackets the plausible range for access.' },
       { key: 'other', label: 'Other (leave a comment)', other: true,
         help: 'Any other destination or definition that would matter in your city.' },
     ] },
@@ -2012,6 +2135,10 @@ function travelledM(rt) {
 function breakdownText(pt, c) {
   const rt = routeFor(pt.id, assessMeasure, c.key);
   if (!rt || !rt.ok) return 'no route within the limit';
+  // the sample point and the destination share a street segment, so the stretch
+  // between them is counted directly rather than via the segment's end nodes
+  if (rt.direct)
+    return `${Math.round(rt.net).toLocaleString()} m directly along the same street segment`;
   // no network path only means the sample point and the destination share a node;
   // the connection legs at either end can still be most of a few hundred metres
   if ((!rt.seg || !rt.seg.length) && Math.round(rt.net) <= 0)
@@ -3046,8 +3173,9 @@ const TOUR_STEPS = [
         'for your city.' } },
   { element: '#concept', popover: {
       title: 'Destination & definition',
-      description: 'Pick the destination type, and <b>Strict</b> vs <b>Lenient</b> ' +
-        'definitions (e.g. fresh-food markets only, vs also convenience stores). ' +
+      description: 'Pick the destination type, and under <b>Includes</b> a narrower or ' +
+        'broader definition (e.g. markets &amp; supermarkets only, vs also convenience ' +
+        'stores). The destinations counted are listed in italics above the menus. ' +
         'The <i>Destinations</i> section of <b>Part C</b> rates these, and asks ' +
         'whether any key destinations are missing.' } },
   { element: '#network', popover: {
