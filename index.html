@@ -94,17 +94,11 @@
   button.small[disabled]:hover { background:#fafafa; }
   #infoBtn { border-radius:50%; width:22px; height:22px; padding:0; font-weight:bold;
              font-family:serif; font-style:italic; }
-  .selrow { display:flex; gap:6px; align-items:flex-end; }
-  .selrow > div { flex:1; }
-  /* wrapper around Destination */
-  .selrow > div:first-child {
-    flex: 0 0 52%;
-  }
-  /* wrapper around Includes (the destination definition variant) */
-  .selrow > div:last-child {
-    flex: 1 1 0;
-    min-width: 0;
-  }
+  /* Destination above Includes: the Includes options name the destinations counted
+     (e.g. "Fresh food + large open space + frequent public transport"), which needs
+     the panel's full width */
+  .selrow { display:flex; flex-direction:column; }
+  .selrow > div { flex:none; min-width:0; }
   .selrow > div.info-wrap {
     flex: 0 0 35%;
   }
@@ -355,6 +349,114 @@
   .popup table.acc tr + tr:not(.head) td { border-top:1px solid #f0f0f0; }
   .swatch { display:inline-block; width:11px; height:11px; border-radius:2px;
             vertical-align:-1px; margin-right:4px; }
+
+  /* ---- all-cities comparison (globe button beside the zoom controls) ---- */
+  /* a row, so the globe control added first sits to the left of the zoom group */
+  .maplibregl-ctrl-top-right { display:flex; align-items:flex-start; }
+  .maplibregl-ctrl-group button.cmp-globe { display:flex; align-items:center;
+                                            justify-content:center; }
+  .modal.modal-wide { width:min(1200px, 96vw); max-width:none; max-height:90vh; padding:0;
+                      display:flex; flex-direction:column; overflow:hidden; font-size:13px;
+                      box-sizing:border-box; }
+  #cmpHead { display:flex; align-items:center; gap:10px; padding:10px 16px;
+             border-bottom:1px solid #e3e3e3; }
+  #cmpHead h2 { margin:0; font-size:15px; }
+  .cmp-tabs { display:flex; gap:4px; }
+  #cmpClose { margin-left:auto; font-size:16px; line-height:1; padding:2px 8px; }
+  #cmpBody { overflow:auto; padding:10px 16px 14px; flex:1; min-height:0; }
+  .cmp-filters { display:flex; flex-wrap:wrap; gap:8px 18px; margin-bottom:8px; }
+  .cmp-group { display:flex; flex-direction:column; gap:3px; max-width:100%; }
+  .cmp-gl { align-self:flex-start; font-size:10.5px; color:#666; text-transform:uppercase;
+            letter-spacing:.04em; background:none; border:0; padding:0; cursor:pointer;
+            font-family:inherit; }
+  .cmp-gl:hover { color:#20303f; text-decoration:underline; }
+  .cmp-gl.static { cursor:default; text-decoration:none; color:#666; }
+  .cmp-chips { display:flex; flex-wrap:wrap; gap:3px; }
+  .chip { position:relative; display:inline-flex; align-items:center; border:1px solid #ccc;
+          border-radius:12px; padding:1px 9px; font-size:11.5px; background:#fafafa;
+          cursor:pointer; user-select:none; }
+  .chip:hover { background:#eee; }
+  .chip input { position:absolute; opacity:0; pointer-events:none; }
+  .chip:has(input:checked) { background:#20303f; border-color:#20303f; color:#fff; }
+  .chip:has(input:focus-visible) { outline:2px solid var(--pink-ring); outline-offset:1px; }
+  .cmp-bar { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; margin:6px 0;
+             font-size:12px; }
+  #cmpCount { font-weight:600; }
+  .cmp-note { color:#666; font-size:11.5px; }
+  .cmp-actions { margin-left:auto; display:flex; flex-wrap:wrap; gap:6px; }
+  .cmp-tablewrap { overflow:auto; max-height:calc(90vh - 260px); min-height:140px;
+                   border:1px solid #e3e3e3; border-radius:6px; }
+  table.cmp { border-collapse:separate; border-spacing:0; font-size:12px; width:100%; }
+  table.cmp th, table.cmp td { padding:3px 8px; text-align:right; white-space:nowrap;
+                               border-bottom:1px solid #f0f0f0;
+                               font-variant-numeric:tabular-nums; background:#fff; }
+  table.cmp .l { text-align:left; }
+  table.cmp thead th { position:sticky; top:0; z-index:2; border-bottom:1px solid #ccc;
+                       font-weight:600; color:#333; vertical-align:bottom; }
+  table.cmp .stick { position:sticky; left:0; z-index:1; }
+  table.cmp thead th.stick { z-index:3; }
+  table.cmp .cur { background:#eef4fa; }
+  /* value cells carry their batlow shade instead, so the current city is set in bold */
+  table.cmp td.cur { font-weight:600; }
+  table.cmp td.na { color:#bbb; }
+  /* one plain-language sentence per indicator, heading its distance rows */
+  table.cmp tr.grp td { background:#f2f6fa; text-align:left; color:#20303f; white-space:normal;
+                        padding-top:6px; padding-bottom:6px; line-height:1.35; }
+  table.cmp tr.grp .grp-l { position:sticky; left:8px; display:block; max-width:min(1000px, 84vw); }
+  .cmp-dest { flex-basis:100%; }
+  .cmp-destrow { display:grid; grid-template-columns:150px 1fr; align-items:center; gap:4px 8px;
+                 margin:1px 0; }
+  .cmp-cl { justify-self:start; font-size:12px; text-align:left; background:none; border:0;
+            padding:0; cursor:pointer; color:#333; font-family:inherit; }
+  .cmp-cl:hover { text-decoration:underline; }
+  table.cmp tbody tr:not(.grp):hover td { background:#f5f7f9; }
+  .cmp-city { color:#777; font-size:11px; }
+  .rk-sel > div { display:flex; flex-direction:column; gap:2px; min-width:150px; max-width:100%; }
+  .rk-sel label { font-size:10.5px; color:#666; text-transform:uppercase; letter-spacing:.04em; }
+  .rk-sel select { font-size:12.5px; padding:2px; max-width:100%; }
+  #rkChart svg { display:block; width:100%; height:auto; }
+  #rkChart .rk-row { outline:none; }
+  #rkChart .rk-row:hover .rk-hit, #rkChart .rk-row:focus .rk-hit { fill:#f2f6fa; }
+  .cmp-chart svg { display:block; width:100%; height:auto; }
+  .cmp-chart .ct-dot, .cmp-chart .gr-leaf, .cmp-chart .gr-cell { cursor:default; }
+  .cmp-chart .gr-cell:hover { stroke:#222; stroke-width:2; }
+  .gr-summary { background:#f2f6fa; border-radius:6px; padding:6px 12px; margin:6px 0;
+                font-size:12px; line-height:1.45; color:#222; }
+  .gr-summary p { margin:5px 0; }
+  .gr-summary .gr-dropped { color:#8a5a00; }
+  .gr-summary summary { cursor:pointer; font-weight:600; padding:2px 0; }
+  .gr-summary[open] summary { margin-bottom:2px; }
+  #grK { width:150px; }
+  .gr-tablewrap { margin-top:8px; max-height:none; }
+  #grTable th { white-space:normal; min-width:92px; vertical-align:bottom; }
+  #grTable td.l { white-space:normal; min-width:180px; }
+  .gr-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px;
+            vertical-align:-1px; }
+  #rkTip { position:fixed; display:none; z-index:20; pointer-events:none; background:#fff;
+           border:1px solid #ddd; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,.18);
+           padding:6px 9px; font-size:11.5px; line-height:1.4; color:#444; max-width:280px; }
+  #rkTip b { display:block; font-size:13px; color:#111; }
+  #rkTip .rk-tip-city { color:#666; margin-bottom:2px; }
+  #rkTip.wide { max-width:min(640px, calc(100vw - 16px)); }
+  /* the destination names are long: let them wrap so the numbers stay inside the box */
+  #rkTip table.tip-t td.l { white-space:normal; min-width:140px; max-width:200px; }
+  #rkTip table.tip-t { border-collapse:collapse; margin-top:5px; font-size:11px; color:#222; }
+  #rkTip table.tip-t caption { text-align:left; color:#666; padding-bottom:2px; }
+  #rkTip table.tip-t th, #rkTip table.tip-t td { padding:1px 6px; text-align:right; white-space:nowrap;
+                                                 font-variant-numeric:tabular-nums; }
+  #rkTip table.tip-t th { font-weight:600; color:#555; border-bottom:1px solid #ddd; vertical-align:bottom; }
+  #rkTip table.tip-t .l { text-align:left; }
+  @media (max-width:700px) {
+    .modal.modal-wide { width:100vw; max-height:100vh; height:100vh; border-radius:0; }
+    #cmpHead { flex-wrap:wrap; }
+    .cmp-filters { flex-direction:column; gap:6px; }
+    .cmp-destrow { grid-template-columns:1fr; }
+    .cmp-actions { margin-left:0; }
+    .cmp-tablewrap { max-height:none; }
+    /* keep the chart's text legible: scroll it rather than shrink it to the screen */
+    #rkChart, .cmp-chart { overflow-x:auto; }
+    #rkChart svg, .cmp-chart svg { width:760px; max-width:none; }
+  }
 </style>
 </head>
 <body>
@@ -399,7 +501,7 @@
     <div id="notice"></div>
 
     <div class="checks">
-      <label><input type="checkbox" id="ltsChk" checked> Level of Traffic Stress (LTS) network</label>
+      <label><input type="checkbox" id="ltsChk"> Level of Traffic Stress (LTS) network</label>
       <label><input type="checkbox" id="gridChk" checked> Grid access choropleth</label>
       <label id="dismountChkRow" style="display:none"><input type="checkbox" id="dismountChk"> Dismount priority links</label>
       <label><input type="checkbox" id="destChk"> Show indicator destinations</label>
@@ -409,8 +511,8 @@
     </div>
     <label class="row">Basemap</label>
     <select id="basemap">
-      <option value="sat">Satellite (grayscale)</option>
-      <option value="positron" selected>Light grayscale</option>
+      <option value="sat" selected>Satellite (grayscale)</option>
+      <option value="positron">Light grayscale</option>
     </select>
   </div>
   <div id="panelFooter">
@@ -475,6 +577,94 @@
   </div>
 
   <div class="modal-bg" id="infoModal"><div class="modal" id="infoBody"></div></div>
+  <div class="modal-bg" id="compareModal">
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="cmpTitle">
+      <div id="cmpHead">
+        <h2 id="cmpTitle">All cities comparison</h2>
+        <div class="cmp-tabs" role="tablist">
+          <button class="small on" data-view="table" role="tab">Table</button>
+          <button class="small" data-view="rank" role="tab">Ranking</button>
+          <button class="small" data-view="contrast" role="tab">City contrast</button>
+          <button class="small" data-view="groups" role="tab">Groups</button>
+        </div>
+        <button class="small" id="cmpClose" aria-label="Close" title="Close">&times;</button>
+      </div>
+      <div id="cmpBody">
+        <div id="cmpTableView">
+          <div class="cmp-filters" id="cmpFilters"></div>
+          <div class="cmp-bar">
+            <span id="cmpCount"></span>
+            <span class="cmp-note">Population-weighted city values: the figures each city's map summary and report quote. Shading uses the reports' batlow scale, paler for better: shares from 0 to 100% (for dismount dependence, paler means less of it), distances from the shortest to the longest within each indicator.</span>
+            <span class="cmp-actions">
+              <button class="small" id="cmpAll">Select all</button>
+              <button class="small" id="cmpCopy" title="Copy and paste results as a table into Excel">Copy table</button>
+              <button class="small" id="cmpDl">Download CSV</button>
+            </span>
+          </div>
+          <div class="cmp-tablewrap"><table class="cmp" id="cmpTable"></table></div>
+        </div>
+        <div id="cmpRankView" hidden>
+          <div class="cmp-filters rk-sel">
+            <div><label for="rkMeasure">Measure</label>
+              <select id="rkMeasure">
+                <option value="avg">Average distance to nearest</option>
+                <option value="extra">Extra riding distance without dismount</option>
+              </select></div>
+            <div><label for="rkConcept">Destination</label><select id="rkConcept"></select></div>
+            <div><label for="rkVariant">Includes</label><select id="rkVariant"></select></div>
+            <div><label for="rkNetwork">Network</label><select id="rkNetwork"></select></div>
+          </div>
+          <div class="cmp-bar">
+            <span class="cmp-note">Box plots are shown for distance measures, summarised over each city's populated 100 m grid cells. Each box spans the 25th to 75th percentile of a city's cells, where the middle half of them lie; the line inside it is the median (50th percentile).</span>
+            <span class="cmp-actions">
+              <button class="small" id="rkPng">Download PNG</button>
+              <button class="small" id="rkSvg">Download SVG</button>
+            </span>
+          </div>
+          <div id="rkChart"></div>
+        </div>
+        <div id="cmpContrastView" hidden>
+          <div class="cmp-filters rk-sel">
+            <div><label for="ctCity">City</label><select id="ctCity"></select></div>
+            <div><label for="ctType">Indicator</label><select id="ctType"></select></div>
+            <div><label for="ctConcept">Destination</label><select id="ctConcept"></select></div>
+            <div><label for="ctVariant">Includes</label><select id="ctVariant"></select></div>
+            <div><label for="ctNetwork">Network</label><select id="ctNetwork"></select></div>
+          </div>
+          <div class="cmp-bar">
+            <span class="cmp-note">The selected city's population-weighted result, against the median (50th percentile) and the 25th to 75th percentile of all studied cities' results, the selected city included, so the comparison is the same whichever city is selected.</span>
+            <span class="cmp-actions">
+              <button class="small" id="ctPng">Download PNG</button>
+              <button class="small" id="ctSvg">Download SVG</button>
+            </span>
+          </div>
+          <div id="ctChart" class="cmp-chart"></div>
+        </div>
+        <div id="cmpGroupsView" hidden>
+          <div class="cmp-filters" id="grDims"></div>
+          <div class="cmp-filters rk-sel">
+            <div><label for="grK">Number of groups: <span id="grKVal">6</span></label>
+              <input type="range" id="grK" min="2" max="6" step="1" value="6"></div>
+          </div>
+          <details class="gr-summary" id="grDetails">
+            <summary>How the groups are made</summary>
+            <div id="grSummary"></div>
+          </details>
+          <div class="cmp-bar">
+            <span class="cmp-note">Point to a city or a grid square for its values.</span>
+            <span class="cmp-actions">
+              <button class="small" id="grPng">Download PNG</button>
+              <button class="small" id="grSvg">Download SVG</button>
+              <button class="small" id="grCsv">Download CSV</button>
+            </span>
+          </div>
+          <div id="grChart" class="cmp-chart"></div>
+          <div class="cmp-tablewrap gr-tablewrap"><table class="cmp" id="grTable"></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="rkTip" role="tooltip"></div>
   <div id="reportView">
     <div id="reportBar">
       <span id="reportTitle"></span>
@@ -488,6 +678,11 @@ const CITY_SLUGS = ['wurzburg', 'dar_es_salaam', 'melbourne', 'mexico_city_prope
 // The strict / lenient keys are the analysis's variant names and stay as option
 // values and share-link state; what a reader sees instead is the destinations each
 // variant actually counts (`opts`, and destIncludes() below).
+// The combined measures are named by the destinations they require.  Where a city has
+// no GTFS feed the strict mix counts any stop in place of a frequent one; destName()
+// and fillVariation() substitute that per city (see withoutFrequentPT).
+const STRICT_MIX = 'Fresh food + large open space + frequent public transport';
+const LENIENT_MIX = 'Fresh food or convenience + any open space + any public transport stop';
 const CONCEPTS = {
   food: { label: 'Fresh food', strict: 'fresh_food_market', lenient: 'fresh_food_pooled',
           opts: { strict: 'Markets & supermarkets', lenient: '+ convenience stores' } },
@@ -496,9 +691,9 @@ const CONCEPTS = {
   pos:  { label: 'Public open space', strict: 'public_open_space_large', lenient: 'public_open_space_any',
           opts: { strict: 'Large (> 1.5 ha)', lenient: 'Any size' } },
   ac:   { label: 'Activity centres', strict: 'activity_centre_complete', lenient: 'activity_centre_local',
-          opts: { strict: 'Fuller mix', lenient: 'Everyday mix' } },
+          opts: { strict: STRICT_MIX, lenient: LENIENT_MIX } },
   all:  { label: 'All destinations (combined)', strict: 'all_strict', lenient: 'all_lenient',
-          opts: { strict: 'Fuller mix', lenient: 'Everyday mix' } },
+          opts: { strict: STRICT_MIX, lenient: LENIENT_MIX } },
 };
 const IND_NAMES = {
   fresh_food_market: 'Fresh food',
@@ -507,13 +702,46 @@ const IND_NAMES = {
   pt_any: 'Public transport',
   public_open_space_large: 'Large public open space',
   public_open_space_any: 'Public open space',
-  activity_centre_complete: 'Activity centres (fuller mix)',
-  activity_centre_local: 'Activity centres (everyday mix)',
-  all_strict: 'All destinations (fuller mix)',
-  all_lenient: 'All destinations (everyday mix)',
+  activity_centre_complete: `Activity centres with ${STRICT_MIX.toLowerCase()}`,
+  activity_centre_local: `Activity centres with ${LENIENT_MIX.toLowerCase()}`,
+  all_strict: `All of: ${STRICT_MIX.toLowerCase()}`,
+  all_lenient: `All of: ${LENIENT_MIX.toLowerCase()}`,
 };
 let IND_ORDER = Object.keys(IND_NAMES);
-function destName(ind) { return IND_NAMES[ind] || ind; }
+const FREQUENT_PT_COMPOSITES = ['activity_centre_complete', 'all_strict'];
+function cityHasFrequentPT() {
+  const m = manifests[slug] || {};
+  return !!(m.layers && m.layers.pt_frequent);
+}
+function withoutFrequentPT(text) {
+  return text.replace('frequent public transport', 'any public transport stop');
+}
+function destName(ind) {
+  const name = IND_NAMES[ind] || ind;
+  return FREQUENT_PT_COMPOSITES.includes(ind) && slug && !cityHasFrequentPT()
+    ? withoutFrequentPT(name) : name;
+}
+// A city's own combined measure, named by the destinations it requires at a variant
+// (manifest custom_indicators[].members, resolved by the export as the analysis does).
+const MEMBER_SHORT = {
+  fresh_food_market: 'fresh food', fresh_food_pooled: 'fresh food or convenience',
+  public_open_space_large: 'large open space', public_open_space_any: 'any open space',
+  pt_frequent: 'frequent public transport', pt_any: 'any public transport stop',
+};
+function memberMix(ci, variant, customs) {
+  const members = (ci.members || {})[variant];
+  if (!members || !members.length) return ci[`${variant}_label`] || ci.label;
+  const text = members.map(name => MEMBER_SHORT[name]
+    || (((customs || []).find(c => c.name === name) || {}).label || name.replace(/_/g, ' ')).toLowerCase())
+    .join(' + ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+function customIndName(ci, variant, customs) {
+  if (ci.strict === ci.lenient) return ci.label;
+  if (!(ci.members || {})[variant]) return ci[`${variant}_label`] || ci.label;
+  const mix = memberMix(ci, variant, customs).toLowerCase();
+  return ci.kind === 'activity_centre' ? `Activity centres with ${mix}` : `All of: ${mix}`;
+}
 
 // What each indicator counts, for the current city.  Contents follow GHSCI's
 // osm_destination_definitions.csv (custom-data cities map their sources onto the
@@ -614,8 +842,8 @@ const IND_DESCS = {
   pt_any: 'any public transport stop',
   public_open_space_large: 'an entry point to a large (>1.5 ha) public open space',
   public_open_space_any: 'an entry point to any public open space',
-  activity_centre_complete: 'an activity centre with a fuller mix — a network location whose 400 m walking catchment contains a fresh food market or supermarket, a large public open space and a frequent public transport stop',
-  activity_centre_local: 'an activity centre with an everyday mix — a network location whose 400 m walking catchment contains fresh food or a convenience store, any public open space and any public transport stop',
+  activity_centre_complete: 'an activity centre — a network location whose 400 m walking catchment contains a fresh food market or supermarket, a large public open space and a frequent public transport stop',
+  activity_centre_local: 'an activity centre — a network location whose 400 m walking catchment contains fresh food or a convenience store, any public open space and any public transport stop',
   all_strict: 'at least one of each: a fresh food market or supermarket, a large public open space and a frequent public transport stop',
   all_lenient: 'at least one of each: fresh food or a convenience store, any public open space and any public transport stop',
 };
@@ -652,14 +880,16 @@ function applyCustomIndicators(manifest) {
   customIncludes = {};
   for (const ci of (manifest.custom_indicators || [])) {
     const single = ci.strict === ci.lenient;
+    const customs = manifest.custom_indicators;
     CONCEPTS[`custom_${ci.name}`] = {
       label: ci.label, strict: ci.strict, lenient: ci.lenient,
-      opts: single ? { strict: 'As configured', lenient: 'As configured' }
-                   : { strict: 'Fuller mix', lenient: 'Everyday mix' },
+      opts: single ? { strict: 'Single definition', lenient: 'Single definition' }
+                   : { strict: memberMix(ci, 'strict', customs),
+                       lenient: memberMix(ci, 'lenient', customs) },
     };
     for (const v of ['strict', 'lenient']) {
       const ind = ci[v];
-      IND_NAMES[ind] = single ? ci.label : (ci[`${v}_label`] || ci.label);
+      IND_NAMES[ind] = customIndName(ci, v, customs);
       IND_DESCS[ind] = ci.description || ci.label.toLowerCase();
       customIncludes[ind] = ci.description || '';
       if ((ci.overlay || []).includes(ind)) DEST_OVERLAYS[ind] = { custom: [ind] };
@@ -1231,11 +1461,20 @@ function applyIsolation() {
 }
 
 function fillVariation() {
-  const opts = CONCEPTS[$('concept').value].opts;
+  const c = CONCEPTS[$('concept').value], opts = c.opts;
+  // a measure defined only one way (a city's own destination with no strict / lenient
+  // split) maps both variants to the same indicator, so offer it as a single fixed choice
+  const single = c.strict === c.lenient;
+  if (single) $('variation').value = 'strict';
+  $('variation').disabled = single;
   for (const o of $('variation').options) {
-    o.textContent = opts[o.value];
-    o.title = destIncludes(CONCEPTS[$('concept').value][o.value]);
+    const ind = c[o.value];
+    o.hidden = single && o.value === 'lenient';
+    o.textContent = FREQUENT_PT_COMPOSITES.includes(ind) && !cityHasFrequentPT()
+      ? withoutFrequentPT(opts[o.value]) : opts[o.value];
+    o.title = destIncludes(ind);
   }
+  $('variation').title = single ? 'This destination has a single definition' : '';
 }
 
 function updateIndicator() {
@@ -1671,6 +1910,9 @@ async function loadCity(s) {
     map.setStyle(style);
   } else {
     map = new maplibregl.Map({ container: 'map', style, bounds: bb });
+    // added first so it sits to the left of the zoom buttons (the top-right corner
+    // is a flex row, see .maplibregl-ctrl-top-right)
+    map.addControl(new CompareControl(), 'top-right');
     map.addControl(new maplibregl.NavigationControl());
     map.on('moveend', updateHash);
     map.on('click', e => {
@@ -1763,15 +2005,18 @@ $('basemap').onchange = e => {
   map.setLayoutProperty('positron', 'visibility', e.target.value === 'positron' ? 'visible' : 'none');
   updateHash();
 };
-$('shareBtn').onclick = async () => {
-  updateHash();
-  const url = location.href;
-  try { await navigator.clipboard.writeText(url); }
+// clipboard API where allowed, else the textarea + execCommand fallback
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); }
   catch {
     const ta = document.createElement('textarea');
-    ta.value = url; document.body.appendChild(ta); ta.select();
+    ta.value = text; document.body.appendChild(ta); ta.select();
     document.execCommand('copy'); ta.remove();
   }
+}
+$('shareBtn').onclick = async () => {
+  updateHash();
+  await copyText(location.href);
   // the icon stays put; the confirmation is a transient bubble above it
   $('shareBtn').classList.add('copied');
   $('shareBtn').title = 'Link copied';
@@ -2657,7 +2902,9 @@ function assessmentCSV() {
   return rowsToCSV(csvRows(resp, routeData, new Date().toISOString()));
 }
 function downloadCSV(text, name) {
-  const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+  downloadBlob(new Blob([text], { type: 'text/csv;charset=utf-8' }), name);
+}
+function downloadBlob(blob, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = name;
@@ -2963,13 +3210,7 @@ function renderFinish() {
   $('dlBtn').onclick = () =>
     downloadCSV(assessmentCSV(), `cycling_validation_${resp.slug}_${raterSlug()}.csv`);
   $('copyBtn').onclick = async () => {
-    const text = assessmentCSV();
-    try { await navigator.clipboard.writeText(text); }
-    catch {
-      const ta = document.createElement('textarea');
-      ta.value = text; document.body.appendChild(ta); ta.select();
-      document.execCommand('copy'); ta.remove();
-    }
+    await copyText(assessmentCSV());
     $('copyBtn').textContent = 'Copied ✓';
     setTimeout(() => { $('copyBtn').textContent = 'Copy'; }, 1500);
   };
@@ -3222,6 +3463,16 @@ const TOUR_STEPS = [
         'indicator, layers, zoom); paste one into a comment box so a specific location ' +
         'or issue can be reproduced exactly. <b>Measure distance</b> is a scratch ruler ' +
         'for reading map scale.' } },
+  { element: '.cmp-globe', popover: {
+      title: 'Compare all cities',
+      side: 'left',
+      description: 'The <b>globe</b> button beside the zoom controls compares every city in ' +
+        'the study, in four views. The <b>Table</b> lists each city\'s population-weighted ' +
+        'results, each described in plain language, to copy into Excel or download. ' +
+        '<b>Ranking</b> shows how distances to destinations vary across each city\'s ' +
+        'neighbourhoods. <b>City contrast</b> sets one city against the others, and ' +
+        '<b>Groups</b> shows which cities are most alike. Useful for judging whether your ' +
+        'city\'s results look plausible beside cities you know.' } },
   { element: '#assessBtn', popover: {
       title: 'Where you record your answers',
       description: '<b>Validation activity</b> is the form itself, in three parts. ' +
@@ -3230,7 +3481,7 @@ const TOUR_STEPS = [
         '<b>each of the four network scenarios</b> in turn and say whether it looks ' +
         'like a good representation of access. <b>Part B</b> reviews each network scenario overall, and ' +
         '<b>Part C</b> asks you to rate each facet of the method and the proposed means of sharing this for your city. Answers are saved ' +
-        ' as you go; downloaded the file at the end and email it to us.' } },
+        ' as you go; download the file at the end and email it to us.' } },
   { element: '#tourBtn', popover: {
       title: 'That is the tour',
       description: 'The green <b>Tour</b> button replays ' +
@@ -3361,6 +3612,1261 @@ if (tour && !localStorage.getItem('cyclingValidationTourSeen')) {
     toggle.title = STEPS[level].tip;
   });
 })();
+
+// ================= all-cities comparison =====================================
+// Opened from the globe button beside the zoom controls.  Two views over every
+// published city: a table of population-weighted city values (manifest
+// region_values) and a ranking of grid-cell box plots for the distance measures
+// (manifest grid_stats, unweighted Tukey summaries written by
+// _export_validation_tiles.py).  Selections start from the map panel but do not
+// change it.
+
+// The standard vocabulary, captured before any city is loaded:
+// applyCustomIndicators() adds each city's own measures to CONCEPTS / IND_NAMES.
+const CMP_CONCEPTS = Object.fromEntries(STANDARD_CONCEPTS.map(k => [k, CONCEPTS[k]]));
+const CMP_IND_NAMES = Object.fromEntries(STANDARD_INDS.map(k => [k, IND_NAMES[k]]));
+const CMP_TYPES = {
+  access: { label: 'Access within distance', unit: '% of population' },
+  avg:    { label: 'Average distance to nearest', unit: 'mean distance (m)' },
+  dmgap:  { label: 'Dismount dependence', unit: '% of population' },
+  extra:  { label: 'Extra riding distance without dismount', unit: 'mean extra distance (m)' },
+};
+const CMP_NETS = ['lts1_', 'ride_', 'safe_', ''];
+const CMP_DMGAP_NET = 'Low stress (LTS 1–2), with vs without dismount';
+const CMP_GROUP_LABELS = { types: 'Indicator', inds: 'Destination',
+                           dists: 'Distance threshold', nets: 'Network' };
+const CMP_GROUP_TIPS = {
+  dists: 'Applies to access and dismount-dependence indicators',
+  nets: 'Applies to access and average-distance indicators',
+};
+const cmpFilter = { types: new Set(), inds: new Set(),
+                    dists: new Set(), nets: new Set(), custom: false };
+let cmpView = 'table';
+
+function cmpEsc(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+// ---- plain-language indicator descriptions (table sentences, chip tooltips, CSV) ----
+const CMP_NET_PHRASE = {
+  lts1_: 'using only the lowest-stress streets (LTS 1), walking the bike where a footway is the only such link',
+  ride_: 'using low-stress streets (LTS 1–2) ridden the whole way, without getting off to walk',
+  safe_: 'using low-stress streets (LTS 1–2), walking the bike where a footway is the only such link',
+  '': 'using any street open to cycling, with higher-stress (LTS 3–4) streets counted as 25% longer',
+};
+function cmpListJoin(items) {
+  return items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}` : (items[0] || '');
+}
+// what a standard destination counts, stated for every city at once
+function cmpPhrase(ind) {
+  const noTimetable = CITY_SLUGS.filter(s => !(manifests[s].layers || {}).pt_frequent)
+    .map(s => manifests[s].name).sort();
+  const frequent = 'a public transport stop with a service every 20 minutes or better' +
+    (noTimetable.length ? ` (any stop in ${cmpListJoin(noTimetable)}, which have no timetable data)` : '');
+  const food = 'fresh food (a supermarket, grocer, market, greengrocer, butcher, fishmonger, bakery or deli)';
+  const foodOrConvenience = 'fresh food or a convenience store (as for fresh food, plus convenience ' +
+    'stores, kiosks, newsagents and fuel stations; fuel stations are not counted in Helsinki)';
+  switch (ind) {
+    case 'fresh_food_market': return food;
+    case 'fresh_food_pooled': return foodOrConvenience;
+    case 'pt_frequent': return 'a public transport stop with a service every 20 minutes or better';
+    case 'pt_any': return 'any public transport stop (bus, tram, rail or ferry)';
+    case 'public_open_space_large': return 'a public open space larger than 1.5 ha';
+    case 'public_open_space_any': return 'a public open space of any size';
+    case 'activity_centre_complete':
+      return `an activity centre, meaning a place with fresh food, a public open space larger than 1.5 ha and ${frequent}, all within a 400 m walk`;
+    case 'activity_centre_local':
+      return 'an activity centre, meaning a place with fresh food or a convenience store, a public open space of any size and any public transport stop, all within a 400 m walk';
+    case 'all_strict':
+      return `each of fresh food, a public open space larger than 1.5 ha and ${frequent}`;
+    case 'all_lenient':
+      return 'each of fresh food or a convenience store, a public open space of any size and any public transport stop';
+    default: return ind.replace(/_/g, ' ');
+  }
+}
+function cmpCustomPhrase(r) {
+  const ci = r.ci;
+  if (!ci) return r.label.toLowerCase();
+  const members = (ci.members || {})[r.variant];
+  if (ci.strict === ci.lenient || !members) return ci.description || ci.label.toLowerCase();
+  const list = cmpListJoin(memberMix(ci, r.variant, r.customs).toLowerCase().split(' + '));
+  return ci.kind === 'activity_centre'
+    ? `an activity centre, meaning a place with ${list}, all within a 400 m walk`
+    : `each of ${list}`;
+}
+// How the measure is taken comes first and the destination last, after a colon, so a
+// destination's own distances (an activity centre's 400 m walk) cannot be read as
+// part of the cycling distance.
+function cmpSentence(r) {
+  const dest = r.custom ? cmpCustomPhrase(r) : cmpPhrase(r.cat);
+  switch (r.type) {
+    case 'access':
+      return `Share of residents (%) who can reach by bicycle, within the distance shown and ${CMP_NET_PHRASE[r.net]}: ${dest}.`;
+    case 'avg':
+      // averaged over the sample points that reach one at all, however far
+      return `Average distance (m) ridden to the closest destination, among residents who can reach one at all, ${CMP_NET_PHRASE[r.net]}: ${dest}.`;
+    case 'dmgap':
+      return 'Share of residents (%) who can reach, within the distance shown on low-stress streets (LTS 1–2), ' +
+        `only because they may get off and walk the bike along a footway: ${dest}.`;
+    case 'extra':
+      return 'Extra distance (m) ridden on low-stress streets (LTS 1–2) to avoid walking the bike, among residents ' +
+        `who can reach the destination both ways: ${dest}.`;
+    default: return r.col;
+  }
+}
+// local calendar date (toISOString is UTC, a day behind in the morning in Australia)
+function cmpToday() {
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function cmpCities() {
+  return [...CITY_SLUGS].sort((a, b) => manifests[a].name.localeCompare(manifests[b].name));
+}
+
+// destination category -> what it is, from the standard set or city s's own measures.
+// A city's own measure is looked up in that city's manifest only: cities can give
+// different measures the same name (Curitiba's and Suzhou's `custom` sets both yield
+// activity_centre_custom_*), so the name alone does not say what is measured.
+function cmpStandardDestination(cat) {
+  for (const [k, c] of Object.entries(CMP_CONCEPTS))
+    for (const v of ['strict', 'lenient'])
+      if (c[v] === cat)
+        return { concept: k, variant: v, label: CMP_IND_NAMES[cat] || cat,
+                 order: STANDARD_CONCEPTS.indexOf(k), custom: false };
+  return null;
+}
+function cmpDestination(cat, s) {
+  const std = cmpStandardDestination(cat);
+  if (std || !s) return std || { concept: `custom_${cat}`, variant: '', label: cat, order: 100, custom: true };
+  const customs = manifests[s].custom_indicators || [], city = manifests[s].name;
+  for (const ci of customs)
+    for (const v of ['strict', 'lenient'])
+      if (ci[v] === cat) {
+        const single = ci.strict === ci.lenient;
+        return { concept: `custom_${ci.name}`, variant: single ? '' : v,
+                 label: customIndName(ci, v, customs),
+                 order: 100, custom: true, city, slug: s, ci, customs };
+      }
+  return { concept: `custom_${cat}`, variant: '', label: cat, order: 100, custom: true, city, slug: s };
+}
+
+// grid column name -> { type, net, cat, dist, concept, variant, label, unit, netLabel }
+// plus, for a city's own measure, the owning city (slug, city); pass the city whose
+// manifest the column came from.
+const cmpColCache = new Map();
+function cmpParseColumn(col) {
+  let m;
+  if ((m = col.match(/^pct_access_cycle_(dmgap_|lts1_|ride_|safe_)?(.+)_(\d+)m$/)))
+    return m[1] === 'dmgap_'
+      ? { type: 'dmgap', net: null, cat: m[2], dist: +m[3] }
+      : { type: 'access', net: m[1] || '', cat: m[2], dist: +m[3] };
+  if ((m = col.match(/^avg_cycle_extra_dmgap_(.+)$/)))
+    return { type: 'extra', net: null, cat: m[1], dist: null };
+  if ((m = col.match(/^avg_cycle_dist_(lts1_|ride_|safe_)?(.+)$/)))
+    return { type: 'avg', net: m[1] || '', cat: m[2], dist: null };
+  return null;
+}
+function describeColumn(col, s) {
+  const d = cmpParseColumn(col);
+  const key = !d || !s || cmpStandardDestination(d.cat) ? col : `${s}|${col}`;
+  if (cmpColCache.has(key)) return cmpColCache.get(key);
+  if (d)
+    Object.assign(d, cmpDestination(d.cat, s), {
+      col, unit: CMP_TYPES[d.type].unit,
+      netLabel: d.net === null ? CMP_DMGAP_NET : NETWORKS[d.net].label,
+    });
+  cmpColCache.set(key, d);
+  return d;
+}
+
+// ---- table view ----
+// one row per standard column, and one per city for each city's own measure
+function cmpAllRows() {
+  const rows = new Map();
+  for (const s of CITY_SLUGS)
+    for (const col of Object.keys(manifests[s].region_values || {})) {
+      const d = describeColumn(col, s);
+      const key = d && d.slug ? `${d.slug}|${col}` : col;
+      if (d && !rows.has(key)) rows.set(key, d);
+    }
+  const types = Object.keys(CMP_TYPES);
+  return [...rows.values()].sort((a, b) =>
+    types.indexOf(a.type) - types.indexOf(b.type)
+    || a.order - b.order || (a.city || '').localeCompare(b.city || '')
+    || a.concept.localeCompare(b.concept)
+    || (a.variant === 'lenient') - (b.variant === 'lenient')
+    || CMP_NETS.indexOf(a.net) - CMP_NETS.indexOf(b.net)
+    || (a.dist || 0) - (b.dist || 0));
+}
+function cmpRowPasses(r) {
+  const f = cmpFilter;
+  if (!f.types.has(r.type)) return false;
+  if (r.custom) { if (!f.custom) return false; }
+  else if (!f.inds.has(r.cat)) return false;
+  if (r.dist !== null && !f.dists.has(r.dist)) return false;
+  if (r.net !== null && !f.nets.has(r.net)) return false;
+  return true;
+}
+function cmpFilterEntries() {
+  return {
+    types: Object.entries(CMP_TYPES).map(([k, t]) => [k, t.label]),
+    inds: STANDARD_INDS.map(i => [i, i]),
+    dists: ISO_DISTANCES.map(d => [parseInt(d), d.replace('m', ' m')]),
+    nets: CMP_NETS.map(n => [n, NETWORKS[n].label]),
+  };
+}
+function cmpChip(g, v, label, tip) {
+  return `<label class="chip"${tip ? ` title="${cmpEsc(tip)}"` : ''}>` +
+    `<input type="checkbox" data-group="${g}" value="${cmpEsc(v)}"${cmpFilter[g].has(v) ? ' checked' : ''}>` +
+    `<span>${cmpEsc(label)}</span></label>`;
+}
+function renderCompareFilters() {
+  const E = cmpFilterEntries();
+  const head = g => `<button type="button" class="cmp-gl" data-group="${g}" ` +
+    `title="${cmpEsc((CMP_GROUP_TIPS[g] ? CMP_GROUP_TIPS[g] + '. ' : '') + 'Click to select all or none')}">` +
+    `${CMP_GROUP_LABELS[g]}</button>`;
+  const simple = g => `<div class="cmp-group">${head(g)}<div class="cmp-chips">` +
+    E[g].map(([v, l]) => cmpChip(g, v, l)).join('') + '</div></div>';
+  // each destination beside the two definitions it is measured with, each named by
+  // what it counts; clicking the destination takes or clears both
+  const dest = `<div class="cmp-group cmp-dest">${head('inds')}` +
+    STANDARD_CONCEPTS.map(k => '<div class="cmp-destrow">' +
+      `<button type="button" class="cmp-cl" data-concept="${k}" title="Select or clear both">` +
+      `${cmpEsc(CMP_CONCEPTS[k].label)}</button><div class="cmp-chips">` +
+      ['strict', 'lenient'].map(v => cmpChip('inds', CMP_CONCEPTS[k][v], CMP_CONCEPTS[k].opts[v],
+        cmpPhrase(CMP_CONCEPTS[k][v]))).join('') +
+      '</div></div>').join('') + '</div>';
+  const groups = [simple('types'), dest, simple('dists'), simple('nets')];
+  const customCities = CITY_SLUGS.filter(s => (manifests[s].custom_indicators || []).length)
+    .map(s => manifests[s].name).sort();
+  if (customCities.length)
+    groups.push(`<div class="cmp-group"><span class="cmp-gl static">City-specific</span>` +
+      `<div class="cmp-chips"><label class="chip" title="Measures configured for one city only: ${cmpEsc(customCities.join(', '))}">` +
+      `<input type="checkbox" data-group="custom"${cmpFilter.custom ? ' checked' : ''}>` +
+      `<span>Include city-specific measures</span></label></div></div>`);
+  $('cmpFilters').innerHTML = groups.join('');
+}
+function cmpValue(s, col) {
+  const v = (manifests[s].region_values || {})[col];
+  return v === undefined || v === null ? null : v;
+}
+// a table row's value for city s: a city's own measure has a value for that city only,
+// even where another city has a column of the same name
+function cmpRowValue(r, s) {
+  return r.slug && s !== r.slug ? null : cmpValue(s, r.col);
+}
+// Crameri batlow as the 256 colours of subprocesses/batlow.py, the scale the validation
+// reports shade their tables with (_batlow_cell_bg): dark blue at 0, pale pink at 1.
+const BATLOW_LUT = ('011959 021a59 031c59 041d5a 051f5a 05205a 06225a 07235b 08255b 08265b 09285b 0a295c 0a2b5c 0b2c5c 0b2e5c 0c2f5d ' +
+  '0c305d 0c325d 0d335d 0d345d 0d355e 0e375e 0e385e 0e395e 0f3a5e 0f3b5f 0f3c5f 0f3d5f 103f5f 10405f 10415f 104260 ' +
+  '114360 114460 114560 114660 124760 124761 124861 134961 134a61 134b61 144c61 144d61 144e61 154f61 155061 165162 ' +
+  '165262 175362 175362 185462 185562 195662 195762 1a5862 1b5962 1b5a61 1c5a61 1d5b61 1e5c61 1f5d61 205e61 215e60 ' +
+  '215f60 226060 246160 25615f 26625f 27635f 28645e 29645e 2a655d 2c665d 2d665c 2e675c 2f685b 31685b 32695a 336959 ' +
+  '356a59 366b58 386b57 396c57 3a6c56 3c6d55 3d6d54 3f6e54 406e53 426f52 436f51 457050 46704f 48714f 4a714e 4b724d ' +
+  '4d724c 4e734b 50734a 517449 537449 547548 567547 587646 597645 5b7744 5c7743 5e7842 607841 617941 637940 657a3f ' +
+  '667a3e 687a3d 6a7b3c 6b7b3b 6d7c3a 6f7c3a 707d39 727d38 747e37 757e36 777f35 797f35 7b8034 7c8033 7e8132 808132 ' +
+  '828231 848230 86832f 87832f 89842e 8b842e 8d852d 8f852d 91862c 93862c 95872b 97872b 99882b 9b882b 9d882b 9f892b ' +
+  'a1892b a38a2b a58a2b a68b2c a88b2c aa8c2c ac8c2d ae8c2d b08d2e b28d2f b48d30 b68e30 b88e31 ba8f32 bc8f33 be8f34 ' +
+  'c09035 c29037 c49038 c59139 c7913a c9913c cb923d cd923e ce9240 d09241 d29343 d49344 d59346 d79448 d99449 da954b ' +
+  'dc954d de954e df9650 e19652 e29654 e49756 e59758 e7985a e8985c ea995e eb9960 ec9a62 ed9a64 ef9b66 f09c68 f19c6b ' +
+  'f29d6d f39d6f f49e71 f59f74 f69f76 f6a078 f7a17b f8a17d f8a27f f9a382 f9a484 faa487 faa589 fba68b fba78e fba790 ' +
+  'fca892 fca994 fcaa97 fcaa99 fcab9b fcac9d fdada0 fdada2 fdaea4 fdafa6 fdb0a8 fdb0ab fdb1ad fdb2af fdb3b1 fdb3b3 ' +
+  'fdb4b5 fdb5b7 fdb5b9 fdb6bb fcb7be fcb8c0 fcb8c2 fcb9c4 fcbac6 fcbbc8 fcbbca fcbccc fcbdcf fcbdd1 fcbed3 fcbfd5 ' +
+  'fcc0d7 fcc1da fbc1dc fbc2de fbc3e0 fbc4e3 fbc4e5 fbc5e7 fbc6e9 fbc7ec fbc8ee fac8f0 fac9f3 facaf5 facbf7 faccfa').split(' ');
+// as the report: the colour at t (matplotlib's lookup, floor(t × 256)) at 0.3 opacity
+function batlowCellBg(t) {
+  const n = parseInt(BATLOW_LUT[Math.min(255, Math.max(0, Math.floor(t * 256)))], 16);
+  return `background-color:rgba(${n >> 16},${(n >> 8) & 255},${n & 255},0.3)`;
+}
+// Paler is better throughout, as in the report.  Access shares run 0-100%; dismount
+// dependence is reversed (paler = less access depends on walking the bike); distances
+// have no fixed scale, so they run from the shortest (pale) to the longest (dark) value
+// within that indicator's rows.
+function cmpShade(r, v, range) {
+  let t;
+  if (r.type === 'access') t = v / 100;
+  else if (r.type === 'dmgap') t = 1 - v / 100;
+  else t = range && range[1] > range[0] ? 1 - (v - range[0]) / (range[1] - range[0]) : 1;
+  return batlowCellBg(Math.max(0, Math.min(1, t)));
+}
+function renderCompareTable() {
+  const rows = cmpAllRows().filter(cmpRowPasses), cities = cmpCities();
+  const cls = (s, extra = '') => {
+    const c = [extra, s === slug ? 'cur' : ''].filter(Boolean).join(' ');
+    return c ? ` class="${c}"` : '';
+  };
+  const head = '<thead><tr><th class="l stick">Distance</th>' +
+    cities.map(s => `<th${cls(s)}>${cmpEsc(manifests[s].name)}</th>`).join('') + '</tr></thead>';
+  // rows sort by indicator and then distance, so each indicator's rows are contiguous
+  // beneath the sentence describing it
+  // each distance indicator's shading range, over all its rows and cities
+  const ranges = new Map();
+  for (const r of rows) {
+    if (r.type === 'access' || r.type === 'dmgap') continue;
+    const key = `${r.type}|${r.cat}|${r.net}|${r.slug || ''}`;
+    const vals = cities.map(s => cmpRowValue(r, s)).filter(v => v !== null);
+    const [lo, hi] = ranges.get(key) || [Infinity, -Infinity];
+    ranges.set(key, [Math.min(lo, ...vals), Math.max(hi, ...vals)]);
+  }
+  const body = [];
+  let perm = null, nPerm = 0;
+  for (const r of rows) {
+    const key = `${r.type}|${r.cat}|${r.net}|${r.slug || ''}`;
+    if (key !== perm) {
+      perm = key; nPerm++;
+      body.push(`<tr class="grp"><td colspan="${1 + cities.length}"><span class="grp-l">` +
+        `${cmpEsc(cmpSentence(r))}${r.custom && r.city ? ` <span class="cmp-city">(${cmpEsc(r.city)} only)</span>` : ''}` +
+        '</span></td></tr>');
+    }
+    const pct = r.type === 'access' || r.type === 'dmgap';
+    body.push('<tr>' +
+      `<td class="l stick">${r.dist ? `Within ${r.dist.toLocaleString('en')} m` : 'Closest'}</td>` +
+      cities.map(s => {
+        const v = cmpRowValue(r, s);
+        const why = r.slug && s !== r.slug ? `City-specific measure for ${r.city} only`
+          : `Not available for ${manifests[s].name}`;
+        return v === null
+          ? `<td${cls(s, 'na')} title="${cmpEsc(why)}">—</td>`
+          : `<td${cls(s)} style="${cmpShade(r, v, ranges.get(key))}">${pct ? v.toFixed(1) : Math.round(v).toLocaleString('en')}</td>`;
+      }).join('') + '</tr>');
+  }
+  $('cmpTable').innerHTML = head + `<tbody>${body.join('')}</tbody>`;
+  $('cmpCount').textContent =
+    `${nPerm} indicator${nPerm === 1 ? '' : 's'} (${rows.length} row${rows.length === 1 ? '' : 's'}) × ${cities.length} cities`;
+  $('cmpCopy').disabled = $('cmpDl').disabled = !rows.length;
+}
+// delimiter ',' for the CSV download, '\t' for copying: spreadsheets split pasted text
+// on tabs, not commas.  A tab-separated value needs no quoting, only no tab or newline.
+function compareCSV(delim = ',') {
+  const rows = cmpAllRows().filter(cmpRowPasses), cities = cmpCities();
+  const esc = delim === '\t'
+    ? v => String(v).replace(/[\t\r\n]+/g, ' ')
+    : v => typeof v === 'number' ? String(v)
+      : /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+  const lines = [['distance_m', 'indicator', 'unit', 'destination', 'network', 'column',
+                  ...cities.map(s => manifests[s].name)]];
+  for (const r of rows)
+    lines.push([r.dist === null ? '' : r.dist, cmpSentence(r), r.unit,
+                r.custom ? `${r.label} (${r.city || 'city-specific'})`
+                         : `${CMP_CONCEPTS[r.concept].label}: ${CMP_CONCEPTS[r.concept].opts[r.variant]}`,
+                r.netLabel, r.col,
+                ...cities.map(s => { const v = cmpRowValue(r, s); return v === null ? '' : v; })]);
+  return lines.map(l => l.map(esc).join(delim)).join('\n');
+}
+
+// ---- ranking view: grid-cell box plots ----
+const rk = { measure: 'avg', concept: 'food', variant: 'strict', net: 'safe_' };
+let rkCurrent = null;
+const RK = {
+  W: 960, L: 200, R: 64, top: 92, row: 30, box: 14,
+  // neutral box (≈2.2:1 on white, so its extent reads) under a dark median line
+  boxFill: '#9fb0c2', median: '#20303f', whisker: '#6b7785', accent: '#c0398f',
+  grid: '#ececec', ink: '#222', muted: '#666',
+  font: "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif",
+};
+function rkColumn(o = rk) {
+  const ind = CMP_CONCEPTS[o.concept][o.variant];
+  return o.measure === 'extra' ? `avg_cycle_extra_dmgap_${ind}` : `avg_cycle_dist_${o.net}${ind}`;
+}
+function rkHas(o) {
+  const col = rkColumn(o);
+  return CITY_SLUGS.some(s => (manifests[s].grid_stats || {})[col]);
+}
+// ---- indicator pickers, shared by the Ranking and City contrast views ----
+// `dims` lists each choice's options, outermost first: when the current selection has
+// no data, the innermost choices are changed before the outer ones.
+// Is any completion of the `fixed` choices available?
+function pickAvailable(state, fixed, dims, has) {
+  const keys = Object.keys(dims);
+  const walk = (i, o) => i === keys.length ? has(o)
+    : (fixed[keys[i]] !== undefined ? [fixed[keys[i]]] : dims[keys[i]])
+        .some(v => walk(i + 1, { ...o, [keys[i]]: v }));
+  return walk(0, { ...state });
+}
+// walk to the nearest available selection, keeping the choice just made if possible
+function pickFix(state, dims, has, keep) {
+  if (has(state)) return;
+  const keys = Object.keys(dims);
+  const order = k => k === keep ? [state[k]] : [state[k], ...dims[k].filter(v => v !== state[k])];
+  const walk = (i, o) => {
+    if (i === keys.length) return has(o) ? o : null;
+    for (const v of order(keys[i])) {
+      const found = walk(i + 1, { ...o, [keys[i]]: v });
+      if (found) return found;
+    }
+    return null;
+  };
+  const found = walk(0, { ...state });
+  if (found) Object.assign(state, found);
+  else if (keep) pickFix(state, dims, has, null);
+}
+const RK_DIMS = { measure: ['avg', 'extra'], variant: ['strict', 'lenient'], net: CMP_NETS,
+                  concept: STANDARD_CONCEPTS };
+function rkAvailable(fixed) { return pickAvailable(rk, fixed, RK_DIMS, rkHas); }
+function rkFix(keep) { pickFix(rk, RK_DIMS, rkHas, keep); }
+function rankingData() {
+  const col = rkColumn(), have = [], missing = [];
+  for (const s of CITY_SLUGS) {
+    const st = (manifests[s].grid_stats || {})[col];
+    if (st) have.push({ slug: s, name: manifests[s].name, st, pop: cmpValue(s, col) });
+    else missing.push(manifests[s].name);
+  }
+  have.sort((a, b) => a.st.med - b.st.med
+    || (a.pop ?? Infinity) - (b.pop ?? Infinity) || a.name.localeCompare(b.name));
+  return { col, have, missing: missing.sort() };
+}
+function rkNiceMax(v) {
+  const raw = Math.max(v, 1) / 6, mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map(k => k * mag).find(s => s >= raw);
+  return { max: Math.ceil(Math.max(v, 1) / step) * step, step };
+}
+function rkWrap(text, max) {
+  const lines = [];
+  let line = '';
+  for (const w of text.split(' ')) {
+    if (line && (line + ' ' + w).length > max) { lines.push(line); line = w; }
+    else line = line ? line + ' ' + w : w;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+const rkM = n => `${Math.round(n).toLocaleString('en')} m`;
+function rkTipLines(h) {
+  const s = h.st, beyond = s.n_low + s.n_high;
+  return [
+    `Median (50th percentile) cell: ${rkM(s.med)}`,
+    h.name,
+    `25th–75th percentile of cells: ${rkM(s.q1)} – ${rkM(s.q3)}`,
+    `Whiskers: ${rkM(s.lo)} – ${rkM(s.hi)}`,
+    ...(beyond ? [`Beyond whiskers: ${beyond.toLocaleString('en')} cells (range ${rkM(s.min)} – ${rkM(s.max)})`] : []),
+    h.pop === null ? 'Population-weighted average: not available'
+                   : `Population-weighted average: ${rkM(h.pop)}`,
+    `${s.n.toLocaleString('en')} grid cells with a value`,
+  ];
+}
+function rankingSVG({ col, have, missing }) {
+  const { W, L, R, top, row } = RK;
+  const d = describeColumn(col);
+  const title = d.type === 'extra'
+    ? `Extra riding distance to avoid dismounting: ${d.label}`
+    : `Average cycling distance to the nearest destination: ${d.label}`;
+  const sub = d.type === 'extra'
+    ? 'Low stress (LTS 1–2) routes: extra metres ridden to avoid walking the bike, where access exists both ways'
+    : `${NETWORKS[d.net].label} routing`;
+  const sub2 = 'Distribution across populated 100 m grid cells · cities ranked by median cell, shortest at top';
+  const { max, step } = rkNiceMax(Math.max(...have.map(h => Math.max(h.st.hi, h.pop ?? 0))));
+  const pw = W - L - R;
+  const x = v => +(L + Math.max(0, Math.min(max, v)) / max * pw).toFixed(1);
+  const yAxis = top + have.length * row + 4;
+  const t = (xx, yy, text, attrs = '') =>
+    `<text x="${xx}" y="${yy}" ${attrs}>${cmpEsc(text)}</text>`;
+  const o = [];
+  o.push(t(16, 26, title, `font-size="16" font-weight="600" fill="${RK.ink}"`));
+  o.push(t(16, 48, sub, `font-size="12.5" fill="#444"`));
+  o.push(t(16, 66, sub2, `font-size="12" fill="${RK.muted}"`));
+  // gridlines and tick labels, recessive
+  for (let v = 0; v <= max + 1e-9; v += step) {
+    o.push(`<line x1="${x(v)}" x2="${x(v)}" y1="${top - 6}" y2="${yAxis}" stroke="${RK.grid}" stroke-width="1"/>`);
+    o.push(t(x(v), yAxis + 16, Math.round(v).toLocaleString('en'),
+      `font-size="11" text-anchor="middle" fill="${RK.muted}"`));
+  }
+  o.push(`<line x1="${L}" x2="${L + pw}" y1="${yAxis}" y2="${yAxis}" stroke="#bbb" stroke-width="1"/>`);
+  o.push(t(L + pw / 2, yAxis + 34, d.type === 'extra' ? 'Extra distance (m)' : 'Average distance to nearest (m)',
+    `font-size="11.5" text-anchor="middle" fill="${RK.ink}"`));
+  have.forEach((h, i) => {
+    const cy = top + i * row + row / 2, s = h.st, bh = RK.box / 2;
+    o.push(`<g class="rk-row" data-slug="${h.slug}" tabindex="0" aria-label="${cmpEsc(rkTipLines(h).join('; '))}">`);
+    o.push(`<rect class="rk-hit" x="0" y="${cy - row / 2}" width="${W}" height="${row}" fill="transparent"/>`);
+    o.push(t(L - 12, cy + 4, h.name, `font-size="12.5" text-anchor="end" fill="${RK.ink}"`));
+    const whisk = (a, b) => `<line x1="${x(a)}" x2="${x(b)}" y1="${cy}" y2="${cy}" stroke="${RK.whisker}" stroke-width="1.5"/>`;
+    const cap = v => `<line x1="${x(v)}" x2="${x(v)}" y1="${cy - 5}" y2="${cy + 5}" stroke="${RK.whisker}" stroke-width="1.5"/>`;
+    o.push(whisk(s.lo, s.q1), whisk(s.q3, s.hi), cap(s.lo), cap(s.hi));
+    o.push(`<rect x="${x(s.q1)}" y="${cy - bh}" width="${Math.max(1.5, x(s.q3) - x(s.q1))}" height="${RK.box}" rx="2" fill="${RK.boxFill}"/>`);
+    o.push(`<line x1="${x(s.med)}" x2="${x(s.med)}" y1="${cy - bh - 1}" y2="${cy + bh + 1}" stroke="${RK.median}" stroke-width="2.5"/>`);
+    if (h.pop !== null)
+      o.push(`<circle cx="${x(h.pop)}" cy="${cy}" r="5" fill="${RK.accent}" stroke="#fff" stroke-width="2"/>`);
+    if (s.n_high)
+      o.push(t(x(Math.max(s.hi, h.pop ?? 0)) + 9, cy + 3.5, `+${s.n_high.toLocaleString('en')}`,
+        `font-size="10" fill="${RK.muted}"`));
+    if (s.n_low && x(s.lo) - L > 30)
+      o.push(t(x(s.lo) - 8, cy + 3.5, `+${s.n_low.toLocaleString('en')}`,
+        `font-size="10" text-anchor="end" fill="${RK.muted}"`));
+    o.push('</g>');
+  });
+  // legend
+  let y = yAxis + 64;
+  const lt = (xx, yy, text) => t(xx, yy + 4, text, `font-size="11.5" fill="${RK.ink}"`);
+  o.push(`<rect x="16" y="${y - 7}" width="30" height="14" rx="2" fill="${RK.boxFill}"/>`);
+  o.push(`<line x1="29" x2="29" y1="${y - 8}" y2="${y + 8}" stroke="${RK.median}" stroke-width="2.5"/>`);
+  o.push(lt(56, y, 'Box: 25th to 75th percentile of grid cells, where the middle half of them lie · dark line: median (50th percentile) cell'));
+  y += 24;
+  const wx = 16;
+  o.push(`<line x1="${wx}" x2="${wx + 30}" y1="${y}" y2="${y}" stroke="${RK.whisker}" stroke-width="1.5"/>`);
+  o.push(`<line x1="${wx}" x2="${wx}" y1="${y - 5}" y2="${y + 5}" stroke="${RK.whisker}" stroke-width="1.5"/>`);
+  o.push(`<line x1="${wx + 30}" x2="${wx + 30}" y1="${y - 5}" y2="${y + 5}" stroke="${RK.whisker}" stroke-width="1.5"/>`);
+  o.push(lt(56, y, 'Whiskers: furthest cells within 1.5 × the 25th–75th percentile range beyond the box · +N: cells further out'));
+  y += 24;
+  o.push(`<circle cx="31" cy="${y}" r="5" fill="${RK.accent}" stroke="#fff" stroke-width="2"/>`);
+  o.push(lt(56, y, 'Population-weighted city average (the value in the table view)'));
+  y += 24;
+  const note = 'Every grid cell counts once, whatever its population. The circle weights cells by their ' +
+    'residents, so it sits away from the median where distances are skewed or where people live closer to, ' +
+    'or further from, destinations than the typical cell.';
+  for (const line of rkWrap(note, 150)) { o.push(t(16, y, line, `font-size="11" fill="${RK.muted}"`)); y += 15; }
+  if (missing.length) {
+    y += 4;
+    for (const line of rkWrap(`Not available for: ${missing.join(', ')}`, 150)) {
+      o.push(t(16, y, line, `font-size="11" fill="${RK.muted}"`)); y += 15;
+    }
+  }
+  y += 6;
+  o.push(t(16, y, `Source: GHSCI cycling indicators, Round 2 validation · ${cmpToday()}`,
+    `font-size="10.5" fill="#888"`));
+  const H = y + 14;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" ` +
+    `font-family="${RK.font}" role="img" aria-label="${cmpEsc(title)}">` +
+    `<rect width="${W}" height="${H}" fill="#fff"/>${o.join('')}</svg>`;
+}
+function renderRanking() {
+  rkFix(null);
+  $('rkMeasure').value = rk.measure;
+  $('rkConcept').value = rk.concept;
+  fillSelect($('rkVariant'), ['strict', 'lenient'].map(v => [v, CMP_CONCEPTS[rk.concept].opts[v]]));
+  $('rkVariant').value = rk.variant;
+  $('rkNetwork').value = rk.net;
+  $('rkNetwork').disabled = rk.measure === 'extra';
+  for (const o of $('rkMeasure').options)
+    o.disabled = !rkAvailable({ measure: o.value, concept: rk.concept });
+  for (const o of $('rkConcept').options)
+    o.disabled = !rkAvailable({ measure: rk.measure, concept: o.value });
+  for (const o of $('rkVariant').options)
+    o.disabled = !rkAvailable({ measure: rk.measure, concept: rk.concept, variant: o.value });
+  for (const o of $('rkNetwork').options)
+    o.disabled = !rkHas({ ...rk, net: o.value });
+  const data = rankingData();
+  rkCurrent = data;
+  $('rkChart').innerHTML = data.have.length
+    ? rankingSVG(data)
+    : '<p class="cmp-note">No city has grid results for this selection.</p>';
+  $('rkPng').disabled = $('rkSvg').disabled = !data.have.length;
+}
+function rkShowTip(slugKey, cx, cy) {
+  const h = rkCurrent && rkCurrent.have.find(r => r.slug === slugKey);
+  if (!h) { rkHideTip(); return; }
+  showTip(rkTipLines(h), cx, cy);
+}
+// one tooltip for every comparison chart: the value leads, the name follows
+// A line may instead be a table, { caption, head: [...], rows: [[...]] }; cells are set
+// as text, never markup.
+function tipTable({ caption, head, rows }) {
+  const table = document.createElement('table');
+  table.className = 'tip-t';
+  if (caption) table.createCaption().textContent = caption;
+  const add = (tr, tag, text, i) => {
+    const c = document.createElement(tag);
+    if (i === 0) c.className = 'l';
+    c.textContent = text;
+    tr.appendChild(c);
+  };
+  const hr = table.createTHead().insertRow();
+  head.forEach((h, i) => add(hr, 'th', h, i));
+  const body = table.createTBody();
+  for (const row of rows) { const tr = body.insertRow(); row.forEach((v, i) => add(tr, 'td', v, i)); }
+  return table;
+}
+function showTip(lines, cx, cy) {
+  const tip = $('rkTip');
+  tip.classList.toggle('wide', lines.some(l => l && typeof l === 'object'));
+  tip.replaceChildren(...lines.map((text, i) => {
+    if (text && typeof text === 'object') return tipTable(text);
+    const el = document.createElement(i === 0 ? 'b' : 'div');
+    if (i === 1) el.className = 'rk-tip-city';
+    el.textContent = text;
+    return el;
+  }));
+  tip.style.display = 'block';
+  const r = tip.getBoundingClientRect();
+  tip.style.left = `${Math.max(8, Math.min(cx + 14, innerWidth - r.width - 8))}px`;
+  tip.style.top = `${Math.max(8, Math.min(cy + 14, innerHeight - r.height - 8))}px`;
+}
+function rkHideTip() { $('rkTip').style.display = 'none'; }
+function rkDownload(kind) { svgDownload('rkChart', `cycling_ranking_${rkColumn()}`, kind); }
+// save the SVG chart in a container as SVG, or as a PNG drawn at twice its size
+function svgDownload(containerId, name, kind) {
+  const svg = $(containerId).querySelector('svg');
+  if (!svg) return;
+  const src = new XMLSerializer().serializeToString(svg);
+  if (kind === 'svg') {
+    downloadBlob(new Blob([src], { type: 'image/svg+xml;charset=utf-8' }), `${name}.svg`);
+    return;
+  }
+  const vb = svg.viewBox.baseVal, scale = 2;
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = vb.width * scale; c.height = vb.height * scale;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    c.toBlob(b => downloadBlob(b, `${name}.png`), 'image/png');
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(src);
+}
+
+// percentile by linear interpolation between ranks (numpy's default, as grid_stats)
+function cmpQuantile(values, p) {
+  const v = values.filter(x => x !== null && isFinite(x)).sort((a, b) => a - b);
+  if (!v.length) return null;
+  const h = (v.length - 1) * p, lo = Math.floor(h);
+  return v[lo] + (v[Math.min(lo + 1, v.length - 1)] - v[lo]) * (h - lo);
+}
+
+// ---- city contrast view: one city against all the studied cities ----
+const ct = { city: null, type: 'access', concept: 'food', variant: 'strict', net: 'safe_' };
+let ctCurrent = null;
+const CT_DIMS = { type: Object.keys(CMP_TYPES), variant: ['strict', 'lenient'], net: CMP_NETS,
+                  concept: STANDARD_CONCEPTS };
+function ctColumns(o = ct) {
+  const ind = CMP_CONCEPTS[o.concept][o.variant];
+  switch (o.type) {
+    case 'access': return ISO_DISTANCES.map(d => pctCol(o.net, ind, d));
+    case 'dmgap': return ISO_DISTANCES.map(d => pctCol(DMGAP, ind, d));
+    case 'avg': return [avgCol(o.net, ind)];
+    default: return [extraCol(ind)];
+  }
+}
+// the selected city must have the indicator for there to be anything to contrast
+function ctHas(o) { return !!o.city && ctColumns(o).some(c => cmpValue(o.city, c) !== null); }
+function contrastData() {
+  const cols = ctColumns().filter(c => cmpValue(ct.city, c) !== null);
+  const others = CITY_SLUGS.filter(s => s !== ct.city);
+  const rows = cols.map(col => {
+    const vals = others.map(s => ({ slug: s, name: manifests[s].name, v: cmpValue(s, col) }))
+      .filter(c => c.v !== null);
+    // summarised over every studied city with a result, the selected city included, so
+    // the median and range stay the same whichever city is selected
+    const nums = [...vals.map(c => c.v), cmpValue(ct.city, col)];
+    return { col, d: describeColumn(col), city: cmpValue(ct.city, col), others: vals, n: nums.length,
+             med: cmpQuantile(nums, 0.5), p25: cmpQuantile(nums, 0.25), p75: cmpQuantile(nums, 0.75) };
+  });
+  const missing = others.filter(s => cols.every(c => cmpValue(s, c) === null))
+    .map(s => manifests[s].name).sort();
+  const d = rows[0].d;
+  return { rows, missing, d, pct: d.type === 'access' || d.type === 'dmgap' };
+}
+function contrastSVG(data) {
+  const W = 960, L = 130, R = 40, pw = W - L - R, row = 54;
+  const cityName = manifests[ct.city].name;
+  const t = (xx, yy, text, attrs = '') => `<text x="${xx}" y="${yy}" ${attrs}>${cmpEsc(text)}</text>`;
+  const fmt = v => v === null ? 'not available' : data.pct ? `${v.toFixed(1)}%` : rkM(v);
+  const o = [];
+  let y = 26;
+  o.push(t(16, y, `${cityName} compared with all ${CITY_SLUGS.length} studied cities`,
+    `font-size="16" font-weight="600" fill="${RK.ink}"`));
+  y += 22;
+  for (const line of rkWrap(cmpSentence(data.d), 140)) { o.push(t(16, y, line, 'font-size="12" fill="#444"')); y += 16; }
+  const top = y + 16;
+  let max = 100, step = 20;
+  if (!data.pct)
+    ({ max, step } = rkNiceMax(Math.max(1, ...data.rows.flatMap(r => [r.city ?? 0, ...r.others.map(c => c.v)]))));
+  const x = v => +(L + Math.max(0, Math.min(max, v)) / max * pw).toFixed(1);
+  const yAxis = top + data.rows.length * row;
+  for (let v = 0; v <= max + 1e-9; v += step) {
+    o.push(`<line x1="${x(v)}" x2="${x(v)}" y1="${top - 6}" y2="${yAxis}" stroke="${RK.grid}" stroke-width="1"/>`);
+    o.push(t(x(v), yAxis + 16, data.pct ? `${Math.round(v)}%` : Math.round(v).toLocaleString('en'),
+      `font-size="11" text-anchor="middle" fill="${RK.muted}"`));
+  }
+  o.push(`<line x1="${L}" x2="${L + pw}" y1="${yAxis}" y2="${yAxis}" stroke="#bbb" stroke-width="1"/>`);
+  const axisTitle = { access: 'Share of residents (%)', dmgap: 'Share of residents (%)',
+                      avg: 'Average distance (m)', extra: 'Extra distance (m)' }[data.d.type];
+  o.push(t(L + pw / 2, yAxis + 34, axisTitle, `font-size="11.5" text-anchor="middle" fill="${RK.ink}"`));
+  o.push(t(16, yAxis + 56, `* Studied cities, ${cityName} included: median (25th to 75th percentile)`,
+    `font-size="11" fill="${RK.muted}"`));
+  // one heading over the distance labels, rather than "Within" on every row
+  if (data.rows[0].d.dist)
+    o.push(t(L - 12, top - 12, 'Access within', `font-size="11.5" font-weight="600" text-anchor="end" fill="#444"`));
+  data.rows.forEach((r, i) => {
+    const cy = top + i * row + 14;
+    o.push(t(L - 12, cy + 4, r.d.dist ? `${r.d.dist.toLocaleString('en')} m` : 'Closest',
+      `font-size="12.5" text-anchor="end" fill="${RK.ink}"`));
+    if (r.p25 !== null)
+      o.push(`<rect x="${x(r.p25)}" y="${cy - 8}" width="${Math.max(1.5, x(r.p75) - x(r.p25))}" height="16" rx="2" fill="${RK.boxFill}"/>`);
+    for (const c of r.others)
+      o.push(`<g class="ct-dot" data-tip="${cmpEsc(`${fmt(c.v)}|${c.name}`)}">` +
+        `<circle cx="${x(c.v)}" cy="${cy}" r="9" fill="transparent"/>` +
+        `<circle cx="${x(c.v)}" cy="${cy}" r="3" fill="${RK.whisker}" fill-opacity="0.8" stroke="#fff" stroke-width="1"/></g>`);
+    if (r.med !== null)
+      o.push(`<line x1="${x(r.med)}" x2="${x(r.med)}" y1="${cy - 12}" y2="${cy + 12}" stroke="${RK.median}" stroke-width="2.5"/>`);
+    if (r.city !== null)
+      o.push(`<g class="ct-dot" data-tip="${cmpEsc(`${fmt(r.city)}|${cityName}`)}">` +
+        `<circle cx="${x(r.city)}" cy="${cy}" r="6" fill="${RK.accent}" stroke="#fff" stroke-width="2"/></g>`);
+    // the median and percentiles are defined in the legend, so the row gives the
+    // numbers only, keyed to the footnote beneath the axis
+    o.push(t(L, cy + 28,
+      `${cityName}: ${fmt(r.city)} · Studied cities*: ${fmt(r.med)} (${fmt(r.p25)} to ${fmt(r.p75)})` +
+      (r.n < 5 ? ` · only ${r.n} studied cities have this result, so read the range with caution` : ''),
+      'font-size="11" fill="#444"'));
+  });
+  y = yAxis + 84;
+  const lt = (xx, yy, text) => t(xx, yy + 4, text, `font-size="11.5" fill="${RK.ink}"`);
+  o.push(`<circle cx="31" cy="${y}" r="6" fill="${RK.accent}" stroke="#fff" stroke-width="2"/>`);
+  o.push(lt(56, y, `${cityName}`));
+  y += 24;
+  o.push(`<line x1="31" x2="31" y1="${y - 10}" y2="${y + 10}" stroke="${RK.median}" stroke-width="2.5"/>`);
+  o.push(lt(56, y, "Median (50th percentile) of studied cities' results"));
+  y += 24;
+  o.push(`<rect x="16" y="${y - 7}" width="30" height="14" rx="2" fill="${RK.boxFill}"/>`);
+  o.push(lt(56, y, "25th to 75th percentile of studied cities' results"));
+  y += 24;
+  o.push(`<circle cx="31" cy="${y}" r="3" fill="${RK.whisker}" stroke="#fff" stroke-width="1"/>`);
+  o.push(lt(56, y, 'Other studied cities'));
+  y += 15;
+  if (data.missing.length) {
+    for (const line of rkWrap(`No result for this indicator: ${data.missing.join(', ')}`, 150)) {
+      o.push(t(16, y, line, `font-size="11" fill="${RK.muted}"`)); y += 15;
+    }
+  }
+  y += 6;
+  o.push(t(16, y, `Source: GHSCI cycling indicators, Round 2 validation · ${cmpToday()}`, 'font-size="10.5" fill="#888"'));
+  const H = y + 14;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" ` +
+    `font-family="${RK.font}" role="img" aria-label="${cmpEsc(`${cityName} compared with all studied cities`)}">` +
+    `<rect width="${W}" height="${H}" fill="#fff"/>${o.join('')}</svg>`;
+}
+function renderContrast() {
+  if (!ct.city) ct.city = slug;
+  pickFix(ct, CT_DIMS, ctHas, null);
+  $('ctCity').value = ct.city;
+  $('ctType').value = ct.type;
+  $('ctConcept').value = ct.concept;
+  fillSelect($('ctVariant'), ['strict', 'lenient'].map(v => [v, CMP_CONCEPTS[ct.concept].opts[v]]));
+  $('ctVariant').value = ct.variant;
+  $('ctNetwork').value = ct.net;
+  $('ctNetwork').disabled = ct.type === 'dmgap' || ct.type === 'extra';
+  for (const o of $('ctType').options)
+    o.disabled = !pickAvailable(ct, { type: o.value, concept: ct.concept }, CT_DIMS, ctHas);
+  for (const o of $('ctConcept').options)
+    o.disabled = !pickAvailable(ct, { type: ct.type, concept: o.value }, CT_DIMS, ctHas);
+  for (const o of $('ctVariant').options)
+    o.disabled = !pickAvailable(ct, { type: ct.type, concept: ct.concept, variant: o.value }, CT_DIMS, ctHas);
+  for (const o of $('ctNetwork').options)
+    o.disabled = !ctHas({ ...ct, net: o.value });
+  const has = ctHas(ct);
+  ctCurrent = has ? contrastData() : null;
+  $('ctChart').innerHTML = has
+    ? contrastSVG(ctCurrent)
+    : `<p class="cmp-note">${cmpEsc(manifests[ct.city].name)} has no results to compare here.</p>`;
+  $('ctPng').disabled = $('ctSvg').disabled = !has;
+}
+
+// ---- groups view: cities clustered by shared characteristics ----
+// Six categorical slots in the reference order (validated adjacent-pairs, light mode);
+// three sit below 3:1 on white, so every group is also named in text beside the chart.
+const GR_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300'];
+const GR_DIMS = [
+  { key: 'size', label: 'Size', on: false, desc: 'study region area (km²)' },
+  { key: 'population', label: 'Population', on: false, desc: 'estimated residents' },
+  { key: 'density', label: 'Population density', on: false, desc: 'residents per km²' },
+  { key: 'lts', label: 'Level of Traffic Stress', on: false,
+    desc: 'share of the network in each Level of Traffic Stress class, footways where the bike must be walked, and links not available for cycling' },
+  { key: 'access', label: 'Cycling access', on: true,
+    desc: 'average cycling distance to the nearest of each destination type, on each of the four route networks' },
+  { key: 'dismount', label: 'Dismount results', on: true,
+    desc: 'extra distance ridden to each destination type when the bike may not be walked' },
+];
+// every destination with a nearest-distance result; the combined "all destinations"
+// measures have no single nearest destination, so no average distance
+const GR_DEST_INDS = STANDARD_INDS.filter(i => !i.startsWith('all_'));
+const GR_IND_SHORT = {
+  fresh_food_market: 'Fresh food', fresh_food_pooled: 'Fresh food or convenience',
+  pt_frequent: 'Frequent public transport', pt_any: 'Any public transport stop',
+  public_open_space_large: 'Large open space (> 1.5 ha)', public_open_space_any: 'Any open space',
+  activity_centre_complete: 'Activity centre: food, large open space, frequent transport',
+  activity_centre_local: 'Activity centre: food or convenience, any open space, any stop',
+};
+const GR_NET_SHORT = { lts1_: 'LTS 1', ride_: 'LTS 1–2 ridden', safe_: 'LTS 1–2',
+                       '': 'Stress penalty', extra: 'Extra, no dismount' };
+const gr = { dims: new Set(GR_DIMS.filter(d => d.on).map(d => d.key)), k: 6 };
+let grCurrent = null;
+function grMeasures() {
+  const on = gr.dims, P = s => manifests[s].profile || {};
+  const out = [];
+  const num = v => (v === undefined || v === null || !isFinite(v)) ? null : v;
+  if (on.has('size'))
+    out.push({ dim: 'size', label: 'Area', unit: 'km²', log: true, get: s => num(P(s).area_sqkm) });
+  if (on.has('population'))
+    out.push({ dim: 'population', label: 'Residents', unit: 'people', log: true, get: s => num(P(s).pop_est) });
+  if (on.has('density'))
+    out.push({ dim: 'density', label: 'Residents per km²', unit: 'per km²', log: true,
+               get: s => P(s).pop_est && P(s).area_sqkm ? P(s).pop_est / P(s).area_sqkm : null });
+  if (on.has('lts'))
+    for (const [c, l] of [['1', 'LTS 1, lowest stress'], ['2', 'LTS 2'], ['3', 'LTS 3'],
+                          ['4', 'LTS 4, high stress'], ['dismount', 'Footway, dismount required'],
+                          ['excluded', 'Not available for cycling']])
+      out.push({ dim: 'lts', label: `${l} (% of network)`, unit: '%', log: false,
+                 get: s => num((P(s).lts_share || {})[c]) });
+  if (on.has('access'))
+    for (const net of CMP_NETS)
+      for (const ind of GR_DEST_INDS)
+        out.push({ dim: 'access', ind, net, unit: 'm', log: false,
+                   label: `Average distance: ${GR_IND_SHORT[ind]} (${NETWORKS[net].label})`,
+                   get: s => cmpValue(s, avgCol(net, ind)) });
+  if (on.has('dismount'))
+    for (const ind of GR_DEST_INDS)
+      out.push({ dim: 'dismount', ind, net: 'extra', unit: 'm', log: false,
+                 label: `Extra distance without dismount: ${GR_IND_SHORT[ind]}`,
+                 get: s => cmpValue(s, extraCol(ind)) });
+  return out;
+}
+// Average linkage (UPGMA): repeatedly join the two clusters with the smallest mean
+// pairwise distance.  Clusters are kept in order of their first city (by name) and
+// the first-found pair wins a tie, so the tree is the same on every run.
+function averageLinkage(D) {
+  let clusters = D.map((_, i) => ({ members: [i], height: 0, left: null, right: null }));
+  while (clusters.length > 1) {
+    let best = null;
+    for (let a = 0; a < clusters.length; a++)
+      for (let b = a + 1; b < clusters.length; b++) {
+        let sum = 0;
+        for (const p of clusters[a].members) for (const q of clusters[b].members) sum += D[p][q];
+        const d = sum / (clusters[a].members.length * clusters[b].members.length);
+        if (!best || d < best.d - 1e-12) best = { a, b, d };
+      }
+    const A = clusters[best.a], B = clusters[best.b];
+    const node = { members: [...A.members, ...B.members], height: best.d, left: A, right: B };
+    clusters = clusters.filter((_, i) => i !== best.a && i !== best.b);
+    clusters.push(node);
+    clusters.sort((u, v) => Math.min(...u.members) - Math.min(...v.members));
+  }
+  return clusters[0];
+}
+// cut the tree into k groups by splitting the highest joins first
+function cutTree(root, k) {
+  const parts = [root];
+  while (parts.length < k) {
+    let bi = -1;
+    parts.forEach((p, i) => { if (p.left && (bi < 0 || p.height > parts[bi].height)) bi = i; });
+    if (bi < 0) break;
+    parts.splice(bi, 1, parts[bi].left, parts[bi].right);
+  }
+  return parts;
+}
+function groupingData() {
+  const cities = cmpCities(), n = cities.length;
+  const used = [], dropped = [];
+  for (const m of grMeasures()) {
+    const raw = cities.map(s => m.get(s));
+    // a measure no city has says nothing about any of them
+    if (raw.every(v => v === null)) { dropped.push({ label: m.label }); continue; }
+    const tr = raw.map(v => v === null ? null : m.log ? Math.log10(Math.max(v, 1e-9)) : v);
+    const present = tr.filter(v => v !== null), lo = Math.min(...present), hi = Math.max(...present);
+    used.push({ ...m, raw, scaled: tr.map(v => v === null ? null : hi > lo ? (v - lo) / (hi - lo) : 0) });
+  }
+  const dims = GR_DIMS.map(d => d.key).filter(k => used.some(m => m.dim === k));
+  // Missing results are a characteristic too (data completeness): two cities that both
+  // lack a result are alike on it, and one with it and one without are as different as
+  // the 0-1 scale allows.
+  const diff = (a, b) => a === null && b === null ? 0 : a === null || b === null ? 1 : (a - b) ** 2;
+  const missing = cities.map((_, i) => used.filter(m => m.scaled[i] === null).length);
+  // distance: square root of the mean, over characteristics, of each characteristic's
+  // mean squared difference -- so every ticked characteristic counts equally
+  const D = cities.map(() => new Array(n).fill(0));
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++) {
+      let acc = 0;
+      for (const dim of dims) {
+        const ms = used.filter(m => m.dim === dim);
+        acc += ms.reduce((a, m) => a + diff(m.scaled[i], m.scaled[j]), 0) / ms.length;
+      }
+      D[i][j] = D[j][i] = dims.length ? Math.sqrt(acc / dims.length) : 0;
+    }
+  const root = averageLinkage(D);
+  const order = [];
+  (function leaves(node) { if (!node.left) order.push(node.members[0]); else { leaves(node.left); leaves(node.right); } })(root);
+  const k = Math.min(gr.k, n);
+  const pos = new Map(order.map((ci, i) => [ci, i]));
+  const parts = cutTree(root, k)
+    .sort((a, b) => Math.min(...a.members.map(m => pos.get(m))) - Math.min(...b.members.map(m => pos.get(m))));
+  const groups = new Array(n).fill(0);
+  parts.forEach((p, gi) => p.members.forEach(m => { groups[m] = gi; }));
+  return { cities, used, dropped, missing, dims, D, root, order, groups, k: parts.length };
+}
+function grFmt(m, v) {
+  if (v === null || v === undefined) return '—';
+  switch (m.unit) {
+    case '%': return `${v.toFixed(1)}%`;
+    case 'm': return rkM(v);
+    case 'km²': return `${Math.round(v).toLocaleString('en')} km²`;
+    case 'people': return v >= 1e6 ? `${(v / 1e6).toFixed(2)} million` : Math.round(v).toLocaleString('en');
+    default: return `${Math.round(v).toLocaleString('en')} per km²`;
+  }
+}
+function grMeasureCountText(g) {
+  const count = dim => g.used.filter(m => m.dim === dim).length;
+  return `${g.used.length} measure${g.used.length === 1 ? '' : 's'}` +
+    (g.dims.includes('access') ? `, ${count('access')} of them average distances` : '');
+}
+function groupsSummaryHTML(g) {
+  // Level of Traffic Stress is a proper name, so it keeps its capitals mid-sentence
+  const names = g.dims.map(k => GR_DIMS.find(d => d.key === k).label)
+    .map(l => l === 'Level of Traffic Stress' ? l : l.toLowerCase());
+  const distances = g.dims.includes('access') || g.dims.includes('dismount');
+  const incomplete = g.cities.map((s, i) => [manifests[s].name, g.missing[i]]).filter(([, c]) => c > 0);
+  const completeness = !incomplete.length ? ''
+    : `<p class="gr-dropped">Results missing, and so counted as a difference from cities that have them:
+       ${cmpEsc(cmpListJoin(incomplete.map(([name, c]) => `${name} ${c} of ${g.used.length}`)))}.</p>`;
+  const dropped = g.dropped.length
+    ? `<p class="gr-dropped">Left out, because no city has a result for it: ${cmpEsc(g.dropped.map(d => d.label).join('; '))}.</p>` : '';
+  return `<p>Cities are grouped by how alike they are on the characteristics ticked above${
+    names.length ? ` (now ${cmpEsc(cmpListJoin(names))}, ${grMeasureCountText(g)})` : ''}.
+    Each measure is first put on a common 0 to 1 scale across the ${g.cities.length} cities, so
+    the lowest city scores 0 and the highest 1. Area, population and density go on a logarithmic
+    scale first, so that a city twice the size of another is the same step apart whether both
+    are small or both are large. Every ticked characteristic counts equally, however many
+    measures it contains: Level of Traffic Stress has six, size has one.</p>
+    ${distances ? `<p>Cycling access is described by the average distance to the nearest of each
+    destination type (fresh food, public transport, open space and activity centres, each as
+    counted both narrowly and broadly) on each of the four route networks. Dismount results are
+    the extra distance ridden to each of those destinations when the bike may not be walked.</p>` : ''}
+    <p>Where a city has no result for a measure, for example no distance to frequent public
+    transport where there is no timetable data, the gap is itself treated as a difference: two
+    cities that both lack the result are alike on it, and a city with it is as different as the
+    scale allows from a city without it. Cities with similarly complete data therefore sit closer
+    together.</p>
+    <p>For every pair of cities we then work out how far apart they are across those scales
+    (0 means identical). The two most alike cities are joined first, then the next most alike
+    city or group, and so on until all are joined: that is the tree, read from left to right.
+    Cutting the tree into ${g.k} groups gives the colours. Cities joined near the left are very
+    alike on these characteristics; a city that joins only far to the right is unusual. The
+    grid shows the same comparison for every pair of cities, darker where they are more alike.</p>
+    <p>Grouping describes similarity on the chosen measures only. It does not rank cities as
+    better or worse, and ticking different characteristics can change the groups.</p>${completeness}${dropped}`;
+}
+function groupsSVG(g) {
+  const W = 960, n = g.cities.length;
+  const cell = Math.max(18, Math.min(28, Math.floor(340 / n)));
+  const labelX = 168, dotX = 180, treeL = 194, treeW = 290;
+  const gridX = W - 76 - cell * n;
+  const t = (xx, yy, text, attrs = '') => `<text x="${xx}" y="${yy}" ${attrs}>${cmpEsc(text)}</text>`;
+  const o = [];
+  const dimNames = g.dims.map(k => GR_DIMS.find(d => d.key === k).label);
+  o.push(t(16, 26, `Cities grouped by similarity: ${dimNames.join(', ')}`, `font-size="16" font-weight="600" fill="${RK.ink}"`));
+  let y = 46;
+  for (const line of rkWrap(`${g.k} groups · ${grMeasureCountText(g)} · every characteristic counts equally · ` +
+                            'a missing result counts as a difference', 140)) {
+    o.push(t(16, y, line, 'font-size="12" fill="#444"')); y += 16;
+  }
+  const top = Math.max(150, y + 90);
+  const pos = new Map(g.order.map((ci, i) => [ci, i]));
+  const rowY = i => top + i * cell + cell / 2;
+  const maxH = g.root.height > 0 ? g.root.height : 1;
+  const tx = h => +(treeL + h / maxH * treeW).toFixed(1);
+  const groupOf = node => { const s = new Set(node.members.map(m => g.groups[m])); return s.size === 1 ? [...s][0] : null; };
+  const colourOf = node => { const gi = groupOf(node); return gi === null ? '#9a9a9a' : GR_COLORS[gi]; };
+  const draw = node => {
+    if (!node.left) return rowY(pos.get(node.members[0]));
+    const y1 = draw(node.left), y2 = draw(node.right), xn = tx(node.height);
+    o.push(`<path d="M${tx(node.left.height)},${y1}H${xn}" fill="none" stroke="${colourOf(node.left)}" stroke-width="2"/>`);
+    o.push(`<path d="M${tx(node.right.height)},${y2}H${xn}" fill="none" stroke="${colourOf(node.right)}" stroke-width="2"/>`);
+    o.push(`<path d="M${xn},${y1}V${y2}" fill="none" stroke="${colourOf(node)}" stroke-width="2"/>`);
+    return (y1 + y2) / 2;
+  };
+  draw(g.root);
+  // where the tree is cut: between the join that was split last and the next
+  const heights = [];
+  (function internal(node) { if (node.left) { heights.push(node.height); internal(node.left); internal(node.right); } })(g.root);
+  heights.sort((a, b) => b - a);
+  if (g.k >= 2 && heights.length >= g.k - 1) {
+    const cutH = heights.length >= g.k ? (heights[g.k - 2] + heights[g.k - 1]) / 2 : heights[g.k - 2] / 2;
+    o.push(`<line x1="${tx(cutH)}" x2="${tx(cutH)}" y1="${top - 8}" y2="${top + n * cell}" stroke="#666" stroke-width="1" stroke-dasharray="4 3"/>`);
+    o.push(t(tx(cutH), top - 14, `cut into ${g.k} groups`, `font-size="10.5" text-anchor="middle" fill="${RK.muted}"`));
+  }
+  g.order.forEach((ci, i) => {
+    const yy = rowY(i), s = g.cities[ci];
+    o.push(`<g class="gr-leaf" data-i="${ci}"><rect x="0" y="${yy - cell / 2}" width="${treeL - 4}" height="${cell}" fill="transparent"/>`);
+    o.push(t(labelX, yy + 4, manifests[s].name,
+      `font-size="12.5" text-anchor="end" fill="${RK.ink}"${s === slug ? ' font-weight="700"' : ''}`));
+    o.push(`<circle cx="${dotX}" cy="${yy}" r="5" fill="${GR_COLORS[g.groups[ci]]}" stroke="#fff" stroke-width="1.5"/></g>`);
+  });
+  const yb = top + n * cell + 12;
+  o.push(`<line x1="${treeL}" x2="${treeL + treeW}" y1="${yb}" y2="${yb}" stroke="#bbb" stroke-width="1"/>`);
+  for (const f of [0, 0.5, 1])
+    o.push(t(tx(f * maxH), yb + 15, (f * maxH).toFixed(2), `font-size="10.5" text-anchor="middle" fill="${RK.muted}"`));
+  o.push(t(treeL + treeW / 2, yb + 32, 'Difference: 0 = identical, further right = less alike',
+    `font-size="11" text-anchor="middle" fill="${RK.ink}"`));
+  // similarity grid, rows and columns in the order of the tree
+  const offMax = Math.max(1e-9, ...g.D.flatMap((r, i) => r.filter((_, j) => j !== i)));
+  const ramp = sim => _lerpHex('#eef4fb', '#0d366b', Math.max(0, Math.min(1, sim)));
+  g.order.forEach((ci, i) => g.order.forEach((cj, j) => {
+    o.push(`<rect class="gr-cell" data-i="${ci}" data-j="${cj}" x="${gridX + j * cell}" y="${top + i * cell}" ` +
+      `width="${cell}" height="${cell}" fill="${ramp(1 - g.D[ci][cj] / offMax)}" stroke="#fff" stroke-width="1"/>`);
+  }));
+  g.order.forEach((ci, j) => {
+    o.push(`<text transform="translate(${gridX + j * cell + cell / 2 + 3},${top - 6}) rotate(-55)" ` +
+      `font-size="11" fill="${RK.ink}">${cmpEsc(manifests[g.cities[ci]].name)}</text>`);
+  });
+  o.push(t(gridX, yb + 15, 'less alike', `font-size="10.5" fill="${RK.muted}"`));
+  for (let s = 0; s < 5; s++)
+    o.push(`<rect x="${gridX + 58 + s * 20}" y="${yb + 5}" width="20" height="12" fill="${ramp(s / 4)}"/>`);
+  o.push(t(gridX + 166, yb + 15, 'more alike', `font-size="10.5" fill="${RK.muted}"`));
+  // the groups, named in text
+  y = yb + 62;
+  for (let gi = 0; gi < g.k; gi++) {
+    const members = g.order.filter(ci => g.groups[ci] === gi).map(ci => manifests[g.cities[ci]].name);
+    const lines = rkWrap(`Group ${gi + 1}: ${members.join(', ')}`, 140);
+    o.push(`<circle cx="22" cy="${y - 4}" r="5" fill="${GR_COLORS[gi]}" stroke="#fff" stroke-width="1.5"/>`);
+    for (const line of lines) { o.push(t(36, y, line, `font-size="12" fill="${RK.ink}"`)); y += 16; }
+    y += 4;
+  }
+  y += 6;
+  o.push(t(16, y, `Source: GHSCI cycling indicators, Round 2 validation · ${cmpToday()}`, 'font-size="10.5" fill="#888"'));
+  const H = y + 14;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" ` +
+    `font-family="${RK.font}" role="img" aria-label="Cities grouped by similarity">` +
+    `<rect width="${W}" height="${H}" fill="#fff"/>${o.join('')}</svg>`;
+}
+// A city's distances as a destination × network table, for its hover box
+function grDistanceTable(g, ci) {
+  const dist = g.used.filter(m => m.unit === 'm');
+  if (!dist.length) return null;
+  const nets = [...new Set(dist.map(m => m.net))], inds = [...new Set(dist.map(m => m.ind))];
+  return {
+    caption: 'Average distance to the nearest destination (m), by route network',
+    head: ['Destination', ...nets.map(net => GR_NET_SHORT[net])],
+    rows: inds.map(ind => [GR_IND_SHORT[ind], ...nets.map(net => {
+      const m = dist.find(x => x.ind === ind && x.net === net);
+      return m && m.raw[ci] !== null ? Math.round(m.raw[ci]).toLocaleString('en') : '—';
+    })]),
+  };
+}
+function groupsTableHTML(g) {
+  // one column per measure, except the distances: forty columns would be unreadable, so
+  // each network gets one, the city's average over the destinations it has results for
+  const plain = g.used.filter(m => m.unit !== 'm'), dist = g.used.filter(m => m.unit === 'm');
+  const mean = vals => { const v = vals.filter(x => x !== null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const cols = [
+    ...plain.map(m => ({ label: m.label, val: ci => m.raw[ci], fmt: v => grFmt(m, v) })),
+    ...[...new Set(dist.map(m => m.net))].map(net => ({
+      label: net === 'extra' ? 'Extra distance without dismount, averaged over destinations'
+                             : `Average distance, ${NETWORKS[net].label}, averaged over destinations`,
+      val: ci => mean(dist.filter(m => m.net === net).map(m => m.raw[ci])),
+      fmt: v => v === null ? '—' : rkM(v),
+    })),
+    ...(dist.length ? [{ label: `Distance results available (of ${dist.length})`,
+                         val: ci => dist.filter(m => m.raw[ci] !== null).length,
+                         fmt: v => v === null ? '—' : String(Math.round(v)) }] : []),
+  ];
+  const head = '<thead><tr><th class="l stick">Group</th><th class="l">Cities</th>' +
+    cols.map(c => `<th>${cmpEsc(c.label)}</th>`).join('') + '</tr></thead>';
+  const body = [];
+  for (let gi = 0; gi < g.k; gi++) {
+    const idx = g.order.filter(ci => g.groups[ci] === gi);
+    body.push('<tr>' +
+      `<td class="l stick"><span class="gr-dot" style="background:${GR_COLORS[gi]}"></span>Group ${gi + 1}</td>` +
+      `<td class="l">${cmpEsc(idx.map(ci => manifests[g.cities[ci]].name).join(', '))}</td>` +
+      cols.map(c => `<td>${c.fmt(cmpQuantile(idx.map(c.val), 0.5))}</td>`).join('') + '</tr>');
+  }
+  return head + `<tbody>${body.join('')}</tbody>` +
+    `<caption style="caption-side:bottom;text-align:left;font-size:11px;color:#666;padding:4px 8px">` +
+    'Typical value within each group: the median (50th percentile) of its cities. Distances are each ' +
+    "city's average over the destinations it has results for; point to a city on the tree for its full " +
+    'table of distances by destination and network.</caption>';
+}
+function groupsCSV(g) {
+  const esc = v => v === null || v === undefined ? '' : typeof v === 'number' ? String(v)
+    : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+  const lines = [['city', 'group', 'results missing', ...g.used.flatMap(m => [m.label, `${m.label} [0-1 scale]`])]];
+  g.order.forEach(ci => lines.push([manifests[g.cities[ci]].name, g.groups[ci] + 1, g.missing[ci],
+    ...g.used.flatMap(m => [m.raw[ci], m.scaled[ci] === null ? null : +m.scaled[ci].toFixed(4)])]));
+  return lines.map(l => l.map(esc).join(',')).join('\n');
+}
+function renderGroups() {
+  $('grDims').innerHTML = '<div class="cmp-group"><span class="cmp-gl static">Group cities by</span>' +
+    '<div class="cmp-chips">' + GR_DIMS.map(d =>
+      `<label class="chip" title="${cmpEsc(d.desc)}"><input type="checkbox" data-grdim="${d.key}"` +
+      `${gr.dims.has(d.key) ? ' checked' : ''}><span>${cmpEsc(d.label)}</span></label>`).join('') + '</div></div>';
+  $('grK').value = gr.k;
+  $('grKVal').textContent = gr.k;
+  const g = groupingData();
+  grCurrent = g;
+  $('grSummary').innerHTML = groupsSummaryHTML(g);
+  const ok = g.dims.length > 0;
+  $('grChart').innerHTML = ok ? groupsSVG(g)
+    : '<p class="cmp-note">Tick at least one characteristic to group the cities.</p>';
+  $('grTable').innerHTML = ok ? groupsTableHTML(g) : '';
+  $('grPng').disabled = $('grSvg').disabled = $('grCsv').disabled = !ok;
+}
+
+// ---- modal ----
+function cmpInitFromMap() {
+  const mode = $('threshold').value, con = $('concept').value,
+        net = $('network').value, vari = $('variation').value;
+  const std = STANDARD_CONCEPTS.includes(con);
+  cmpFilter.types = new Set(mode === 'avg' ? ['avg'] : mode === 'dmgap' ? ['dmgap', 'extra'] : ['access']);
+  cmpFilter.inds = new Set(std ? [CMP_CONCEPTS[con][vari]] : STANDARD_INDS);
+  cmpFilter.dists = new Set(ISO_DISTANCES.map(d => parseInt(d)));
+  cmpFilter.nets = new Set([net]);
+  cmpFilter.custom = !std;
+  Object.assign(rk, { measure: mode === 'dmgap' ? 'extra' : 'avg',
+                      concept: std ? con : 'food', variant: vari, net });
+  Object.assign(ct, { city: slug, type: mode === 'avg' ? 'avg' : mode === 'dmgap' ? 'dmgap' : 'access',
+                      concept: std ? con : 'food', variant: vari, net });
+}
+function cmpShowView(v) {
+  cmpView = v;
+  $('cmpTableView').hidden = v !== 'table';
+  $('cmpRankView').hidden = v !== 'rank';
+  $('cmpContrastView').hidden = v !== 'contrast';
+  $('cmpGroupsView').hidden = v !== 'groups';
+  rkHideTip();
+  document.querySelectorAll('#cmpHead [data-view]').forEach(b => {
+    b.classList.toggle('on', b.dataset.view === v);
+    b.setAttribute('aria-selected', b.dataset.view === v);
+  });
+}
+function openCompare() {
+  cmpInitFromMap();
+  renderCompareFilters();
+  renderCompareTable();
+  renderRanking();
+  fillSelect($('ctCity'), cmpCities().map(s => [s, manifests[s].name]));
+  renderContrast();
+  renderGroups();
+  cmpShowView(cmpView);
+  $('compareModal').style.display = 'flex';
+}
+function closeCompare() {
+  $('compareModal').style.display = 'none';
+  rkHideTip();
+}
+class CompareControl {
+  onAdd() {
+    this._el = document.createElement('div');
+    this._el.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cmp-globe';
+    b.title = 'Compare all cities';
+    b.setAttribute('aria-label', 'Compare all cities');
+    b.innerHTML = '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" fill="none" ' +
+      'stroke="#333" stroke-width="1.4"><circle cx="10" cy="10" r="7.5"/>' +
+      '<ellipse cx="10" cy="10" rx="3.3" ry="7.5"/><path d="M2.5 10h15M4 5.8h12M4 14.2h12"/></svg>';
+    b.onclick = openCompare;
+    this._el.appendChild(b);
+    return this._el;
+  }
+  onRemove() { this._el.remove(); }
+}
+fillSelect($('rkConcept'), STANDARD_CONCEPTS.map(k => [k, CMP_CONCEPTS[k].label]));
+fillSelect($('rkNetwork'), CMP_NETS.map(n => [n, NETWORKS[n].label]));
+$('cmpClose').onclick = closeCompare;
+$('compareModal').onclick = e => { if (e.target === $('compareModal')) closeCompare(); };
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('compareModal').style.display === 'flex') closeCompare();
+});
+document.querySelectorAll('#cmpHead [data-view]').forEach(b => { b.onclick = () => cmpShowView(b.dataset.view); });
+$('cmpFilters').addEventListener('change', e => {
+  const g = e.target.dataset.group;
+  if (!g) return;
+  if (g === 'custom') cmpFilter.custom = e.target.checked;
+  else {
+    const v = g === 'dists' ? +e.target.value : e.target.value;
+    if (e.target.checked) cmpFilter[g].add(v); else cmpFilter[g].delete(v);
+  }
+  renderCompareTable();
+});
+$('cmpFilters').addEventListener('click', e => {
+  const cl = e.target.closest('button.cmp-cl');
+  if (cl) {
+    const pair = ['strict', 'lenient'].map(v => CMP_CONCEPTS[cl.dataset.concept][v]);
+    const on = pair.every(i => cmpFilter.inds.has(i));
+    for (const i of pair) { if (on) cmpFilter.inds.delete(i); else cmpFilter.inds.add(i); }
+    renderCompareFilters();
+    renderCompareTable();
+    return;
+  }
+  const gl = e.target.closest('button.cmp-gl');
+  if (!gl) return;
+  const g = gl.dataset.group, all = cmpFilterEntries()[g].map(([v]) => v);
+  cmpFilter[g] = new Set(cmpFilter[g].size === all.length ? [] : all);
+  renderCompareFilters();
+  renderCompareTable();
+});
+$('cmpAll').onclick = () => {
+  const E = cmpFilterEntries();
+  for (const g of Object.keys(E)) cmpFilter[g] = new Set(E[g].map(([v]) => v));
+  renderCompareFilters();
+  renderCompareTable();
+};
+$('cmpCopy').onclick = async () => {
+  await copyText(compareCSV('\t'));
+  $('cmpCopy').textContent = 'Copied ✓';
+  setTimeout(() => { $('cmpCopy').textContent = 'Copy table'; }, 1500);
+};
+// the byte-order mark lets Excel read the city names (Würzburg) as UTF-8
+$('cmpDl').onclick = () => downloadCSV('﻿' + compareCSV(),
+  `cycling_indicators_all_cities_${cmpToday()}.csv`);
+for (const [id, key] of [['rkMeasure', 'measure'], ['rkConcept', 'concept'],
+                         ['rkVariant', 'variant'], ['rkNetwork', 'net']])
+  $(id).onchange = e => { rk[key] = e.target.value; rkFix(key); renderRanking(); };
+$('rkPng').onclick = () => rkDownload('png');
+$('rkSvg').onclick = () => rkDownload('svg');
+$('rkChart').addEventListener('pointermove', e => {
+  const g = e.target.closest('.rk-row');
+  if (g) rkShowTip(g.dataset.slug, e.clientX, e.clientY); else rkHideTip();
+});
+$('rkChart').addEventListener('pointerleave', rkHideTip);
+$('rkChart').addEventListener('focusin', e => {
+  const g = e.target.closest('.rk-row');
+  if (!g) return;
+  const b = g.getBoundingClientRect();
+  rkShowTip(g.dataset.slug, b.left + b.width * 0.55, b.top + b.height / 2);
+});
+$('rkChart').addEventListener('focusout', rkHideTip);
+// city contrast controls
+fillSelect($('ctType'), Object.entries(CMP_TYPES).map(([k, v]) => [k, v.label]));
+fillSelect($('ctConcept'), STANDARD_CONCEPTS.map(k => [k, CMP_CONCEPTS[k].label]));
+fillSelect($('ctNetwork'), CMP_NETS.map(n => [n, NETWORKS[n].label]));
+for (const [id, key] of [['ctCity', 'city'], ['ctType', 'type'], ['ctConcept', 'concept'],
+                         ['ctVariant', 'variant'], ['ctNetwork', 'net']])
+  $(id).onchange = e => { ct[key] = e.target.value; if (key !== 'city') pickFix(ct, CT_DIMS, ctHas, key); renderContrast(); };
+$('ctPng').onclick = () => svgDownload('ctChart', `cycling_contrast_${ct.city}_${ctColumns()[0]}`, 'png');
+$('ctSvg').onclick = () => svgDownload('ctChart', `cycling_contrast_${ct.city}_${ctColumns()[0]}`, 'svg');
+$('ctChart').addEventListener('pointermove', e => {
+  const g = e.target.closest('.ct-dot');
+  if (g) showTip(g.dataset.tip.split('|'), e.clientX, e.clientY); else rkHideTip();
+});
+$('ctChart').addEventListener('pointerleave', rkHideTip);
+// groups controls
+$('grDims').addEventListener('change', e => {
+  const key = e.target.dataset.grdim;
+  if (!key) return;
+  if (e.target.checked) gr.dims.add(key); else gr.dims.delete(key);
+  renderGroups();
+});
+$('grK').oninput = e => { gr.k = +e.target.value; renderGroups(); };
+$('grPng').onclick = () => svgDownload('grChart', `cycling_city_groups_${gr.k}`, 'png');
+$('grSvg').onclick = () => svgDownload('grChart', `cycling_city_groups_${gr.k}`, 'svg');
+$('grCsv').onclick = () => grCurrent && downloadCSV('﻿' + groupsCSV(grCurrent),
+  `cycling_city_groups_${cmpToday()}.csv`);
+$('grChart').addEventListener('pointermove', e => {
+  const g = grCurrent;
+  const cellEl = e.target.closest('.gr-cell'), leaf = e.target.closest('.gr-leaf');
+  if (g && cellEl) {
+    const i = +cellEl.dataset.i, j = +cellEl.dataset.j;
+    showTip([`Difference: ${g.D[i][j].toFixed(2)}`,
+             `${manifests[g.cities[i]].name} and ${manifests[g.cities[j]].name}`,
+             '0 = identical on the ticked characteristics'], e.clientX, e.clientY);
+  } else if (g && leaf) {
+    const i = +leaf.dataset.i;
+    const dist = g.used.filter(m => m.unit === 'm');
+    const table = grDistanceTable(g, i);
+    showTip([manifests[g.cities[i]].name, `Group ${g.groups[i] + 1}`,
+             ...g.used.filter(m => m.unit !== 'm').map(m => `${m.label}: ${grFmt(m, m.raw[i])}`),
+             ...(dist.length ? [`Distance results available: ${dist.filter(m => m.raw[i] !== null).length} of ${dist.length}`] : []),
+             ...(table ? [table] : [])], e.clientX, e.clientY);
+  } else rkHideTip();
+});
+$('grChart').addEventListener('pointerleave', rkHideTip);
 
 (async () => {
   await Promise.all(CITY_SLUGS.map(async s => {
