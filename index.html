@@ -2258,10 +2258,11 @@ const RATER_KEY = 'cyclingValidationRater';
 function respKey(s) { return RESP_PREFIX + s; }
 function loadResponses(s) {
   resp = blankResp();
-  try {
-    const raw = JSON.parse(localStorage.getItem(respKey(s)));
-    if (raw && typeof raw === 'object') resp = Object.assign(resp, raw);
-  } catch {}
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(respKey(s))); } catch {}
+  if (raw && typeof raw === 'object') resp = Object.assign(resp, raw);
+  // a record begun from here on knows whether each ranking was touched
+  else resp.rankTracked = true;
   resp.slug = s;
   // the rater is the same person across cities, so it lives outside the city record
   try { resp.rater = localStorage.getItem(RATER_KEY) || resp.rater || ''; } catch {}
@@ -2827,7 +2828,9 @@ const CSV_HEAD = ['rater', 'city', 'slug', 'codename', 'seed', 'generated', 'exp
   'network_key', 'network_label', 'item_group', 'item_key', 'item_label',
   'response', 'response_code', 'validity_code', 'applicability_code', 'importance_rank',
   'issues', 'dest_types', 'comment'].concat(
-  CSV_CATS.flatMap(c => [`${c}_m`, `${c}_path_m`]));
+  CSV_CATS.flatMap(c => [`${c}_m`, `${c}_path_m`]),
+  // appended later, so readers of the original 32 columns are unaffected
+  ['rank_set', 'loaded_from']);
 
 // rd may be null when a city's routes JSON could not be re-read (export-all): the
 // answers still export, without the distance columns.
@@ -2836,7 +2839,7 @@ function csvRows(r, rd, stamp) {
   const base = { rater: r.rater || '', city: rd ? rd.name : (r.name || ''),
                  slug: r.slug, codename: rd ? rd.codename : '',
                  seed: rd ? rd.seed : '', generated: rd ? rd.generated : '',
-                 exported_at: stamp };
+                 exported_at: stamp, loaded_from: r.loadedFrom || '' };
   const measKeys = rd ? rd.measures.map(m => m.key) : Object.keys(MEASURE_UI);
 
   const pts = rd ? rd.points
@@ -2880,7 +2883,10 @@ function csvRows(r, rd, stamp) {
         section: 'checklist', item_group: g.key, item_key: ik, item_label: it.label,
         validity_code: g.rate && !it.other && v.v !== undefined && v.v !== '' ? Number(v.v) : '',
         applicability_code: g.rate && !it.other && v.a !== undefined && v.a !== '' ? Number(v.a) : '',
-        importance_rank: i + 1, comment: v.comment || '' }));
+        importance_rank: i + 1, comment: v.comment || '',
+        // 1 = the rater reordered this heading, 0 = left in the order shown. Blank
+        // for records begun before this was tracked, where the two can't be told apart.
+        rank_set: st.touched ? 1 : r.rankTracked ? 0 : '' }));
     });
   }
 
@@ -2914,6 +2920,153 @@ function downloadBlob(blob, name) {
 function raterSlug() {
   return (resp.rater || 'anon').toLowerCase().replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'anon';
+}
+
+// ---- save and load progress ------------------------------------------------------
+// Answers live in this browser's storage, which a rater cannot carry to another
+// computer or hand to a colleague. "Save progress" writes the same CSV as the final
+// download, whatever is answered so far (unanswered cells blank, so a partial file
+// cannot pass for a complete one); "Load saved responses" reads it back.
+const BACKUP_PREFIX = 'cyclingValidationBackup:';
+let loadMessage = '';
+
+function progressFileName() {
+  const d = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  return `cycling_validation_${resp.slug}_${raterSlug()}_progress_${d}.csv`;
+}
+function countAnyA(r) {
+  // independent of routeData, so it works for a city that is not open
+  return Object.values(r.points || {})
+    .reduce((n, p) => n + Object.values(p).filter(answered).length, 0);
+}
+function recordCounts(r) {
+  return `A ${countAnyA(r)}, B ${countB(r)}, C ${countC(r)}`;
+}
+function hasAnswers(r) {
+  return !!r && (countAnyA(r) + countB(r) + countC(r) > 0
+    || Object.values(r.freeText || {}).some(t => t && t.trim()));
+}
+
+// RFC 4180: quoted fields may hold commas, doubled quotes and line breaks — the
+// free-text answers do all three.
+function parseCSV(text) {
+  const rows = [];
+  let row = [], f = '', q = false;
+  text = text.replace(/^﻿/, '');
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch !== '"') f += ch;
+      else if (text[i + 1] === '"') { f += '"'; i++; }
+      else q = false;
+    } else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(f); f = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(f); rows.push(row); row = []; f = '';
+    } else f += ch;
+  }
+  if (f !== '' || row.length) { row.push(f); rows.push(row); }
+  const head = rows.shift() || [];
+  return rows.filter(r => r.length > 1 || r[0] !== '')
+    .map(r => Object.fromEntries(head.map((h, i) => [h, r[i] === undefined ? '' : r[i]])));
+}
+
+// The inverse of csvRows: one city's rows back into a response record.
+function rowsToResp(rows) {
+  const r = blankResp();
+  r.slug = rows[0].slug;
+  r.rater = rows[0].rater || '';
+  r.loadedFrom = rows.reduce((m, x) => (x.exported_at > m ? x.exported_at : m), '');
+  const list = s => (s ? s.split('|').filter(Boolean) : []);
+  const ranks = {};
+  let tracked = true;
+  for (const x of rows) {
+    if (x.section === 'route_point') {
+      if (!x.response && !x.issues && !x.dest_types && !x.comment) continue;
+      const cell = r.points[x.point_id] || (r.points[x.point_id] = {});
+      cell[x.network_key] = { ok: x.response, issues: list(x.issues),
+                              dests: list(x.dest_types), comment: x.comment };
+    } else if (x.section === 'network_overall') {
+      if (x.response_code === '' && !x.issues && !x.comment) continue;
+      r.overall[x.network_key] = {
+        r: x.response_code === '' ? '' : Number(x.response_code),
+        issues: list(x.issues), dests: list(x.dest_types), comment: x.comment };
+    } else if (x.section === 'checklist') {
+      const st = r.checklist[x.item_group] ||
+        (r.checklist[x.item_group] = { order: [], items: {} });
+      (ranks[x.item_group] || (ranks[x.item_group] = []))
+        .push([Number(x.importance_rank) || 999, x.item_key]);
+      const it = {};
+      if (x.validity_code !== '') it.v = x.validity_code;
+      if (x.applicability_code !== '') it.a = x.applicability_code;
+      if (x.comment) it.comment = x.comment;
+      if (Object.keys(it).length) st.items[x.item_key] = it;
+      if (x.rank_set === '1') st.touched = true;
+      if (x.rank_set === undefined || x.rank_set === '') tracked = false;
+    } else if (x.section === 'free_text') {
+      if (x.comment) r.freeText[x.item_key] = x.comment;
+    }
+  }
+  for (const [g, rk] of Object.entries(ranks))
+    r.checklist[g].order = rk.sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  if (tracked && Object.keys(ranks).length) r.rankTracked = true;
+  return r;
+}
+
+async function loadResponsesFile(file) {
+  let rows = [];
+  try { rows = parseCSV(await file.text()); } catch {}
+  if (!rows.length || !('section' in rows[0]) || !('slug' in rows[0])) {
+    loadMessage = 'That file is not one saved from this activity. Choose a CSV made with ' +
+      '<b>Save progress</b> or <b>Download CSV</b>.';
+    renderIntro();
+    return;
+  }
+  const bySlug = {};
+  for (const x of rows) (bySlug[x.slug] || (bySlug[x.slug] = [])).push(x);
+  const loaded = [], skipped = [];
+  for (const [s, rs] of Object.entries(bySlug)) {
+    const name = attr(rs[0].city || s);  // from the file, so escaped before display
+    let rd = s === slug ? routeData : null;
+    if (!rd && CITY_SLUGS.includes(s)) {
+      try { const res = await fetch(`./routes/${s}_routes.json`); if (res.ok) rd = await res.json(); }
+      catch {}
+    }
+    if (!rd) { skipped.push(`${name}: not a city in this activity`); continue; }
+    // answers are keyed by point number, so they only mean anything against the
+    // same sample of points
+    if (String(rd.seed) !== rs[0].seed || rd.generated !== rs[0].generated) {
+      skipped.push(`${name}: the file was saved against a different set of sample ` +
+        `points (${attr(rs[0].generated) || 'unknown date'}) from the one now published ` +
+        `(${rd.generated}), so its answers would land on the wrong points`);
+      continue;
+    }
+    const rec = rowsToResp(rs);
+    let cur = null;
+    try { cur = JSON.parse(localStorage.getItem(respKey(s))); } catch {}
+    if (hasAnswers(cur)) {
+      const ok = confirm(`This browser already holds answers for ${name} ` +
+        `(${recordCounts(cur)}).\n\nReplace them with the answers in the file ` +
+        `(${recordCounts(rec)})?\n\nThe answers now in this browser are kept as a ` +
+        `backup copy here, not deleted.`);
+      if (!ok) { skipped.push(`${name}: kept the answers already in this browser`); continue; }
+      try { localStorage.setItem(`${BACKUP_PREFIX}${s}:${new Date().toISOString()}`,
+                                 JSON.stringify(cur)); } catch {}
+    }
+    rec.updated = new Date().toISOString();
+    try { localStorage.setItem(respKey(s), JSON.stringify(rec)); }
+    catch { skipped.push(`${name}: this browser would not store it`); continue; }
+    // the rater name is held globally and wins on load, so carry the file's across
+    if (rec.rater) try { localStorage.setItem(RATER_KEY, rec.rater); } catch {}
+    loaded.push(s === slug ? `${name} (${recordCounts(rec)})`
+      : `${name} (${recordCounts(rec)}) &mdash; choose that city to continue it`);
+  }
+  if (bySlug[slug] && loaded.length) loadResponses(slug);
+  loadMessage = [loaded.length ? `Loaded ${loaded.join('; ')}.` : '',
+    skipped.length ? `Not loaded: ${skipped.join('; ')}.` : ''].filter(Boolean).join(' ');
+  refreshActivityStatus(slug);
+  renderIntro();
 }
 
 // ================= stages =====================================================
@@ -2967,10 +3120,15 @@ function renderIntro() {
       <p><b>Part B — overall.</b> One overall judgement per network scenario.</p>
       <p><b>Part C — aspects.</b> Rate the parts of the method against your city's context.</p>
       <p>Download the file at the end and email it to the research team.</p>
+      <p><b>Continuing elsewhere.</b> Answers are kept in this browser only. To carry on
+      in another browser or computer, or to hand the task to a colleague, use
+      <b>Save progress</b> to download a file, then <b>Load saved responses</b> there.</p>
     </div>
     <fieldset><legend>Your name or initials</legend>
       <input type="text" id="raterName" value="${attr(resp.rater || '')}"
-             placeholder="recorded against every response"></fieldset>
+             placeholder="recorded against every response">
+      ${resp.loadedFrom ? `<div class="hintline">Continuing someone else's responses?
+        Add your name, e.g. <i>Ariane + Max</i>.</div>` : ''}</fieldset>
     <table class="rt"><thead><tr><th class="l">Progress</th><th>Done</th><th>Of</th></tr></thead>
       <tbody>
         <tr><td class="l">A · point × network</td><td>${countA()}</td><td>${nA}</td></tr>
@@ -2980,8 +3138,20 @@ function renderIntro() {
     <div class="nav">
       <button class="small" id="beginBtn">${countA() ? 'Resume Part A' : 'Begin Part A'}</button>
     </div>
+    <div class="nav">
+      <button class="small" id="saveBtn"${hasAnswers(resp) ? '' : ' disabled'}
+        title="Download everything answered so far, to continue elsewhere">Save progress</button>
+      <button class="small" id="loadBtn"
+        title="Continue from a file made with Save progress or Download CSV">Load saved responses&hellip;</button>
+      <input type="file" id="loadFile" accept=".csv,text/csv" style="display:none">
+    </div>
+    ${loadMessage ? `<div class="nudge" id="loadMsg">${loadMessage}</div>` : ''}
     <div class="nav"><button class="small" id="exitBtn">Exit activity</button></div>`;
+  loadMessage = '';
   $('raterName').oninput = captureRater;
+  $('saveBtn').onclick = () => { captureRater(); downloadCSV(assessmentCSV(), progressFileName()); };
+  $('loadBtn').onclick = () => { captureRater(); $('loadFile').click(); };
+  $('loadFile').onchange = e => { const f = e.target.files[0]; if (f) loadResponsesFile(f); };
   $('beginBtn').onclick = () => {
     captureRater();
     if (countA()) assessIdx = firstUnanswered();
@@ -3201,8 +3371,12 @@ function renderFinish() {
     <div class="nav"${done ? '' : ` title="${attr(outstandingText())}"`}>
       <button class="small" id="dlBtn"${done ? '' : ' disabled'}>Download CSV</button>
       <button class="small" id="copyBtn"${done ? '' : ' disabled'}>Copy</button>
+      ${done ? '' : `<button class="small" id="saveBtn2"
+        title="Download everything answered so far, to continue elsewhere">Save progress</button>`}
     </div>
-    ${done ? '' : `<div class="nudge">${outstandingText()}</div>`}
+    ${done ? '' : `<div class="nudge">${outstandingText()} To finish in another browser,
+      or hand over to a colleague, use <b>Save progress</b> and load the file from the
+      Start page there.</div>`}
     <div class="nav">
       <button class="small" id="backBtn">Back to Part A</button>
       <button class="small" id="exitBtn2">Exit activity</button>
@@ -3214,6 +3388,7 @@ function renderFinish() {
     $('copyBtn').textContent = 'Copied ✓';
     setTimeout(() => { $('copyBtn').textContent = 'Copy'; }, 1500);
   };
+  if ($('saveBtn2')) $('saveBtn2').onclick = () => downloadCSV(assessmentCSV(), progressFileName());
   $('backBtn').onclick = () => { assessIdx = 0; goStage('A'); };
   $('exitBtn2').onclick = exitAssessment;
 }
@@ -3481,7 +3656,9 @@ const TOUR_STEPS = [
         '<b>each of the four network scenarios</b> in turn and say whether it looks ' +
         'like a good representation of access. <b>Part B</b> reviews each network scenario overall, and ' +
         '<b>Part C</b> asks you to rate each facet of the method and the proposed means of sharing this for your city. Answers are saved ' +
-        ' as you go; download the file at the end and email it to us.' } },
+        ' in this browser as you go; download the file at the end and email it to us. To continue ' +
+        'in another browser, or hand over to a colleague, use <b>Save progress</b> and ' +
+        '<b>Load saved responses</b> on the activity\'s Start page.' } },
   { element: '#tourBtn', popover: {
       title: 'That is the tour',
       description: 'The green <b>Tour</b> button replays ' +
@@ -3564,6 +3741,7 @@ $('assessBody').addEventListener('click', e => {
     if (drag.moved) {
       const st = resp.checklist[drag.list.dataset.g];
       st.order = [...drag.list.children].map(r => r.dataset.i);
+      st.touched = true;
       saveResponses();
       renderChecklist();
     }

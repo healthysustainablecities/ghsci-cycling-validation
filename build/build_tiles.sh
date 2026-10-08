@@ -32,9 +32,13 @@ tc() { MSYS_NO_PATHCONV=1 docker run --rm -v "$MOUNT:/data" tippecanoe:local "$@
 # cartographically instead of dropping random segments
 LTS_ZOOM_FILTER='{"lts":["any",[">=","$zoom",11],["in","highway","motorway","motorway_link","trunk","trunk_link","primary","primary_link","secondary","secondary_link","tertiary","tertiary_link","cycleway"]]}'
 
+# Destination points keep every feature at every zoom (-r1: no zoom-based drop
+# rate).  With tippecanoe's default rate, a city-wide view showed only a fraction
+# of stores and stops, which validators read as missing data (Helsinki, Round 2).
+# --drop-densest-as-needed still applies if a tile would exceed the size limit.
 layer_args() {
   case "$1" in
-    destinations|pt_frequent|custom_dest) echo "-Z8 --drop-densest-as-needed" ;;
+    destinations|pt_frequent|custom_dest) echo "-Z8 -r1 --drop-densest-as-needed" ;;
     pos_any|pos_large|ac_local|ac_complete) echo "-Z11 --drop-densest-as-needed" ;;
     dismount) echo "-Z10 --drop-densest-as-needed" ;;
     boundary|buffer) echo "-Z4" ;;
