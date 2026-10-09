@@ -13,7 +13,7 @@
   },
   "dismount": {
    "file": "dismount.geojsonl",
-   "features": 38580
+   "features": 38587
   },
   "destinations": {
    "file": "destinations.geojsonl",
@@ -21,7 +21,7 @@
   },
   "custom_dest": {
    "file": "custom_dest.geojsonl",
-   "features": 598
+   "features": 602
   },
   "pt_frequent": {
    "file": "pt_frequent.geojsonl",
@@ -387,7 +387,7 @@
    "name": "fresh_food_convenience",
    "kind": "destination",
    "label": "Fresh food incl. convenience stores",
-   "description": "a fresh food market, supermarket or convenience store (not kiosks or petrol stations)",
+   "description": "a fresh food market, supermarket or convenience store (shop=convenience; not kiosks)",
    "strict": "fresh_food_convenience",
    "lenient": "fresh_food_convenience",
    "strict_label": "Fresh food incl. convenience stores",
@@ -482,7 +482,7 @@
   "avg_cycle_dist_public_open_space_large": 221.1,
   "avg_cycle_dist_activity_centre_local": 144.2,
   "avg_cycle_dist_activity_centre_complete": 1236.7,
-  "avg_cycle_dist_fresh_food_convenience": 477.5,
+  "avg_cycle_dist_fresh_food_convenience": 477.1,
   "pct_access_cycle_safe_fresh_food_market_500m": 34.1,
   "pct_access_cycle_safe_fresh_food_market_1000m": 69.3,
   "pct_access_cycle_safe_fresh_food_market_2000m": 94.0,
@@ -523,7 +523,7 @@
   "pct_access_cycle_safe_all_lenient_1000m": 91.6,
   "pct_access_cycle_safe_all_lenient_2000m": 97.7,
   "pct_access_cycle_safe_all_lenient_5000m": 97.8,
-  "pct_access_cycle_safe_fresh_food_convenience_500m": 58.8,
+  "pct_access_cycle_safe_fresh_food_convenience_500m": 58.9,
   "pct_access_cycle_safe_fresh_food_convenience_1000m": 90.5,
   "pct_access_cycle_safe_fresh_food_convenience_2000m": 97.8,
   "pct_access_cycle_safe_fresh_food_convenience_5000m": 97.9,
@@ -543,7 +543,7 @@
   "avg_cycle_dist_safe_public_open_space_large": 225.0,
   "avg_cycle_dist_safe_activity_centre_local": 146.7,
   "avg_cycle_dist_safe_activity_centre_complete": 1241.1,
-  "avg_cycle_dist_safe_fresh_food_convenience": 487.0,
+  "avg_cycle_dist_safe_fresh_food_convenience": 486.6,
   "pct_access_cycle_lts1_fresh_food_market_500m": 30.0,
   "pct_access_cycle_lts1_fresh_food_market_1000m": 64.4,
   "pct_access_cycle_lts1_fresh_food_market_2000m": 91.9,
@@ -584,7 +584,7 @@
   "pct_access_cycle_lts1_all_lenient_1000m": 87.9,
   "pct_access_cycle_lts1_all_lenient_2000m": 96.3,
   "pct_access_cycle_lts1_all_lenient_5000m": 96.6,
-  "pct_access_cycle_lts1_fresh_food_convenience_500m": 53.9,
+  "pct_access_cycle_lts1_fresh_food_convenience_500m": 54.0,
   "pct_access_cycle_lts1_fresh_food_convenience_1000m": 86.6,
   "pct_access_cycle_lts1_fresh_food_convenience_2000m": 96.3,
   "pct_access_cycle_lts1_fresh_food_convenience_5000m": 96.6,
@@ -604,7 +604,7 @@
   "avg_cycle_dist_lts1_public_open_space_large": 246.2,
   "avg_cycle_dist_lts1_activity_centre_local": 157.6,
   "avg_cycle_dist_lts1_activity_centre_complete": 1270.5,
-  "avg_cycle_dist_lts1_fresh_food_convenience": 529.5,
+  "avg_cycle_dist_lts1_fresh_food_convenience": 528.8,
   "pct_access_cycle_ride_fresh_food_market_500m": 15.6,
   "pct_access_cycle_ride_fresh_food_market_1000m": 40.8,
   "pct_access_cycle_ride_fresh_food_market_2000m": 62.7,
@@ -645,15 +645,15 @@
   "pct_access_cycle_ride_all_lenient_1000m": 57.5,
   "pct_access_cycle_ride_all_lenient_2000m": 66.9,
   "pct_access_cycle_ride_all_lenient_5000m": 67.4,
-  "pct_access_cycle_ride_fresh_food_convenience_500m": 29.8,
+  "pct_access_cycle_ride_fresh_food_convenience_500m": 30.0,
   "pct_access_cycle_ride_fresh_food_convenience_1000m": 56.2,
   "pct_access_cycle_ride_fresh_food_convenience_2000m": 67.5,
   "pct_access_cycle_ride_fresh_food_convenience_5000m": 68.2,
-  "pct_access_cycle_ride_all_convenience_strict_500m": 26.1,
+  "pct_access_cycle_ride_all_convenience_strict_500m": 26.2,
   "pct_access_cycle_ride_all_convenience_strict_1000m": 55.2,
   "pct_access_cycle_ride_all_convenience_strict_2000m": 66.5,
   "pct_access_cycle_ride_all_convenience_strict_5000m": 67.3,
-  "pct_access_cycle_ride_all_convenience_lenient_500m": 28.7,
+  "pct_access_cycle_ride_all_convenience_lenient_500m": 28.9,
   "pct_access_cycle_ride_all_convenience_lenient_1000m": 55.3,
   "pct_access_cycle_ride_all_convenience_lenient_2000m": 66.6,
   "pct_access_cycle_ride_all_convenience_lenient_5000m": 67.3,
@@ -665,7 +665,7 @@
   "avg_cycle_dist_ride_public_open_space_large": 217.9,
   "avg_cycle_dist_ride_activity_centre_local": 140.4,
   "avg_cycle_dist_ride_activity_centre_complete": 1231.2,
-  "avg_cycle_dist_ride_fresh_food_convenience": 629.3,
+  "avg_cycle_dist_ride_fresh_food_convenience": 627.2,
   "pct_access_cycle_dmgap_fresh_food_market_500m": 18.4,
   "pct_access_cycle_dmgap_fresh_food_market_1000m": 28.5,
   "pct_access_cycle_dmgap_fresh_food_market_2000m": 31.3,
@@ -714,16 +714,16 @@
   "pct_access_cycle_dmgap_all_lenient_1000m": 34.1,
   "pct_access_cycle_dmgap_all_lenient_2000m": 30.8,
   "pct_access_cycle_dmgap_all_lenient_5000m": 30.5,
-  "pct_access_cycle_dmgap_fresh_food_convenience_500m": 29.0,
+  "pct_access_cycle_dmgap_fresh_food_convenience_500m": 28.9,
   "pct_access_cycle_dmgap_fresh_food_convenience_1000m": 34.3,
   "pct_access_cycle_dmgap_fresh_food_convenience_2000m": 30.3,
-  "pct_access_cycle_dmgap_fresh_food_convenience_5000m": 29.7,
-  "avg_cycle_extra_dmgap_fresh_food_convenience": 170.3,
-  "pct_access_cycle_dmgap_all_convenience_strict_500m": 27.4,
+  "pct_access_cycle_dmgap_fresh_food_convenience_5000m": 29.6,
+  "avg_cycle_extra_dmgap_fresh_food_convenience": 168.6,
+  "pct_access_cycle_dmgap_all_convenience_strict_500m": 27.3,
   "pct_access_cycle_dmgap_all_convenience_strict_1000m": 35.2,
   "pct_access_cycle_dmgap_all_convenience_strict_2000m": 31.2,
   "pct_access_cycle_dmgap_all_convenience_strict_5000m": 30.5,
-  "pct_access_cycle_dmgap_all_convenience_lenient_500m": 29.7,
+  "pct_access_cycle_dmgap_all_convenience_lenient_500m": 29.6,
   "pct_access_cycle_dmgap_all_convenience_lenient_1000m": 35.1,
   "pct_access_cycle_dmgap_all_convenience_lenient_2000m": 31.1,
   "pct_access_cycle_dmgap_all_convenience_lenient_5000m": 30.5
@@ -994,8 +994,8 @@
      0.0,
      0.0
     ],
-    "p25": 247,
-    "p50": 404,
+    "p25": 246,
+    "p50": 403,
     "p75": 641
    }
   },
@@ -1282,7 +1282,7 @@
      0.0,
      0.0
     ],
-    "p25": 250,
+    "p25": 249,
     "p50": 412,
     "p75": 651
    }
@@ -1549,7 +1549,7 @@
   },
   "lts1_fresh_food_convenience": {
    "iso": [
-    56.8,
+    56.9,
     32.2,
     9.6,
     0.3,
@@ -1560,7 +1560,7 @@
     "max_m": 5000,
     "shares": [
      56.3,
-     33.7,
+     33.6,
      8.2,
      1.6,
      0.3,
@@ -1570,14 +1570,14 @@
      0.0,
      0.0
     ],
-    "p25": 273,
-    "p50": 445,
+    "p25": 271,
+    "p50": 444,
     "p75": 709
    }
   },
   "lts1_all_convenience_strict": {
    "iso": [
-    49.4,
+    49.5,
     39.4,
     9.7,
     0.3,
@@ -1586,7 +1586,7 @@
   },
   "lts1_all_convenience_lenient": {
    "iso": [
-    56.2,
+    56.3,
     32.7,
     9.6,
     0.3,
@@ -1837,9 +1837,9 @@
   },
   "ride_fresh_food_convenience": {
    "iso": [
-    31.2,
-    28.6,
-    12.6,
+    31.4,
+    28.5,
+    12.5,
     0.8,
     26.8
    ],
@@ -1847,9 +1847,9 @@
     "bin_m": 500,
     "max_m": 5000,
     "shares": [
-     45.5,
-     38.4,
-     12.0,
+     45.8,
+     38.2,
+     11.9,
      3.2,
      0.7,
      0.2,
@@ -1858,14 +1858,14 @@
      0.0,
      0.0
     ],
-    "p25": 331,
-    "p50": 539,
-    "p75": 831
+    "p25": 328,
+    "p50": 536,
+    "p75": 828
    }
   },
   "ride_all_convenience_strict": {
    "iso": [
-    27.2,
+    27.3,
     30.8,
     12.4,
     0.8,
@@ -1874,8 +1874,8 @@
   },
   "ride_all_convenience_lenient": {
    "iso": [
-    30.2,
-    28.0,
+    30.3,
+    27.9,
     12.4,
     0.8,
     28.6
@@ -2220,36 +2220,36 @@
   "dmgap_fresh_food_convenience": {
    "gap": {
     "500m": [
-     44.8,
+     44.7,
      4.8,
-     10.2,
-     13.3,
-     26.9
+     10.3,
+     13.5,
+     26.7
     ],
     "1000m": [
      28.2,
      6.0,
      13.8,
      21.7,
-     30.4
+     30.3
     ],
     "2000m": [
      28.6,
      6.6,
      15.3,
      24.2,
-     25.4
+     25.3
     ],
     "5000m": [
      29.0,
      6.7,
      15.4,
-     24.1,
+     24.2,
      24.7
     ]
    },
-   "extra_mean": 257,
-   "extra_pop_pct": 64.6
+   "extra_mean": 254,
+   "extra_pop_pct": 64.8
   },
   "dmgap_all_convenience_strict": {
    "gap": {
@@ -2258,7 +2258,7 @@
      4.8,
      10.1,
      12.7,
-     25.2
+     25.1
     ],
     "1000m": [
      28.0,
@@ -2288,9 +2288,9 @@
     "500m": [
      44.6,
      4.8,
-     9.9,
-     13.1,
-     27.5
+     10.0,
+     13.3,
+     27.3
     ],
     "1000m": [
      28.0,
@@ -2631,9 +2631,9 @@
   },
   "avg_cycle_dist_lts1_fresh_food_convenience": {
    "n": 11624,
-   "q1": 376,
-   "med": 597,
-   "q3": 869,
+   "q1": 375,
+   "med": 596,
+   "q3": 868,
    "lo": 15,
    "hi": 1606,
    "min": 15,
@@ -2739,9 +2739,9 @@
   },
   "avg_cycle_dist_ride_fresh_food_convenience": {
    "n": 11327,
-   "q1": 415,
-   "med": 668,
-   "q3": 988,
+   "q1": 414,
+   "med": 666,
+   "q3": 986,
    "lo": 4,
    "hi": 1844,
    "min": 4,
@@ -2849,13 +2849,13 @@
    "n": 11327,
    "q1": 0,
    "med": 9,
-   "q3": 188,
+   "q3": 186,
    "lo": 0,
-   "hi": 470,
+   "hi": 465,
    "min": 0,
    "max": 2482,
    "n_low": 0,
-   "n_high": 1315
+   "n_high": 1326
   }
  }
 }
