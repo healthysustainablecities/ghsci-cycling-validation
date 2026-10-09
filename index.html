@@ -753,10 +753,14 @@ function customIndName(ci, variant, customs) {
 //  - Helsinki's pooled fresh food excludes fuel stations
 //    (data/Cycling/Helsinki/Helsinki.yml, fresh_food_pooled `where`).
 function destIncludes(ind) {
+  if (standardIncludes[ind]) return standardIncludes[ind];
   const m = manifests[slug] || {};
   const freqPT = !!(m.layers && m.layers.pt_frequent);
   const food = 'supermarkets & grocers, markets, greengrocers, butchers & fishmongers, bakeries, delis';
   const conv = 'convenience stores, kiosks, newsagents' + (slug === 'helsinki' ? '' : ', fuel stations');
+  // a city's own food definition, where it redefines one (applyStandardOverrides)
+  const foodStrict = compositeFood.strict || COMPOSITE_FOOD_INCLUDES.strict;
+  const foodLenient = compositeFood.lenient || COMPOSITE_FOOD_INCLUDES.lenient;
   const strictPT = freqPT
     ? 'frequent public transport (≤ 20 min)'
     : 'any public transport stop (no service-frequency data for this city)';
@@ -768,11 +772,11 @@ function destIncludes(ind) {
     case 'public_open_space_large': return 'entry points to public open spaces larger than 1.5 ha';
     case 'public_open_space_any': return 'entry points to any public open space';
     case 'activity_centre_complete':
-      return `places with fresh food, a large public open space and ${strictPT}, all within a 400 m walk`;
+      return `places with ${foodStrict}, a large public open space and ${strictPT}, all within a 400 m walk`;
     case 'activity_centre_local':
-      return 'places with fresh food or a convenience store, any public open space and any public transport stop, all within a 400 m walk';
-    case 'all_strict': return `fresh food, a large public open space and ${strictPT}, each reachable`;
-    case 'all_lenient': return 'fresh food or a convenience store, any public open space and any public transport stop, each reachable';
+      return `places with ${foodLenient}, any public open space and any public transport stop, all within a 400 m walk`;
+    case 'all_strict': return `${foodStrict}, a large public open space and ${strictPT}, each reachable`;
+    case 'all_lenient': return `${foodLenient}, any public open space and any public transport stop, each reachable`;
     default: return customIncludes[ind] || '';
   }
 }
@@ -868,6 +872,76 @@ const DEST_OVERLAYS = {
 // city's yml (optional `label` / `description` keys).
 const STANDARD_CONCEPTS = Object.keys(CONCEPTS);
 const STANDARD_INDS = Object.keys(IND_NAMES);
+// The standard definitions as written above, restored before each city's own
+// redefinitions are applied (see applyStandardOverrides).
+const STANDARD_OPTS = Object.fromEntries(
+  Object.entries(CONCEPTS).map(([k, c]) => [k, { ...c.opts }]));
+const STANDARD_DESCS = { ...IND_DESCS };
+const STANDARD_NAMES = { ...IND_NAMES };
+// The composite measures' food requirement, as worded in their option labels
+// (STRICT_MIX / LENIENT_MIX), descriptions (IND_DESCS) and tooltips (destIncludes).
+const COMPOSITE_MIX = { strict: STRICT_MIX, lenient: LENIENT_MIX };
+const COMPOSITE_FOOD_DESC = { strict: 'a fresh food market or supermarket',
+                              lenient: 'fresh food or a convenience store' };
+const COMPOSITE_FOOD_INCLUDES = { strict: 'fresh food', lenient: 'fresh food or a convenience store' };
+const COMPOSITE_TIER = { strict: 'activity_centre_complete', lenient: 'activity_centre_local' };
+let compositeFood = {};
+const STANDARD_OVERLAYS = JSON.parse(JSON.stringify(DEST_OVERLAYS));
+// Destination points behind each standard destination drawn from the destinations
+// layer, replaced by the city's own points where it redefines that destination.
+const STANDARD_DEST_POINTS = {
+  fresh_food_market: ['fresh_food_market'],
+  fresh_food_pooled: ['fresh_food_market', 'convenience'],
+  pt_any: ['pt_any'],
+};
+let standardIncludes = {};
+// A city may keep a standard destination but count something else (e.g. Helsinki's
+// strict fresh food also counts convenience stores).  The export lists these in
+// manifest.standard_overrides, with the label and description from the city's yml,
+// and writes their points to the custom_dest layer, so the menus, descriptions and
+// map overlays follow the city's definition -- including in the combined measure
+// the destination feeds.
+function applyStandardOverrides(manifest) {
+  for (const [k, o] of Object.entries(STANDARD_OPTS)) CONCEPTS[k].opts = { ...o };
+  Object.assign(IND_DESCS, STANDARD_DESCS);
+  Object.assign(IND_NAMES, STANDARD_NAMES);
+  for (const k of Object.keys(STANDARD_OVERLAYS))
+    DEST_OVERLAYS[k] = JSON.parse(JSON.stringify(STANDARD_OVERLAYS[k]));
+  standardIncludes = {};
+  compositeFood = {};
+  for (const [name, o] of Object.entries(manifest.standard_overrides || {})) {
+    const conceptKey = Object.keys(CONCEPTS).find(k => CONCEPTS[k][o.variant] === name);
+    if (conceptKey && o.label) CONCEPTS[conceptKey].opts[o.variant] = o.label;
+    if (o.description) {
+      IND_DESCS[name] = o.description;
+      standardIncludes[name] = o.description;
+    }
+    // the combined measure and activity centres of this variant require the city's
+    // food definition, so their names and descriptions say so rather than implying
+    // the standard one (e.g. that Helsinki's strict mix leaves out convenience stores)
+    if (conceptKey === 'food' && o.label) {
+      const v = o.variant, mix = COMPOSITE_MIX[v];
+      const food = o.label.replace(/\s*\([^)]*definition\)\s*$/i, '');
+      const cityMix = food + mix.slice(mix.indexOf(' + '));
+      compositeFood[v] = `${food.toLowerCase()} (${manifest.name} definition)`;
+      for (const c of Object.values(CONCEPTS))
+        if (c.opts[v] === mix) c.opts[v] = cityMix;
+      for (const k of [`all_${v}`, COMPOSITE_TIER[v]]) {
+        IND_NAMES[k] = IND_NAMES[k].replace(mix.toLowerCase(), cityMix.toLowerCase());
+        IND_DESCS[k] = IND_DESCS[k].replace(COMPOSITE_FOOD_DESC[v], compositeFood[v]);
+      }
+    }
+    if (!o.overlay) continue;
+    const drop = STANDARD_DEST_POINTS[name] || [];
+    for (const ind of [name, `all_${o.variant}`]) {
+      const spec = DEST_OVERLAYS[ind];
+      if (!spec) continue;
+      const dest = (spec.dest || []).filter(d => !drop.includes(d));
+      DEST_OVERLAYS[ind] = { ...spec, dest: dest.length ? dest : undefined,
+                             custom: [...(spec.custom || []), name] };
+    }
+  }
+}
 let customIncludes = {};
 let customShareApplied = false;
 function applyCustomIndicators(manifest) {
@@ -877,6 +951,7 @@ function applyCustomIndicators(manifest) {
     if (STANDARD_INDS.includes(k)) continue;
     delete IND_NAMES[k]; delete IND_DESCS[k]; delete DEST_OVERLAYS[k];
   }
+  applyStandardOverrides(manifest);
   customIncludes = {};
   for (const ci of (manifest.custom_indicators || [])) {
     const single = ci.strict === ci.lenient;
@@ -3801,7 +3876,10 @@ if (tour && !localStorage.getItem('cyclingValidationTourSeen')) {
 
 // The standard vocabulary, captured before any city is loaded:
 // applyCustomIndicators() adds each city's own measures to CONCEPTS / IND_NAMES.
-const CMP_CONCEPTS = Object.fromEntries(STANDARD_CONCEPTS.map(k => [k, CONCEPTS[k]]));
+// copies with the standard labels: the map's CONCEPTS take the selected city's own
+// definitions (applyStandardOverrides), which must not relabel every city's results
+const CMP_CONCEPTS = Object.fromEntries(
+  STANDARD_CONCEPTS.map(k => [k, { ...CONCEPTS[k], opts: { ...STANDARD_OPTS[k] } }]));
 const CMP_IND_NAMES = Object.fromEntries(STANDARD_INDS.map(k => [k, IND_NAMES[k]]));
 const CMP_TYPES = {
   access: { label: 'Access within distance', unit: '% of population' },
@@ -3898,6 +3976,36 @@ function cmpToday() {
 }
 function cmpCities() {
   return [...CITY_SLUGS].sort((a, b) => manifests[a].name.localeCompare(manifests[b].name));
+}
+// A city that redefines a standard destination (manifest.standard_overrides, e.g.
+// Helsinki's strict fresh food also counting convenience stores) is marked † wherever
+// a compared indicator depends on it: the destination itself, the combined measure of
+// its variant and the activity centres built from that variant.
+function cmpRedefinition(s, cat) {
+  for (const [name, o] of Object.entries(manifests[s].standard_overrides || {}))
+    if (o.label && [name, `all_${o.variant}`, COMPOSITE_TIER[o.variant]].includes(cat))
+      return { name, ...o };
+  return null;
+}
+function cmpCityName(s, cat) {
+  return manifests[s].name + (cmpRedefinition(s, cat) ? ' †' : '');
+}
+// footnotes explaining each † among the given cities and indicator categories
+function cmpRedefinitionNotes(cities, cats) {
+  const notes = new Map();
+  for (const s of cities)
+    for (const cat of cats) {
+      const o = cmpRedefinition(s, cat);
+      if (!o || notes.has(`${s}|${o.name}`)) continue;
+      const c = Object.values(CMP_CONCEPTS).find(c => c[o.variant] === o.name);
+      const what = c ? `${c.label.toLowerCase()} (${o.variant})` : o.name;
+      const standard = c ? ` in place of the standard definition (${c.opts[o.variant]})` : '';
+      notes.set(`${s}|${o.name}`,
+        `† ${manifests[s].name} counts ${o.label} for ${what}${standard}, ` +
+        'including in the measures built from it. ' +
+        'Results under the standard definition, where provided, are among its city-specific measures.');
+    }
+  return [...notes.values()];
 }
 
 // destination category -> what it is, from the standard set or city s's own measures.
@@ -4102,11 +4210,17 @@ function renderCompareTable() {
         const v = cmpRowValue(r, s);
         const why = r.slug && s !== r.slug ? `City-specific measure for ${r.city} only`
           : `Not available for ${manifests[s].name}`;
+        const own = !r.custom && cmpRedefinition(s, r.cat);
+        const title = own ? ` title="${cmpEsc(`${manifests[s].name}'s own definition: ${own.label}`)}"` : '';
         return v === null
           ? `<td${cls(s, 'na')} title="${cmpEsc(why)}">—</td>`
-          : `<td${cls(s)} style="${cmpShade(r, v, ranges.get(key))}">${pct ? v.toFixed(1) : Math.round(v).toLocaleString('en')}</td>`;
+          : `<td${cls(s)}${title} style="${cmpShade(r, v, ranges.get(key))}">${pct ? v.toFixed(1) : Math.round(v).toLocaleString('en')}${own ? ' †' : ''}</td>`;
       }).join('') + '</tr>');
   }
+  const notes = cmpRedefinitionNotes(cities, [...new Set(rows.filter(r => !r.custom).map(r => r.cat))]);
+  if (notes.length)
+    body.push(`<tr class="grp"><td colspan="${1 + cities.length}">` +
+      notes.map(n => `<span class="cmp-city">${cmpEsc(n)}</span>`).join('<br>') + '</td></tr>');
   $('cmpTable').innerHTML = head + `<tbody>${body.join('')}</tbody>`;
   $('cmpCount').textContent =
     `${nPerm} indicator${nPerm === 1 ? '' : 's'} (${rows.length} row${rows.length === 1 ? '' : 's'}) × ${cities.length} cities`;
@@ -4182,15 +4296,16 @@ const RK_DIMS = { measure: ['avg', 'extra'], variant: ['strict', 'lenient'], net
 function rkAvailable(fixed) { return pickAvailable(rk, fixed, RK_DIMS, rkHas); }
 function rkFix(keep) { pickFix(rk, RK_DIMS, rkHas, keep); }
 function rankingData() {
-  const col = rkColumn(), have = [], missing = [];
+  const col = rkColumn(), have = [], missing = [], cat = cmpParseColumn(col).cat;
   for (const s of CITY_SLUGS) {
     const st = (manifests[s].grid_stats || {})[col];
-    if (st) have.push({ slug: s, name: manifests[s].name, st, pop: cmpValue(s, col) });
+    if (st) have.push({ slug: s, name: cmpCityName(s, cat), st, pop: cmpValue(s, col) });
     else missing.push(manifests[s].name);
   }
   have.sort((a, b) => a.st.med - b.st.med
     || (a.pop ?? Infinity) - (b.pop ?? Infinity) || a.name.localeCompare(b.name));
-  return { col, have, missing: missing.sort() };
+  return { col, have, missing: missing.sort(),
+           notes: cmpRedefinitionNotes(have.map(h => h.slug), [cat]) };
 }
 function rkNiceMax(v) {
   const raw = Math.max(v, 1) / 6, mag = 10 ** Math.floor(Math.log10(raw));
@@ -4221,7 +4336,7 @@ function rkTipLines(h) {
     `${s.n.toLocaleString('en')} grid cells with a value`,
   ];
 }
-function rankingSVG({ col, have, missing }) {
+function rankingSVG({ col, have, missing, notes = [] }) {
   const { W, L, R, top, row } = RK;
   const d = describeColumn(col);
   const title = d.type === 'extra'
@@ -4293,6 +4408,12 @@ function rankingSVG({ col, have, missing }) {
   if (missing.length) {
     y += 4;
     for (const line of rkWrap(`Not available for: ${missing.join(', ')}`, 150)) {
+      o.push(t(16, y, line, `font-size="11" fill="${RK.muted}"`)); y += 15;
+    }
+  }
+  for (const note of notes) {
+    y += 4;
+    for (const line of rkWrap(note, 150)) {
       o.push(t(16, y, line, `font-size="11" fill="${RK.muted}"`)); y += 15;
     }
   }
@@ -4418,7 +4539,8 @@ function contrastData() {
   const cols = ctColumns().filter(c => cmpValue(ct.city, c) !== null);
   const others = CITY_SLUGS.filter(s => s !== ct.city);
   const rows = cols.map(col => {
-    const vals = others.map(s => ({ slug: s, name: manifests[s].name, v: cmpValue(s, col) }))
+    const vals = others.map(s => ({ slug: s, name: cmpCityName(s, cmpParseColumn(col).cat),
+                                    v: cmpValue(s, col) }))
       .filter(c => c.v !== null);
     // summarised over every studied city with a result, the selected city included, so
     // the median and range stay the same whichever city is selected
@@ -4429,7 +4551,8 @@ function contrastData() {
   const missing = others.filter(s => cols.every(c => cmpValue(s, c) === null))
     .map(s => manifests[s].name).sort();
   const d = rows[0].d;
-  return { rows, missing, d, pct: d.type === 'access' || d.type === 'dmgap' };
+  const notes = cmpRedefinitionNotes([ct.city, ...others], [...new Set(cols.map(c => cmpParseColumn(c).cat))]);
+  return { rows, missing, d, notes, pct: d.type === 'access' || d.type === 'dmgap' };
 }
 function contrastSVG(data) {
   const W = 960, L = 130, R = 40, pw = W - L - R, row = 54;
@@ -4500,6 +4623,11 @@ function contrastSVG(data) {
   y += 15;
   if (data.missing.length) {
     for (const line of rkWrap(`No result for this indicator: ${data.missing.join(', ')}`, 150)) {
+      o.push(t(16, y, line, `font-size="11" fill="${RK.muted}"`)); y += 15;
+    }
+  }
+  for (const note of data.notes || []) {
+    for (const line of rkWrap(note, 150)) {
       o.push(t(16, y, line, `font-size="11" fill="${RK.muted}"`)); y += 15;
     }
   }
